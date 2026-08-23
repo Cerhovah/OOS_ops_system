@@ -294,13 +294,13 @@ export class AppRepository {
     );
   }
 
-  async updateEntry(entryId: string, amount: number, note: string | null): Promise<void> {
+  async updateEntry(entryId: string, amount: number | null, note: string | null): Promise<void> {
     const target = await this.db.getFirstAsync<Row>('SELECT type FROM entries WHERE id = ?', entryId);
     if (!target) throw new Error('수정할 기록을 찾을 수 없습니다.');
     const type = text(target, 'type') as ItemType;
-    const duration = type === 'time' ? Math.round(amount) : null;
+    const duration = type === 'time' ? Math.round(amount ?? 0) : null;
     const value = type === 'numeric' || type === 'event' ? amount : null;
-    const count = type === 'completion' || type === 'count' ? Math.round(amount) : null;
+    const count = type === 'completion' || type === 'count' ? Math.round(amount ?? 0) : null;
     await this.db.runAsync(
       `UPDATE entries SET duration_min=?, value=?,
        count=CASE WHEN type='time' THEN count ELSE ? END,
@@ -413,7 +413,24 @@ export class AppRepository {
   }
 
   async restoreItem(itemId: string): Promise<void> {
-    await this.db.runAsync('UPDATE items SET deleted_at=NULL,updated_at=? WHERE id=?', new Date().toISOString(), itemId);
+    const now = new Date().toISOString();
+    await this.db.withExclusiveTransactionAsync(async (txn) => {
+      const item = await txn.getFirstAsync<{ deletedAt: string | null }>(
+        'SELECT deleted_at AS deletedAt FROM items WHERE id=?',
+        itemId,
+      );
+      if (!item) return;
+
+      await txn.runAsync('UPDATE items SET deleted_at=NULL,updated_at=? WHERE id=?', now, itemId);
+      if (item.deletedAt) {
+        await txn.runAsync(
+          'UPDATE item_schedules SET deleted_at=NULL,updated_at=? WHERE item_id=? AND deleted_at=?',
+          now,
+          itemId,
+          item.deletedAt,
+        );
+      }
+    });
   }
 
   async saveAccount(input: { id?: string; name: string; kind: string | null; color: string | null }): Promise<string> {

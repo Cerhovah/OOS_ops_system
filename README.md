@@ -1,75 +1,65 @@
-# OOS_ops_system
+# OOS Ops
 
-자신의 168시간, 프로젝트, 성과, 컨디션과 계획 변경을 직접 지휘하는 개인 운영체제입니다. 앱은 계획과 실제를 계산하는 회계사이고, AI는 데이터를 분석해 선택지를 제안하는 참모입니다. 저장·변경·적용의 결정권은 사용자에게 있습니다.
+자신의 168시간, 기록, 프로젝트와 계획 변경을 직접 지휘하는 Expo/React Native 로컬 우선 앱입니다. 현재 범위는 Phase 1이며, 데이터의 진실 원천은 기기 안의 SQLite입니다.
 
 ## 현재 상태
 
-- Phase 1 구현 전 문서 계획 단계
-- 애플리케이션 코드와 `package.json` 없음
-- Phase 1 AC-1~AC-18 구현 계획 및 검증 계획 작성 완료
-- 사용자 승인 전에는 애플리케이션 구현을 시작하지 않음
-- 현재 사용자 결정 항목: `docs/QUESTIONS.md` Q-001(실기기 검증 대상)
+- Phase 1 AC-1~AC-18 구현 완료, Android 실기기 게이트 검증 중
+- 기존 Android development APK에서 한국어 앱 화면과 아이콘 콜드 스타트 확인
+- TypeScript, ESLint, 36개 자동 테스트, 의존성 검사, Android JS bundle 통과
+- Phase 2의 Supabase 동기화·인증은 시작하지 않았으며 현재 앱에서 비활성화
 
-따라서 지금은 앱을 실행하거나 개발 빌드를 만들 수 없습니다. 승인 후 프로젝트를 초기화하면 아래 절차를 실제 스크립트와 검증된 명령으로 갱신합니다.
+상세 상태와 실제 결과는 `docs/PLAN.md`, `docs/TESTPLAN.md`, `docs/evidence/phase1-android-2026-08-23.md`에서 확인합니다.
 
-## 기술 스택
+## 요구 환경
 
-- Expo / React Native / Expo Router
-- expo-sqlite 기반 로컬 우선 저장
-- expo-notifications 기반 로컬 예약 알림
-- Supabase 동기화 및 백업(Phase 2)
-- Telegram Bot 보조 입력(Phase 3)
-- 제공자 중립 AI 분석 서비스(Phase 4)
+- Node.js `24.19.x`
+- npm `11.17.x`
+- Android 최종 검증: 설치된 development build와 실기기
 
-## 실행 방법
+## 실행
 
-Phase 1 초기화 후 사용할 예정인 개발 흐름입니다. 현재 저장소에서는 아직 실행하지 않습니다.
+의존성이 이미 설치된 현재 개발 환경에서는 `mobile` 디렉터리에서 실행합니다.
 
-1. Node.js와 프로젝트에서 확정할 패키지 관리자를 준비합니다.
-2. 의존성을 설치합니다.
-3. 개발 빌드를 기기에 설치합니다.
-4. Expo 개발 서버를 dev-client 모드로 시작합니다.
-5. 설치된 앱 아이콘으로 실행하고 개발 서버에 연결합니다.
+```powershell
+cd mobile
+npx expo start --dev-client --tunnel
+```
 
-정확한 설치·실행·테스트 명령과 지원 Node.js 버전은 초기화 ADR 및 `package.json`이 생긴 뒤 이 절에 기록합니다. Expo Go는 편의 확인에만 사용할 수 있고, Phase 1 완료 증빙에는 개발 빌드와 실기기가 필요합니다.
+현재 복구 세션에서는 Metro tunnel과 기존 APK를 그대로 사용합니다. 캐시·서버 장애가 실제로 재현되지 않는 한 재설치, 재빌드, `npm ci`, EAS 재연결을 반복하지 않습니다.
 
-## 개발 빌드 방법
+## 자동 검증
 
-- Android: Q-001에서 정한 Android 기기와 로컬 또는 EAS development build 경로를 사용합니다.
-- iOS: Q-001에서 iPhone을 정한 경우 서명 가능한 macOS/EAS development build 경로와 사용자 개발자 계정 조건을 확인합니다.
-- 알림 최종 검증: 앱을 완전히 종료한 상태의 로컬 알림 탭, `/today/close` 콜드 스타트 딥링크, Android 채널·권한·재예약을 확인합니다.
+```powershell
+cd mobile
+npm run typecheck
+npm run lint
+npm run test:coverage
+npm run deps:check
+npm run bundle:android
+```
 
-빌드 프로필, 앱 식별자, 서명 방식은 구현 승인 후 기술 결정과 사용자 기기 조건이 확정될 때 추가합니다.
+전체 묶음은 `npm run verify`로 실행할 수 있습니다. `expo-doctor`는 Phase 1 게이트에서 21/21 통과한 상태입니다.
 
-## 환경변수와 비밀값
+## 개발 빌드
 
-Phase 1 로컬 기능에는 외부 서비스 환경변수가 필요하지 않습니다. 후속 Phase의 값은 해당 단계 승인 전에는 만들거나 저장소에 넣지 않습니다.
+현재 Android development APK는 이미 설치되어 있어 Phase 1 검증 중에는 다시 만들지 않습니다. 새 기기나 native dependency 변경으로 실제 재빌드가 필요할 때만 `mobile/eas.json`의 `development` 프로필과 EAS Build를 사용합니다. 이는 빌드 시간이나 서비스 사용량이 들 수 있으므로 사용자와 필요성을 확인한 뒤 수행합니다.
 
-| Phase | 값 | 저장 위치/정책 | 현재 상태 |
-|---|---|---|---|
-| 1 | 없음 | SQLite와 로컬 알림만 사용 | 해당 없음 |
-| 2 | Supabase URL, 클라이언트 공개 키 | 앱 환경 설정. 변수명은 Phase 2 ADR에서 확정 | 미정·미사용 |
-| 3 | Telegram bot token, 허용 chat_id | 서버 환경변수 전용. 앱 번들 금지 | 미정·미사용 |
-| 4 | AI 제공자·모델·API 키 | 기기 키는 보안 저장소, 서버 키는 서버 환경변수 | 미정·미사용 |
+## 데이터와 환경변수
 
-토큰·개인 키·서비스 역할 키는 코드, 문서, 커밋, 앱 번들에 넣지 않습니다. 예시 파일을 만들 때도 실제 값은 포함하지 않습니다.
+- Phase 1 데이터: `expo-sqlite` 로컬 DB
+- 알림: `expo-notifications` 로컬 예약 알림
+- 내보내기: 전체 JSON, 테이블별 CSV
+- Phase 1 외부 서비스 환경변수: 없음
 
-## 개발 작업 순서
-
-1. `docs/SPEC.md` 전체와 특히 §1, §2, §3, §10, 현재 Phase, §11, §12를 읽습니다.
-2. `docs/PLAN.md`에서 현재 단계·AC·게이트를 확인합니다.
-3. §10.4 정지 조건은 `docs/QUESTIONS.md`, 기술 내부 결정은 `docs/DECISIONS.md`에 기록합니다.
-4. 각 AC의 검증을 `docs/TESTPLAN.md`에 연결하고 결과·증빙을 남깁니다.
-5. 사용자 의미 변경은 `docs/CHANGELOG.md`, 명세 밖 제안은 `docs/FUTURE.md`에 기록합니다.
-
-Phase 1의 AC-1~AC-18과 §10.3 게이트를 모두 통과하고 사용자 기기에서 하루치 실제 기록을 완료해야 초안 v0.1 완성입니다.
+Supabase, Telegram, AI 제공자 키는 후속 Phase 승인 전에는 필요하지 않으며 코드·문서·앱 번들에 넣지 않습니다.
 
 ## 문서
 
-- `docs/SPEC.md`: 제품 명세, 불변조건, 단계, 수용 기준의 기준 문서
-- `docs/PLAN.md`: 현재 단계, AC별 구현 계획, 게이트 증빙
-- `docs/DECISIONS.md`: 자율 기술 결정 ADR
-- `docs/QUESTIONS.md`: 현재 사용자 결정이 필요한 정지 항목
-- `docs/CHANGELOG.md`: 제품·범위·계획 변경 이력
-- `docs/TESTPLAN.md`: AC별 검증 방법과 실행 결과
-- `docs/FUTURE.md`: 현재 승인 범위 밖의 후보
+- `docs/SPEC.md`: 제품 명세와 수용 기준
+- `docs/PLAN.md`: 현재 Phase와 게이트 상태
+- `docs/TESTPLAN.md`: AC별 자동·실기기 결과
+- `docs/DECISIONS.md`: 기술 결정
+- `docs/QUESTIONS.md`: 사용자 결정이 필요한 항목
+- `docs/CHANGELOG.md`: 사용자에게 의미 있는 변경
+- `docs/FUTURE.md`: 승인 범위 밖 후보

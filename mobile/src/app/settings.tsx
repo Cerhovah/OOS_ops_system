@@ -37,8 +37,8 @@ function nullable(value: string): number | null {
   return value.trim() === '' ? null : Number(value);
 }
 
-function amountOf(entry: Entry): number {
-  return entry.durationMin ?? entry.value ?? entry.count ?? 0;
+function amountOf(entry: Entry): number | null {
+  return entry.durationMin ?? entry.value ?? entry.count;
 }
 
 export default function SettingsScreen() {
@@ -194,8 +194,8 @@ export default function SettingsScreen() {
 
   async function updateEntry() {
     if (!entryForm) return;
-    const value = Number(entryValue);
-    if (!Number.isFinite(value)) return;
+    const value = entryForm.type === 'event' && entryValue.trim() === '' ? null : Number(entryValue);
+    if (value !== null && !Number.isFinite(value)) return;
     await app.updateEntry(entryForm.id, value, entryNote.trim() || null);
     setEntryForm(null);
   }
@@ -290,14 +290,14 @@ export default function SettingsScreen() {
             return (
               <Card key={entry.id}>
                 <Text style={textStyles.title}>{item?.name ?? '삭제된 항목'}</Text>
-                <Text style={textStyles.body}>{entry.type} · {amountOf(entry)} · {dateKey(new Date(entry.occurredAt))}</Text>
+                <Text style={textStyles.body}>{entry.type} · {amountOf(entry) ?? '—'} · {dateKey(new Date(entry.occurredAt))}</Text>
                 <View style={styles.actions}>
                   <AppButton
                     label="수정"
                     variant="secondary"
                     onPress={() => {
                       setEntryForm(entry);
-                      setEntryValue(String(amountOf(entry)));
+                      setEntryValue(amountOf(entry)?.toString() ?? '');
                       setEntryNote(entry.note ?? '');
                     }}
                   />
@@ -311,7 +311,7 @@ export default function SettingsScreen() {
         <Section title="삭제된 데이터 복구">
           {deletedEntries.map((entry) => (
             <Card key={entry.id}>
-              <Text style={textStyles.body}>기록 · {app.snapshot.items.find((item) => item.id === entry.itemId)?.name ?? entry.itemId} · {amountOf(entry)}</Text>
+              <Text style={textStyles.body}>기록 · {app.snapshot.items.find((item) => item.id === entry.itemId)?.name ?? entry.itemId} · {amountOf(entry) ?? '—'}</Text>
               <AppButton label="기록 복구" variant="secondary" onPress={() => void app.restoreEntry(entry.id)} />
             </Card>
           ))}
@@ -438,7 +438,11 @@ export default function SettingsScreen() {
       <Sheet visible={entryForm !== null} title="기록 수정" onClose={() => setEntryForm(null)}>
         <Field label="값" value={entryValue} onChangeText={setEntryValue} keyboardType="decimal-pad" />
         <Field label="메모" value={entryNote} onChangeText={setEntryNote} multiline />
-        <AppButton label="수정 저장" onPress={() => void updateEntry()} disabled={!Number.isFinite(Number(entryValue))} />
+        <AppButton
+          label="수정 저장"
+          onPress={() => void updateEntry()}
+          disabled={(entryForm?.type !== 'event' && entryValue.trim() === '') || (entryValue.trim() !== '' && !Number.isFinite(Number(entryValue)))}
+        />
       </Sheet>
     </>
   );

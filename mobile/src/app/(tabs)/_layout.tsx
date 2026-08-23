@@ -1,9 +1,14 @@
 import { Tabs, router } from 'expo-router';
-import { Pressable, Text } from 'react-native';
+import { Pressable, Text, useWindowDimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { accessibleTabBarHeight } from '@/components/layout';
 import { COLORS } from '@/constants/app';
 
 export default function TabsLayout() {
+  const { fontScale } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+
   return (
     <Tabs
       screenOptions={{
@@ -17,8 +22,12 @@ export default function TabsLayout() {
           </Pressable>
         ),
         tabBarActiveTintColor: COLORS.accent,
+        tabBarAllowFontScaling: true,
         tabBarInactiveTintColor: COLORS.muted,
-        tabBarStyle: { minHeight: 64, paddingBottom: 8, paddingTop: 6 },
+        tabBarStyle: {
+          height: accessibleTabBarHeight(fontScale, insets.bottom),
+          paddingTop: 6,
+        },
         tabBarIcon: () => null,
         tabBarLabelStyle: { fontSize: 13, fontWeight: '700' },
       }}>

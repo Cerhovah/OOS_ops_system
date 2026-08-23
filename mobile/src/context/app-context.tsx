@@ -47,7 +47,7 @@ interface AppContextValue {
   startTimer: (item: Item) => Promise<void>;
   stopTimer: (entry: Entry) => Promise<void>;
   createEntry: (item: Item, amount: number | null, note?: string | null) => Promise<void>;
-  updateEntry: (entryId: string, amount: number, note: string | null) => Promise<void>;
+  updateEntry: (entryId: string, amount: number | null, note: string | null) => Promise<void>;
   deleteEntry: (entryId: string) => Promise<void>;
   restoreEntry: (entryId: string) => Promise<void>;
   saveItem: (input: ItemInput) => Promise<string>;
@@ -204,7 +204,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         mutate(async () => {
           await repository.setSetting(key, settingValue);
           if (key.startsWith('close_notification') || key === 'notification_always' || key.startsWith('item_notification:')) {
-            await ensureNotificationSchedule(repository, false, snapshot.items, snapshot.schedules);
+            const today = dateKey(new Date());
+            const todayClosed = snapshot.closures.some((closure) => closure.date === today);
+            await ensureNotificationSchedule(repository, todayClosed, snapshot.items, snapshot.schedules);
           }
         }),
       getWeeklyComment: (weekStart) => repository.getWeeklyComment(weekStart),
@@ -224,7 +226,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       requestNotifications: () =>
         mutate(async () => {
           const granted = await requestNotificationPermission(repository);
-          if (granted) await ensureNotificationSchedule(repository, false, snapshot.items, snapshot.schedules);
+          if (granted) {
+            const today = dateKey(new Date());
+            const todayClosed = snapshot.closures.some((closure) => closure.date === today);
+            await ensureNotificationSchedule(repository, todayClosed, snapshot.items, snapshot.schedules);
+          }
           return granted;
         }, false),
       resetAllData: () => mutate(() => repository.resetAllData()),

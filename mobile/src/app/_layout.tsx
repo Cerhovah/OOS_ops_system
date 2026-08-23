@@ -30,9 +30,6 @@ export default function RootLayout() {
         <SQLiteProvider
           databaseName={DATABASE_NAME}
           onInit={migrateDatabase}
-          onError={(error) => {
-            throw error;
-          }}
           useSuspense>
           <AppProvider>
             <Navigation />

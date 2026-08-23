@@ -20,6 +20,7 @@ describe('Phase 1 seed manifest', () => {
       '착륙·저자극 전환',
       '미예약 버퍼',
     ]);
+    expect(accountSeeds.map((seed) => seed[5] / 60)).toEqual([49, 4, 9, 13, 4, 15, 24, 15, 13, 2, 4, 6, 4, 6]);
     expect(accountSeeds.reduce((total, seed) => total + seed[5], 0)).toBe(168 * 60);
   });
 
@@ -35,7 +36,24 @@ describe('Phase 1 seed manifest', () => {
       '체중',
     ]);
     expect(projectSeeds.map((seed) => seed[1])).toEqual(['2027 편입', 'AI 제품 실험']);
-    expect(kpiSeeds.length).toBe(8);
+    expect(kpiSeeds.map((seed) => seed[3])).toEqual([
+      '문제풀이 세트',
+      '오답 재풀이율',
+      '모의점수',
+      '배포됨',
+      '고유 사용자',
+      '재방문 사용자',
+      '유료 사용자',
+      '매출',
+    ]);
+    expect(itemSeeds.find((seed) => seed[0] === 'seed-item-study')?.slice(4, 10)).toEqual([
+      'time', null, 120, 240, 270, 60,
+    ]);
+    expect(itemSeeds.find((seed) => seed[0] === 'seed-item-exercise')?.slice(4, 11)).toEqual([
+      'time', null, null, 60, 90, 60, 1,
+    ]);
+    expect(itemSeeds.find((seed) => seed[0] === 'seed-item-payment')?.slice(4, 6)).toEqual(['event', 'KRW']);
+    expect(itemSeeds.find((seed) => seed[0] === 'seed-item-weight')?.slice(4, 6)).toEqual(['numeric', 'kg']);
   });
 
   it('uses the specified Monday/Tuesday and commute weekday masks without duplicates', () => {

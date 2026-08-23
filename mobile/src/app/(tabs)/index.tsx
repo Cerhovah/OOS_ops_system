@@ -85,8 +85,8 @@ export default function TodayScreen() {
 
   async function submitRecord() {
     if (!recordItem) return;
-    const parsed = Number(amount);
-    if (!Number.isFinite(parsed)) {
+    const parsed = recordItem.type === 'event' && amount.trim() === '' ? null : Number(amount);
+    if (parsed !== null && !Number.isFinite(parsed)) {
       Alert.alert('입력 확인', '숫자를 입력하십시오.');
       return;
     }
@@ -213,9 +213,18 @@ export default function TodayScreen() {
       </Sheet>
 
       <Sheet visible={recordItem !== null} title={recordItem ? `${recordItem.name} 기록` : '기록'} onClose={() => setRecordItem(null)}>
-        <Field label={recordItem ? amountLabel(recordItem) : '값'} value={amount} onChangeText={setAmount} keyboardType="decimal-pad" />
+        <Field
+          label={recordItem?.type === 'event' ? `${amountLabel(recordItem)}(선택)` : recordItem ? amountLabel(recordItem) : '값'}
+          value={amount}
+          onChangeText={setAmount}
+          keyboardType="decimal-pad"
+        />
         <Field label="메모(선택)" value={note} onChangeText={setNote} multiline />
-        <AppButton label="기록 저장" onPress={() => void submitRecord()} disabled={amount.trim() === '' || app.busy} />
+        <AppButton
+          label="기록 저장"
+          onPress={() => void submitRecord()}
+          disabled={(recordItem?.type !== 'event' && amount.trim() === '') || app.busy}
+        />
       </Sheet>
     </>
   );
