@@ -14,6 +14,7 @@ import {
   Sheet,
   StatusBanner,
   textStyles,
+  TimeField,
 } from '@/components/ui';
 import { useApp } from '@/context/app-context';
 import { dateKey } from '@/domain/calculations';
@@ -229,8 +230,8 @@ export default function SettingsScreen() {
         <Section title="시간과 알림">
           <Card>
             <Text style={textStyles.body}>주 시작 요일: 월요일</Text>
-            <Field label="하루 종료 시각" value={dayEnd} onChangeText={setDayEnd} placeholder="23:00" />
-            <Field label="오늘 종료 알림" value={notificationTime} onChangeText={setNotificationTime} placeholder="21:30" />
+            <TimeField label="하루 종료 시각" value={dayEnd} onChange={setDayEnd} />
+            <TimeField label="오늘 종료 알림" value={notificationTime} onChange={setNotificationTime} />
             <ChoiceRow
               label="오늘 종료 알림 사용"
               choices={[{ value: '1', label: '사용' }, { value: '0', label: '사용 안 함' }]}
@@ -254,6 +255,13 @@ export default function SettingsScreen() {
               label="알림 권한 다시 요청"
               variant="secondary"
               onPress={() => void app.requestNotifications().then((granted) => Alert.alert('알림 권한', granted ? '허용됨' : '허용되지 않음'))}
+            />
+            <AppButton
+              label="30초 뒤 테스트 알림"
+              variant="secondary"
+              onPress={() => void app.testNotification()
+                .then(() => Alert.alert('알림 테스트', '30초 뒤 일회성 알림을 예약했습니다. 반복 알림 설정은 변경하지 않습니다.'))
+                .catch(() => undefined)}
             />
           </Card>
         </Section>

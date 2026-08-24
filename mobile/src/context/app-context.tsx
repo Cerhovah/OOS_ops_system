@@ -8,6 +8,7 @@ import {
   cancelTimerLimitNotification,
   ensureNotificationSchedule,
   requestNotificationPermission,
+  scheduleTestNotification,
   scheduleTimerLimitNotification,
 } from '@/services/notifications';
 import type {
@@ -87,6 +88,7 @@ interface AppContextValue {
   exportJson: () => Promise<void>;
   exportCsv: (tableName: string) => Promise<void>;
   requestNotifications: () => Promise<boolean>;
+  testNotification: () => Promise<string>;
   resetAllData: () => Promise<void>;
 }
 
@@ -233,6 +235,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           }
           return granted;
         }, false),
+      testNotification: () => mutate(() => scheduleTestNotification(repository), false),
       resetAllData: () => mutate(() => repository.resetAllData()),
     }),
     [busy, error, loading, mutate, refresh, repository, snapshot],

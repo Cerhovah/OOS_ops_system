@@ -43,13 +43,13 @@
 |---|---|---|
 | TypeScript | `npm.cmd run typecheck` | 통과, exit 0 |
 | ESLint | `npm.cmd run lint` | 통과, exit 0, warning 0 |
-| 테스트·커버리지 | `npm.cmd run test:coverage` | 7 files, 36 tests 모두 통과 |
+| 테스트·커버리지 | `npm.cmd run test:coverage` | 8 files, 40 tests 모두 통과 |
 | 도메인 statements | Vitest v8 coverage | 99.05% |
 | 도메인 branches | Vitest v8 coverage | 92.85% |
 | 도메인 functions | Vitest v8 coverage | 100% |
 | 도메인 lines | Vitest v8 coverage | 100% |
 | 의존성 일치 | `npm.cmd run deps:check` | `Dependencies are up to date` |
-| Android JS bundle | `npm.cmd run bundle:android` | 통과, 1370 modules, Hermes bytecode 3.1MB |
+| Android JS bundle | `npm.cmd run bundle:android` | 통과, 1371 modules, Hermes bytecode 3.1MB |
 | expo-doctor | 사용자 실행 결과 | 21/21 통과 |
 
 ## 추가 자동 통합 검증
@@ -88,7 +88,30 @@
 | 계정 보관 해제 | TP-AC-02 / AC-2 | `수면` 보관 해제 | 활성 상태 복원 | `사용 중`·`보관` 확인 | 통과 |
 | 계정 삭제 확인 | TP-AC-02 / AC-2 | `수면` 계정 삭제 선택 | 소프트 삭제·연결 기록 보존 안내 | 정확한 확인 문구 노출 | 부분 통과(실제 삭제는 자동 검증 전환으로 중지) |
 | 빠른 기록·타이머 | TP-AC-03·05 / AC-3·5 | 코디세이 완료, 편입 수동 1m, 타이머 시작 뒤 앱 완전 종료·아이콘 재실행·정지 | 1탭 기록, 진행 타이머 DB 복원과 중복 0 | 코디세이 2회, 편입 1m, 재실행 후 타이머 정상 유지, 정지 정상 | 통과 |
+| 종료·계획·프로젝트·공유 | TP-AC-07~12·15 / AC-7~12·15 | 남은 묶음 흐름 수행 | 각 화면 저장·복원·공유 정상 | 실제 알림과 비행기 모드·최종 화면 외 모두 정상이라고 사용자 종합 확인 | 통과 |
+| 실제 알림 1차 | TP-AC-13·14 / AC-13·14 | DAILY 시각 임시 변경, 앱 종료, 재예약 | 알림 수신·탭으로 오늘 종료 진입, 같은 날 새 예약 시험 가능 | 첫 알림 수신 후 탭 완료 실패, 변경한 두 번째 시각에는 미수신 | 실패·보강 후 재시험 |
+| 실제 알림 2차 | TP-AC-13·14 / AC-13·14 | 버튼식 시각 UI 확인, 30초 독립 알림, 본문 탭, 잠금화면 | 수신·오늘 종료 이동·잠금 상태 알림 | 버튼 UI·수신·본문 탭 이동 정상, 잠금화면에서 소리 없음 | 부분 통과·채널 v2 수정 후 재시험 |
+| 최종 알림·오프라인 | TP-AC-13·14·16 / AC-13·14·16 | v2 채널 잠금화면 알림과 비행기 모드 기록·재시작 보존 | 잠금 상태 알림 동작·오프라인 데이터 보존 | 사용자가 두 검증 모두 완료했다고 확인 | 통과 |
+
+## 실제 알림 1차 실패 진단과 보강
+
+- Expo SDK 57 문서상 DAILY는 예약 하나가 지정 시각에 하루 한 번 반복되는 트리거다. 앱 전체가 하루 한 알림으로 제한되는 것은 아니며, 별도 일회성 알림은 같은 날 여러 번 예약할 수 있다.
+- 반복 일정을 취소·재생성하는 방식은 실제 기능에는 맞지만 짧은 수동 시험에는 시각 입력·저장 지연·종료 상태가 섞여 원인 분리가 어렵다.
+- 기존 notification handler의 `shouldPlaySound:false`는 Android에서 채널 priority와 무관하게 상단 drop-down 표시를 막을 수 있다는 SDK 57 주의사항과 충돌했다. 이를 `true`로 바꾸고 content와 HIGH 채널에 기본 sound/priority를 명시했다.
+- `daily_close` category와 `오늘 종료 열기` action을 추가했다. 알림 본문 탭과 action 모두 기존 `data.url=/today/close` 라우팅을 사용한다.
+- 처리한 마지막 알림 응답을 `clearLastNotificationResponseAsync`로 지워 재실행 때 오래된 응답이 반복 적용되지 않게 했다.
+- 반복 예약과 별개인 30초 TIME_INTERVAL 테스트 알림을 추가했다. 하루에 두 번 호출해 서로 다른 두 예약이 생성되고 daily 예약 ID는 바뀌지 않는 자동 테스트를 통과했다.
+- 하루 종료 시각과 알림 시각은 직접 문자열 입력 대신 시·분 버튼형 선택 UI로 변경했다. 5분 단위 선택과 ±1분 미세 조정을 제공한다.
+- 2차 실기기에서 시각 버튼, 30초 알림 수신, 본문 탭 후 오늘 종료 이동은 통과했다.
+- 잠금화면에서 알림음이 나지 않았다. Android는 생성된 알림 채널의 sound와 importance를 앱이 나중에 변경할 수 없으므로, 기존 `daily-records`를 덮어쓰지 않고 `daily-records-v2`를 새로 만들었다. 새 채널은 HIGH, 기본 sound, 진동, PUBLIC 잠금화면 표시를 처음부터 설정한다.
+- 방해금지·휴대폰 무음·사용자가 바꾼 시스템 채널 설정은 앱이 우회하지 않는다.
 
 ## 남은 사용자 실기기 검증
 
-자동 검증으로 반복적인 CRUD·DB 대조를 대체해, 사용자가 직접 확인할 범위를 6개 묶음으로 줄였다. 첫 묶음이 통과해 현재 5개가 남았다. 상세 동작은 `docs/TESTPLAN.md`의 `자동 감사 후 남은 실기기 묶음`을 따른다. 실제 Android OS가 필요한 알림, 공유 시트, 비행기 모드는 자동 결과만으로 완료 판정하지 않는다.
+없음. 2026-08-24 잠금화면 알림과 비행기 모드 검증까지 사용자 확인을 받아 Phase 1 실기기 게이트를 통과했다.
+
+## Git 체크포인트
+
+- 커밋: `560e621` (`test: complete phase 1 android validation`)
+- `main`과 `origin/main`: `560e621`
+- 태그: `v0.2-phase1.5` → `560e621`, origin에 게시 확인

@@ -4,10 +4,10 @@
 
 ## 현재 상태
 
-- Phase 1 AC-1~AC-18 구현 완료, Android 실기기 게이트 검증 중
+- Phase 1 AC-1~AC-18 구현·자동 검증·Android 실기기 게이트 통과, 최종 체크포인트 커밋 전
 - 기존 Android development APK에서 한국어 앱 화면과 아이콘 콜드 스타트 확인
-- TypeScript, ESLint, 36개 자동 테스트, 의존성 검사, Android JS bundle 통과
-- Phase 2의 Supabase 동기화·인증은 시작하지 않았으며 현재 앱에서 비활성화
+- TypeScript, ESLint, 40개 자동 테스트, 의존성 검사, Android JS bundle 통과
+- Phase 2의 Supabase 동기화·인증 계획은 승인됐지만 구현은 시작하지 않았으며 현재 앱에서 비활성화
 
 상세 상태와 실제 결과는 `docs/PLAN.md`, `docs/TESTPLAN.md`, `docs/evidence/phase1-android-2026-08-23.md`에서 확인합니다.
 
