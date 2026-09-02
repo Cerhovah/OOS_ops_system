@@ -5,7 +5,9 @@ export const DEFAULT_DAY_END_TIME = '23:00';
 export const DEFAULT_CLOSE_NOTIFICATION_TIME = '21:30';
 export const WEEKLY_MINUTES = 168 * 60;
 export const DATABASE_NAME = 'oos-ops.db';
-export const NOTIFICATION_CHANNEL_ID = 'daily-records';
+export const NOTIFICATION_CHANNEL_ID = 'daily-records-v2';
+export const NOTIFICATION_CATEGORY_ID = 'daily_close';
+export const NOTIFICATION_ACTION_ID = 'open_close';
 export const NOTIFICATION_ROUTE = '/today/close';
 
 export const COLORS = {

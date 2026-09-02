@@ -14,6 +14,7 @@ import {
   Sheet,
   StatusBanner,
   textStyles,
+  TimeField,
 } from '@/components/ui';
 import { useApp } from '@/context/app-context';
 import { useSync } from '@/context/sync-context';
@@ -39,8 +40,8 @@ function nullable(value: string): number | null {
   return value.trim() === '' ? null : Number(value);
 }
 
-function amountOf(entry: Entry): number {
-  return entry.durationMin ?? entry.value ?? entry.count ?? 0;
+function amountOf(entry: Entry): number | null {
+  return entry.durationMin ?? entry.value ?? entry.count;
 }
 
 export default function SettingsScreen() {
@@ -201,8 +202,8 @@ export default function SettingsScreen() {
 
   async function updateEntry() {
     if (!entryForm) return;
-    const value = Number(entryValue);
-    if (!Number.isFinite(value)) return;
+    const value = entryForm.type === 'event' && entryValue.trim() === '' ? null : Number(entryValue);
+    if (value !== null && !Number.isFinite(value)) return;
     await app.updateEntry(entryForm.id, value, entryNote.trim() || null);
     setEntryForm(null);
   }
@@ -249,8 +250,8 @@ export default function SettingsScreen() {
         <Section title="시간과 알림">
           <Card>
             <ChoiceRow label="주 시작 요일" choices={weekStartChoices} value={weekStartDay} onChange={setWeekStartDay} />
-            <Field label="하루 종료 시각" value={dayEnd} onChangeText={setDayEnd} placeholder="23:00" />
-            <Field label="오늘 종료 알림" value={notificationTime} onChangeText={setNotificationTime} placeholder="21:30" />
+            <TimeField label="하루 종료 시각" value={dayEnd} onChange={setDayEnd} />
+            <TimeField label="오늘 종료 알림" value={notificationTime} onChange={setNotificationTime} />
             <ChoiceRow
               label="오늘 종료 알림 사용"
               choices={[{ value: '1', label: '사용' }, { value: '0', label: '사용 안 함' }]}
@@ -274,6 +275,13 @@ export default function SettingsScreen() {
               label="알림 권한 다시 요청"
               variant="secondary"
               onPress={() => void app.requestNotifications().then((granted) => Alert.alert('알림 권한', granted ? '허용됨' : '허용되지 않음'))}
+            />
+            <AppButton
+              label="30초 뒤 테스트 알림"
+              variant="secondary"
+              onPress={() => void app.testNotification()
+                .then(() => Alert.alert('알림 테스트', '30초 뒤 일회성 알림을 예약했습니다. 반복 알림 설정은 변경하지 않습니다.'))
+                .catch(() => undefined)}
             />
           </Card>
         </Section>
@@ -373,14 +381,14 @@ export default function SettingsScreen() {
             return (
               <Card key={entry.id}>
                 <Text style={textStyles.title}>{item?.name ?? '삭제된 항목'}</Text>
-                <Text style={textStyles.body}>{entry.type} · {amountOf(entry)} · {dateKey(new Date(entry.occurredAt))}</Text>
+                <Text style={textStyles.body}>{entry.type} · {amountOf(entry) ?? '—'} · {dateKey(new Date(entry.occurredAt))}</Text>
                 <View style={styles.actions}>
                   <AppButton
                     label="수정"
                     variant="secondary"
                     onPress={() => {
                       setEntryForm(entry);
-                      setEntryValue(String(amountOf(entry)));
+                      setEntryValue(amountOf(entry)?.toString() ?? '');
                       setEntryNote(entry.note ?? '');
                     }}
                   />
@@ -394,7 +402,7 @@ export default function SettingsScreen() {
         <Section title="삭제된 데이터 복구">
           {deletedEntries.map((entry) => (
             <Card key={entry.id}>
-              <Text style={textStyles.body}>기록 · {app.snapshot.items.find((item) => item.id === entry.itemId)?.name ?? entry.itemId} · {amountOf(entry)}</Text>
+              <Text style={textStyles.body}>기록 · {app.snapshot.items.find((item) => item.id === entry.itemId)?.name ?? entry.itemId} · {amountOf(entry) ?? '—'}</Text>
               <AppButton label="기록 복구" variant="secondary" onPress={() => void app.restoreEntry(entry.id)} />
             </Card>
           ))}
@@ -529,7 +537,11 @@ export default function SettingsScreen() {
       <Sheet visible={entryForm !== null} title="기록 수정" onClose={() => setEntryForm(null)}>
         <Field label="값" value={entryValue} onChangeText={setEntryValue} keyboardType="decimal-pad" />
         <Field label="메모" value={entryNote} onChangeText={setEntryNote} multiline />
-        <AppButton label="수정 저장" onPress={() => void updateEntry()} disabled={!Number.isFinite(Number(entryValue))} />
+        <AppButton
+          label="수정 저장"
+          onPress={() => void updateEntry()}
+          disabled={(entryForm?.type !== 'event' && entryValue.trim() === '') || (entryValue.trim() !== '' && !Number.isFinite(Number(entryValue)))}
+        />
       </Sheet>
     </>
   );

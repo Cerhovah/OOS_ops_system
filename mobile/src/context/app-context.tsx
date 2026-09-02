@@ -8,6 +8,7 @@ import {
   cancelTimerLimitNotification,
   ensureNotificationSchedule,
   requestNotificationPermission,
+  scheduleTestNotification,
   scheduleTimerLimitNotification,
 } from '@/services/notifications';
 import type {
@@ -47,7 +48,7 @@ interface AppContextValue {
   startTimer: (item: Item) => Promise<void>;
   stopTimer: (entry: Entry) => Promise<void>;
   createEntry: (item: Item, amount: number | null, note?: string | null) => Promise<void>;
-  updateEntry: (entryId: string, amount: number, note: string | null) => Promise<void>;
+  updateEntry: (entryId: string, amount: number | null, note: string | null) => Promise<void>;
   deleteEntry: (entryId: string) => Promise<void>;
   restoreEntry: (entryId: string) => Promise<void>;
   saveItem: (input: ItemInput) => Promise<string>;
@@ -90,6 +91,7 @@ interface AppContextValue {
   exportJson: () => Promise<void>;
   exportCsv: (tableName: string) => Promise<void>;
   requestNotifications: () => Promise<boolean>;
+  testNotification: () => Promise<string>;
   resetAllData: () => Promise<void>;
 }
 
@@ -240,6 +242,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           }
           return granted;
         }, false),
+      testNotification: () => mutate(() => scheduleTestNotification(repository), false),
       resetAllData: () => mutate(() => repository.resetAllData()),
     }),
     [busy, error, loading, mutate, refresh, repository, snapshot],

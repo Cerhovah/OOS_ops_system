@@ -4,6 +4,8 @@ import { Platform } from 'react-native';
 
 import {
   DEFAULT_CLOSE_NOTIFICATION_TIME,
+  NOTIFICATION_ACTION_ID,
+  NOTIFICATION_CATEGORY_ID,
   NOTIFICATION_CHANNEL_ID,
   NOTIFICATION_ROUTE,
 } from '@/constants/app';
@@ -13,26 +15,41 @@ import type { Item, ItemSchedule } from '@/types/domain';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldPlaySound: false,
+    shouldPlaySound: true,
     shouldSetBadge: false,
     shouldShowBanner: true,
     shouldShowList: true,
   }),
 });
 
-function notificationContent(): Notifications.NotificationContentInput {
+function notificationContent(body = '오늘 기록이 아직 끝나지 않았습니다. 탭하면 오늘 종료로 이동합니다.'): Notifications.NotificationContentInput {
   return {
     title: 'OOS Ops',
-    body: '오늘 기록이 아직 끝나지 않았습니다. 탭하면 오늘 종료로 이동합니다.',
+    body,
+    categoryIdentifier: NOTIFICATION_CATEGORY_ID,
     data: { url: NOTIFICATION_ROUTE },
+    priority: Notifications.AndroidNotificationPriority.HIGH,
+    sound: 'default',
   };
 }
 
 async function prepareAndroidChannel(): Promise<void> {
+  await Notifications.setNotificationCategoryAsync(NOTIFICATION_CATEGORY_ID, [
+    {
+      identifier: NOTIFICATION_ACTION_ID,
+      buttonTitle: '오늘 종료 열기',
+      options: { opensAppToForeground: true },
+    },
+  ]);
   if (Platform.OS !== 'android') return;
   await Notifications.setNotificationChannelAsync(NOTIFICATION_CHANNEL_ID, {
-    name: '오늘 기록',
+    name: '오늘 기록 알림',
+    description: '오늘 종료, 항목 일정, 타이머 상한 알림',
+    enableVibrate: true,
     importance: Notifications.AndroidImportance.HIGH,
+    lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+    sound: 'default',
+    vibrationPattern: [0, 250, 250, 250],
   });
 }
 
@@ -154,6 +171,23 @@ export async function requestNotificationPermission(repository: AppRepository): 
   return permission.granted;
 }
 
+export async function scheduleTestNotification(repository: AppRepository): Promise<string> {
+  await prepareAndroidChannel();
+  let permission = await Notifications.getPermissionsAsync();
+  if (!permission.granted) permission = await Notifications.requestPermissionsAsync();
+  await repository.setSetting('notification_permission_requested', '1');
+  if (!permission.granted) throw new Error('알림 권한이 허용되지 않았습니다.');
+
+  return Notifications.scheduleNotificationAsync({
+    content: notificationContent('30초 뒤 알림 테스트입니다. 오늘 종료 열기 버튼이나 알림 본문을 누르십시오.'),
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+      seconds: 30,
+      channelId: NOTIFICATION_CHANNEL_ID,
+    },
+  });
+}
+
 export async function scheduleTimerLimitNotification(
   repository: AppRepository,
   entryId: string,
@@ -196,7 +230,13 @@ function redirect(notification: Notifications.Notification): void {
 
 export function observeNotificationNavigation(): () => void {
   const response = Notifications.getLastNotificationResponse();
-  if (response?.notification) redirect(response.notification);
-  const subscription = Notifications.addNotificationResponseReceivedListener((next) => redirect(next.notification));
+  if (response?.notification) {
+    redirect(response.notification);
+    void Notifications.clearLastNotificationResponseAsync();
+  }
+  const subscription = Notifications.addNotificationResponseReceivedListener((next) => {
+    redirect(next.notification);
+    void Notifications.clearLastNotificationResponseAsync();
+  });
   return () => subscription.remove();
 }

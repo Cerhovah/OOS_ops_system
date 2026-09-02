@@ -1,4 +1,4 @@
-import { type ReactElement, type ReactNode } from 'react';
+import { useState, type ReactElement, type ReactNode } from 'react';
 import {
   ActivityIndicator,
   Modal,
@@ -16,6 +16,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { COLORS } from '@/constants/app';
+
+import { adjustTime, setTimeHour, setTimeMinute, timeParts } from './time';
 
 export function Screen({
   children,
@@ -125,6 +127,62 @@ export function Field({
   );
 }
 
+export function TimeField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const [visible, setVisible] = useState(false);
+  const current = timeParts(value);
+  const minutes = Array.from({ length: 12 }, (_, index) => index * 5);
+
+  return (
+    <>
+      <View style={styles.fieldWrap}>
+        <Text style={styles.label}>{label}</Text>
+        <AppButton label={`${value} · 시간 선택`} variant="secondary" onPress={() => setVisible(true)} />
+      </View>
+      <Sheet visible={visible} title={`${label} 선택`} onClose={() => setVisible(false)}>
+        <Text style={styles.timeValue}>{value}</Text>
+        <Text style={styles.label}>시</Text>
+        <View style={styles.choiceRow}>
+          {Array.from({ length: 24 }, (_, hour) => (
+            <AppButton
+              key={hour}
+              label={`${String(hour).padStart(2, '0')}시`}
+              variant={current.hour === hour ? 'primary' : 'secondary'}
+              onPress={() => onChange(setTimeHour(value, hour))}
+            />
+          ))}
+        </View>
+        <Text style={styles.label}>분</Text>
+        <View style={styles.choiceRow}>
+          {minutes.map((minute) => (
+            <AppButton
+              key={minute}
+              label={`${String(minute).padStart(2, '0')}분`}
+              variant={current.minute === minute ? 'primary' : 'secondary'}
+              onPress={() => {
+                onChange(setTimeMinute(value, minute));
+                setVisible(false);
+              }}
+            />
+          ))}
+        </View>
+        <View style={styles.choiceRow}>
+          <AppButton label="−1분" variant="secondary" onPress={() => onChange(adjustTime(value, -1))} />
+          <AppButton label="+1분" variant="secondary" onPress={() => onChange(adjustTime(value, 1))} />
+          <AppButton label="선택 완료" onPress={() => setVisible(false)} />
+        </View>
+      </Sheet>
+    </>
+  );
+}
+
 export function ChoiceRow({
   label,
   choices,
@@ -214,6 +272,7 @@ const styles = StyleSheet.create({
   headingWrap: { gap: 4 },
   heading: { color: COLORS.text, fontSize: 28, fontWeight: '800' },
   subtitle: { color: COLORS.muted, fontSize: 14, lineHeight: 20 },
+  timeValue: { color: COLORS.text, fontSize: 30, fontWeight: '800', textAlign: 'center', fontVariant: ['tabular-nums'] },
   section: { gap: 10 },
   sectionHeader: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   sectionTitle: { color: COLORS.text, fontSize: 18, fontWeight: '700' },
