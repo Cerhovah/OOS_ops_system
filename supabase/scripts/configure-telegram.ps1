@@ -112,11 +112,15 @@ $ownerResult = Invoke-SupabaseJson -Arguments @(
   '--workdir', $repoPath,
   '--output', 'json',
   'db', 'query', '--linked',
-  'select id from auth.users order by created_at asc limit 2;'
+  'select id::text as oos_owner_user_id from auth.users order by created_at asc limit 2;'
 ) -FailureMessage 'Supabase 사용자 조회에 실패했습니다.'
-$ownerRows = @((($ownerResult | ConvertFrom-Json).rows))
-if ($ownerRows.Count -ne 1) { throw '인증 사용자가 정확히 1명일 때만 자동 연결할 수 있습니다.' }
-$ownerUserId = [string]$ownerRows[0].id
+$ownerMatches = [regex]::Matches(
+  $ownerResult,
+  '"oos_owner_user_id"\s*:\s*"([0-9a-fA-F-]{36})"'
+)
+$ownerIds = @($ownerMatches | ForEach-Object { $_.Groups[1].Value.ToLowerInvariant() } | Select-Object -Unique)
+if ($ownerIds.Count -ne 1) { throw '인증 사용자가 정확히 1명일 때만 자동 연결할 수 있습니다.' }
+$ownerUserId = [string]$ownerIds[0]
 if ($ownerUserId -notmatch '^[0-9a-f-]{36}$') { throw 'Supabase 사용자 ID 형식이 올바르지 않습니다.' }
 
 $webhookSecret = New-UrlSafeSecret

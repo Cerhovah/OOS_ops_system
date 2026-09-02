@@ -68,3 +68,5 @@ token, service-role key, webhook/cron secret의 실제 값은 이 문서와 로�
 ## 최초 연결 시도 후속
 
 Windows PowerShell 5가 Supabase CLI의 정상 진행 문구 `Initialising login role...`를 `NativeCommandError`로 승격해 사용자 조회 직전에 스크립트가 중단됐다. 중단 시점은 secret·DB·cron·webhook 쓰기 전이며 원격 재검사에서 Telegram custom secret 0, settings 0행, cron 0건을 확인했다. CLI 호출부가 stderr 내용이 아니라 `$LASTEXITCODE`로 성공 여부를 판정하도록 수정하고 PowerShell parser와 계약 테스트를 재통과시켰다.
+
+두 번째 시도에서는 대화형 CLI JSON wrapper가 자동 환경과 달라 `rows` 속성 접근에서 중단됐다. 쓰기 전 단계임을 다시 확인했으며, wrapper 객체 이름에 의존하지 않고 SQL 전용 alias `oos_owner_user_id`에 대응하는 UUID만 추출하도록 수정했다.

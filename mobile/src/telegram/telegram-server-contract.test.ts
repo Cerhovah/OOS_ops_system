@@ -89,6 +89,8 @@ describe('Telegram server contract', () => {
     expect(setupScript).toContain("$ErrorActionPreference = 'Continue'");
     expect(setupScript).toContain('2>&1');
     expect(setupScript).toContain("if ($exitCode -ne 0)");
+    expect(setupScript).toContain('oos_owner_user_id');
+    expect(setupScript).not.toContain('ConvertFrom-Json');
     expect(setupScript).not.toMatch(/\d{6,}:[A-Za-z0-9_-]{20,}/);
   });
 });
