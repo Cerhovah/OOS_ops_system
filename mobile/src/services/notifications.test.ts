@@ -132,7 +132,6 @@ describe('notification scheduling', () => {
       enableVibrate: true,
       importance: 'HIGH',
       lockscreenVisibility: 'PUBLIC',
-      sound: 'default',
       vibrationPattern: [0, 250, 250, 250],
     });
     expect(Notifications.setNotificationCategoryAsync).toHaveBeenCalledWith('daily_close', [{

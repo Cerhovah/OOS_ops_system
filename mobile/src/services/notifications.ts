@@ -48,7 +48,6 @@ async function prepareAndroidChannel(): Promise<void> {
     enableVibrate: true,
     importance: Notifications.AndroidImportance.HIGH,
     lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
-    sound: 'default',
     vibrationPattern: [0, 250, 250, 250],
   });
 }
