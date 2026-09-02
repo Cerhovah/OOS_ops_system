@@ -8,9 +8,11 @@
 - TypeScript strict, ESLint, 단위테스트·커버리지, Expo 패키지 검사, `expo-doctor`, Android Hermes 번들 검사 2026-09-02 재통과
 - Phase 2 SQLite outbox/LWW/충돌 로그, Supabase 매직링크/RLS, 자동·수동 동기화 구현 및 자동 게이트 통과
 - Phase 2 원격 migration 적용, 0.2.0 development APK, SM-S721N 실기기 AC-19~AC-22 게이트 완료
-- Phase 3 Telegram, Phase 4 AI는 구현하지 않음
+- Phase 3 Telegram 서버·앱 구현, 원격 migration/RLS/Edge Function 배포와 자동 게이트 완료
+- Phase 3 실제 개인 봇 연결은 로컬 보안 설정 스크립트 실행 대기, 음성 전사는 제공자 결정 대기
+- Phase 4 AI는 구현하지 않음
 
-Phase 2의 로그인·최초 업로드·오프라인 복귀·재설치 복구·RLS 실기기/원격 검증 결과는 `docs/TESTPLAN.md`와 `docs/evidence/phase-2-readiness-2026-09-02.md`에 기록되어 있습니다.
+Phase 2의 실기기 결과와 Phase 3의 서버 준비 결과는 `docs/TESTPLAN.md`, `docs/evidence/phase-2-readiness-2026-09-02.md`, `docs/evidence/phase-3-readiness-2026-09-03.md`에 기록되어 있습니다.
 
 ## 고정 환경
 
@@ -64,6 +66,17 @@ npx expo start --dev-client
 - 설정: 계정·항목·프로젝트·KPI 관리, 소프트 삭제 복구, JSON/CSV 내보내기, 2단계 초기화
 - 알림: 오늘 종료, 선택형 항목 일정, 선택형 타이머 상한, Android HIGH 채널, 콜드 스타트 딥링크
 - 동기화: 이메일 매직링크와 앱 딥링크 복귀, SQLite outbox, online/foreground 자동 재시도, 수동 동기화, 마지막 동기화 시각, 충돌 로그, Supabase RLS
+- Telegram: 허용된 1개 개인 대화, 정확 명령, 자유 문장 확인 제안, 21:30 오늘 요약·종료 버튼, 앱 설정의 연결·발송 시각 관리
+
+## Phase 3 Telegram 최초 연결
+
+서버 코드와 DB는 배포되어 있습니다. 실제 봇 연결 때만 저장소 루트의 PowerShell에서 아래 한 명령을 실행합니다.
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\supabase\scripts\configure-telegram.ps1
+```
+
+스크립트는 BotFather token을 화면에 표시하지 않는 보안 입력으로 받고, 사용자가 봇에 `/start`를 보낸 뒤 허용 `chat_id`를 자동 탐지합니다. Edge Function secret, Vault의 cron secret, DB 연결 행, 명령 메뉴와 webhook을 한 번에 설정하며 임시 secret 파일은 종료 시 삭제합니다. token은 채팅·문서·`.env`에 붙이지 않습니다.
 
 ## 환경변수와 비밀값
 
@@ -72,7 +85,7 @@ Phase 2는 EAS 프로젝트의 `EXPO_PUBLIC_SUPABASE_*` 변수 두 개를 사용
 | Phase | 값 | 정책 |
 |---|---|---|
 | 2 | Supabase URL/공개 클라이언트 키 | EAS environment + ignore된 `.env.local`, RLS 필수 |
-| 3 | Telegram token/chat_id | 서버 환경변수 전용, 앱 번들 금지 |
+| 3 | Telegram token/chat_id/webhook·cron secret | Supabase Edge Function secret/Vault 전용, 앱 번들·저장소 금지 |
 | 4 | AI provider/model/key | 기기 키는 SecureStore, 서버 키는 서버 환경변수 |
 
 토큰, 개인 키, 서비스 역할 키는 코드·문서·커밋·앱 번들에 넣지 않습니다.

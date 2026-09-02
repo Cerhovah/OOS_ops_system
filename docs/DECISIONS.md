@@ -180,6 +180,19 @@
 - 관련 불변조건/AC: I-7, I-8, AC-19, AC-20
 - 대체 관계: ADR-008의 bootstrap 동작을 보완하며 대체하지 않음
 
+### ADR-013 — 단일 허용 대화의 Telegram Edge Function과 확인형 쓰기
+
+- 날짜: 2026-09-03
+- 상태: 승인
+- 맥락: Phase 3은 앱과 같은 원격 데이터를 Telegram에서 조회·기록하고 21:30 요약을 자율 발송해야 하지만 bot token을 앱에 포함하거나 자유 문장·음성을 즉시 적용하면 안 된다.
+- 결정: Supabase Edge Function 하나가 Telegram webhook과 Vault secret으로 인증된 cron 요청을 처리한다. webhook secret, 정확히 하나의 `allowed_chat_id`, 단일 owner user ID를 모두 확인한다. 정확 명령만 즉시 `source='telegram'`으로 쓰고 자유 문장·음성은 만료되는 proposal을 만든 뒤 확인 callback에서만 쓴다. update 상태와 결정적 record ID로 실패 재시도를 중복 없이 처리한다.
+- 대안: token을 모바일 앱에 포함, polling worker 상시 운영, 자유 문장/음성을 즉시 적용, 사용자별 다중 bot.
+- 근거: 기존 `oos_sync_records`와 RLS 경계를 유지하고 별도 상시 서버 없이 AC-23~AC-26을 구현한다. Telegram의 webhook secret header와 Supabase의 외부 webhook/cron 패턴을 사용한다.
+- 결과 및 위험: token·webhook/cron secret은 Supabase secret/Vault에만 있고 앱은 비민감 연결 상태와 발송 시각만 본다. 실제 음성은 Q-009 제공자·비용 승인 전 호출하지 않는다. cron은 매분 실행하되 각 사용자 시간대/분과 delivery unique key로 하루 한 번만 발송한다.
+- 되돌림/재검토 조건: 다중 사용자/봇, 고가용성 queue, retry dead-letter, 별도 운영 서버가 상용화 AC로 승인되거나 현재 Edge 실행 한도가 부족할 때 분리한다.
+- 관련 불변조건/AC: I-1, I-2, I-7, I-8, I-10, I-12, AC-23~AC-26
+- 대체 관계: ADR-007·ADR-008의 원격 record 형식을 확장하며 대체하지 않음
+
 ## 기록 형식
 
 ### ADR-NNN — 제목

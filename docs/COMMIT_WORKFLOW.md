@@ -2,7 +2,7 @@
 
 ## 목적
 
-Phase 종료 시 구현, 결함 수정, 테스트, 문서 증빙을 구분해 검토 가능하게 남긴다. 현재 작업 트리에 다른 변경이 있을 수 있으므로 `git add .`와 `git add -A`는 사용하지 않고 검토한 경로만 명시한다.
+Phase 종료 시 구현, 결함 수정, 테스트, 문서 증빙을 검토 가능하게 남긴다. 기본은 검토한 경로만 stage한다. 다만 Phase 시작 때 작업 트리가 깨끗했고 `git status --short`의 모든 변경이 해당 Phase 작업임을 확인한 경우에는 간단한 `git add -A`도 허용한다.
 
 ## 커밋 유형
 
@@ -100,7 +100,7 @@ git commit -m "chore(repo): document phase commit workflow"
 | Phase 4 구현/종료 | `feat(phase-4): add grounded AI analysis` / `docs(phase-4): record final analysis gate` |
 | 상용화 Phase 구현/종료 | `feat(commercial): add production release foundation` / `docs(commercial): record release readiness gate` |
 
-## 현재 Phase 2용 구체 명령
+## Phase 2 종료 명령 기록
 
 원격 migration·development APK·실기기 AC-19~22가 모두 통과했다. 아래 명령을 저장소 루트에서 실행하되, 각 `git diff --cached` 결과에 Phase 2 외 변경이 섞이지 않았는지 확인한다.
 
@@ -125,9 +125,23 @@ git status --short --branch
 git log -2 --oneline --decorate
 ```
 
+## 현재 Phase 3 간단 명령
+
+현재 Phase 3은 에이전트가 시작 전 clean 상태와 전체 변경을 확인한 뒤 직접 커밋·푸시한다. 수동 복구가 필요하고 `git status --short`의 변경이 모두 Phase 3 작업일 때만 아래의 짧은 형태를 사용한다.
+
+```bat
+git add -A
+git diff --cached --check
+git commit -m "feat(phase-3): add authorized Telegram interface"
+git pull --rebase origin main
+git push origin main
+```
+
+원격이 앞서 있어도 `git pull --rebase`가 로컬 Phase 3 커밋을 최신 `origin/main` 위로 옮기므로 일반적인 `fetch first` 거절을 피한다. 충돌이 표시되면 임의로 강제 push하지 않고 충돌 파일을 검토한다.
+
 ## 금지 사항
 
-- 검토하지 않은 파일을 포함하는 `git add .`, `git add -A`
+- 작업 트리의 모든 변경이 현재 Phase 것인지 확인하지 않은 상태의 `git add .`, `git add -A`
 - 게이트 실패 상태에서 `docs(...): record final gate` 커밋
 - 비밀값이 있는 `.env*`, Supabase secret/service-role key, Telegram token, AI key 스테이징
 - unrelated 변경을 Phase 커밋에 함께 포함

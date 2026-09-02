@@ -74,6 +74,19 @@ Supabase project `majwsffhmbjwinvmxqzj`를 재개·연결해 migration `20260902
 
 SM-S721N(Android 16, SDK 36)을 ADB로 연결해 앱 데이터 초기화 전 백업, 매직링크 세션 복구, 원격 pull 복원을 수행했다. 최초 구현에서 새 설치의 현재 주 seed 계획이 원격 백업에 추가되는 문제를 발견해, 원격 백업이 있고 outbox가 pristine seed만 포함할 때 같은 transaction 안에서 sync 대상 seed를 원격 행으로 교체하도록 수정했다. 로그인 전 로컬 변경이 있으면 교체하지 않는 회귀 테스트를 함께 추가했다. 최종 서버는 검증용 16행을 제거해 63행, 로컬은 원본과 같은 사용자 데이터 63행이며 기기 전용 알림 설정만 새 ID로 재발급됐다.
 
+## Phase 3 서버 준비 게이트 — 2026-09-03
+
+| ID | 자동/원격 증빙 | 실제 Telegram 절차 | 현재 상태 |
+|---|---|---|---|
+| TP-AC-23 | webhook/cron 별도 secret, 단일 allowed chat, owner mapping, update 상태와 결정적 entry ID, RLS·권한 계약 검사 | 허용 대화에서 `/today`, 다른 대화/위조 header 거부 확인 | **자동·원격 통과/실대화 대기(Q-008)** |
+| TP-AC-24 | 기본 21:30·Asia/Seoul 설정, delivery unique ledger, 오늘 요약 3버튼, `day_closures` upsert, Vault cron 설정 스크립트 | 예약 요약 수신 → `오늘 종료` → 앱 동기화 후 종료 snapshot 확인 | **구현·원격 schema 통과/실발송 대기(Q-008)** |
+| TP-AC-25 | 8개 정확 명령·한국어 시간 파서 9 tests, 직접 기록 `source='telegram'`, 재시도 deterministic upsert | `/study 1`, `/done 항목`, `/count 항목` → 앱 동기화 후 각 1건 대조 | **자동 통과/실명령 대기(Q-008)** |
+| TP-AC-26 | 규칙 기반 자유 문장, pending proposal·확인/무시, 음성 download/transcription 및 구조화 provider adapter, 확인 뒤만 쓰기 | 자유 문장 제안·확인과 음성 메시지 제안·확인을 앱 기록과 대조 | **텍스트 구현 통과/실대화(Q-008)·음성 제공자(Q-009) 대기** |
+
+Phase 3 기준 `npm run verify` 종료 코드 0: TypeScript/ESLint 0건, 14 files/74 tests, Telegram 2 files/16 tests, 도메인 커버리지 99.07/93.33/100/100, Expo 의존성 호환, expo-doctor 21/21, Android Hermes 1,441 modules. PowerShell 설정 스크립트 구문 검사도 통과했다. SM-S721N을 Metro로 재실행해 top-resumed 상태와 Android/React Native/Expo error log 0을 확인했다.
+
+원격 Supabase에는 migration `20260903010000`, `20260903011000`을 적용했다. DB lint 오류 0, `phase_3_telegram_rls_passed`, 재확인 dry-run `upToDate:true`이며 `telegram-bot` Edge Function v2가 `ACTIVE`, GET health가 HTTP 200이다. 실제 token/chat_id가 없으므로 webhook·예약·실대화 결과는 통과로 과장하지 않고 Q-008 이후 이어서 기록한다.
+
 ## 하루치 실기기 기록 시나리오
 
 1. OOS Ops 아이콘으로 실행하고 시드/오늘 자동 항목을 확인한다.
@@ -105,5 +118,6 @@ SM-S721N(Android 16, SDK 36)을 ADB로 연결해 앱 데이터 초기화 전 백
 | 2026-09-02 | 사용자 기존 검증 재확인 | SM-S721N(Galaxy S24 FE), Android 버전 대기 | TP-AC-01~17 | 기존 실기기 검증 완료 확인/세부 결과 승계 | 이후 수정된 RA-01~04만 Metro로 재확인 필요 |
 | 2026-09-02 | EAS `154087e2-b93d-451a-b62c-ba6e988f4592` / [build page](https://expo.dev/accounts/ljh951206/projects/oos-ops/builds/154087e2-b93d-451a-b62c-ba6e988f4592) | SM-S721N(Galaxy S24 FE), Android 버전 대기 | TP-AC-19, TP-AC-21 | 매직링크 로그인·최초 업로드·상태 표시 통과 | Metro Android 1,601 modules bundle 완료, 사용자 `로그인 완료 / 마지막 동기화 표시 / 전송 대기 0건`, 원격 `oos_sync_records` 추정 63행 |
 | 2026-09-02 | 같은 0.2.0(3) development build + 최종 Metro source | SM-S721N(Galaxy S24 FE), Android 16/API 36 | TP-AC-19~22 | **Phase 2 통과** | 오프라인 outbox 0→1→0, 원격 원본 63행 복구, 초기화 후 계획 1/14·기록 4·충돌 0, 수동 동기화 23:03:46→23:05:38, `phase_2_rls_passed` |
+| 2026-09-03 | app 0.3.0(4), Edge Function `telegram-bot` v2 | 로컬/원격 자동 게이트 | TP-AC-23~26 서버 준비 | **통과** | 74 tests, DB lint 0, `phase_3_telegram_rls_passed`, function ACTIVE·health 200; 실제 bot·음성 게이트 별도 대기 |
 
 EAS의 새 build URL은 2026-09-16 03:24 KST에 만료되지만 로컬 APK와 이미 설치된 앱이 그 시각 삭제되는 것은 아니다. Android 버전과 TP-AC-01~TP-AC-17 결과를 같은 표에 이어서 기록한다.

@@ -25,6 +25,9 @@
 - 2026-09-02: 실제 SQLite v2 migration/trigger, LWW 충돌 적용·기록, 설정 allowlist, RLS migration 보호를 포함한 Phase 2 테스트 17개 추가
 - 2026-09-02: 기존 Supabase migration 이력 3건을 저장소에 회수하고 Phase 2 원격 schema·RLS/RPC migration 2건을 적용
 - 2026-09-02: 원격 인증 역할 시뮬레이션 RLS 검사를 추가하고 소유자 접근 허용·타 사용자 SELECT/UPDATE/DELETE/INSERT 차단을 데이터 변경 없이 확인
+- 2026-09-03: 단일 허용 대화 Telegram Edge Function, 8개 정확 명령, 자유 문장 확인 제안, 음성 전사·구조화 provider adapter, 21:30 오늘 요약과 종료 버튼 추가
+- 2026-09-03: Telegram connection/proposal/update/delivery schema와 RLS, Vault cron·webhook·명령 메뉴를 한 번에 연결하는 보안 PowerShell 스크립트 추가
+- 2026-09-03: 앱 설정에 Telegram 연결 상태, 발송 시각, 활성화 저장·새로고침 UI 추가
 
 ### Changed
 
@@ -54,6 +57,7 @@
 - 2026-09-02: hosted Supabase Auth의 허용 redirect에 `oosops://auth/callback`을 추가하고 Android build 번호를 3으로 상향
 - 2026-09-02: 매직링크 callback 기준 Android development build `154087e2-b93d-451a-b62c-ba6e988f4592` 완료 및 APK 로컬 보존
 - 2026-09-02: 남은 Android 실기기 게이트 자동화를 위해 공식 ADB Platform-Tools 37.0.1 개발 환경 추가
+- 2026-09-03: 앱 버전을 Phase 3 기준 `0.3.0(4)`로 상향하고 Supabase `telegram-bot` Edge Function v2와 두 Phase 3 migration을 원격 배포
 
 ### Fixed
 
@@ -68,3 +72,5 @@
 - 2026-09-02: 원격 DB lint가 찾은 `apply_oos_sync_records` conflict target 이름 모호성을 후속 migration으로 수정
 - 2026-09-02: 원격 백업이 있는 pristine 재설치에서 현재 주 기본계획 seed가 중복 업로드되던 복원 경계를 원자적 원격 교체로 수정하고, 로그인 전 로컬 변경은 보존하도록 회귀 테스트 추가
 - 2026-09-02: SM-S721N에서 오프라인→온라인, 매직링크 세션 복구, 초기화 후 전체 데이터 대조, 수동 동기화와 RLS를 확인해 Phase 2 AC-19~AC-22를 완료
+- 2026-09-03: Telegram webhook 실패 update를 재시도 가능 상태로 남기고 결정적 entry/proposal ID를 upsert해 재전송 중복·누락 경계를 보완
+- 2026-09-03: Android 알림 채널의 기본음을 커스텀 파일명 `default`로 전달해 런타임 오류 로그가 발생하던 설정을 SDK 기본음 생략 방식으로 수정
