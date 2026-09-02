@@ -221,12 +221,14 @@ export class AppRepository {
   }
 
   async addTodayItem(today: string, itemId: string): Promise<void> {
+    const now = new Date().toISOString();
     await this.db.runAsync(
-      'INSERT OR IGNORE INTO today_item_additions (id,date,item_id,created_at) VALUES (?,?,?,?)',
+      'INSERT OR IGNORE INTO today_item_additions (id,date,item_id,created_at,updated_at) VALUES (?,?,?,?,?)',
       randomUUID(),
       today,
       itemId,
-      new Date().toISOString(),
+      now,
+      now,
     );
   }
 
@@ -413,7 +415,21 @@ export class AppRepository {
   }
 
   async restoreItem(itemId: string): Promise<void> {
-    await this.db.runAsync('UPDATE items SET deleted_at=NULL,updated_at=? WHERE id=?', new Date().toISOString(), itemId);
+    const now = new Date().toISOString();
+    await this.db.withExclusiveTransactionAsync(async (txn) => {
+      const item = await txn.getFirstAsync<Row>('SELECT deleted_at FROM items WHERE id=?', itemId);
+      if (!item) throw new Error(`복구할 항목을 찾을 수 없습니다: ${itemId}`);
+      const deletedAt = nullableText(item, 'deleted_at');
+      await txn.runAsync('UPDATE items SET deleted_at=NULL,updated_at=? WHERE id=?', now, itemId);
+      if (deletedAt) {
+        await txn.runAsync(
+          'UPDATE item_schedules SET deleted_at=NULL,updated_at=? WHERE item_id=? AND deleted_at=?',
+          now,
+          itemId,
+          deletedAt,
+        );
+      }
+    });
   }
 
   async saveAccount(input: { id?: string; name: string; kind: string | null; color: string | null }): Promise<string> {
@@ -546,6 +562,29 @@ export class AppRepository {
     );
   }
 
+  async updateKpiRecord(recordId: string, value: number, note: string | null): Promise<void> {
+    await this.db.runAsync(
+      'UPDATE project_kpi_records SET value=?,note=?,updated_at=? WHERE id=?',
+      value,
+      note,
+      new Date().toISOString(),
+      recordId,
+    );
+  }
+
+  async deleteKpiRecord(recordId: string): Promise<void> {
+    const now = new Date().toISOString();
+    await this.db.runAsync('UPDATE project_kpi_records SET deleted_at=?,updated_at=? WHERE id=?', now, now, recordId);
+  }
+
+  async restoreKpiRecord(recordId: string): Promise<void> {
+    await this.db.runAsync(
+      'UPDATE project_kpi_records SET deleted_at=NULL,updated_at=? WHERE id=?',
+      new Date().toISOString(),
+      recordId,
+    );
+  }
+
   async saveWeeklyPlan(
     weekStart: string,
     minutesByAccount: Readonly<Record<string, number>>,
@@ -562,21 +601,24 @@ export class AppRepository {
       const planId = randomUUID();
       const now = new Date().toISOString();
       await txn.runAsync(
-        'INSERT INTO weekly_plans (id,week_start,version,note,source,created_at) VALUES (?,?,?,?,?,?)',
+        'INSERT INTO weekly_plans (id,week_start,version,note,source,created_at,updated_at) VALUES (?,?,?,?,?,?,?)',
         planId,
         weekStart,
         version,
         note,
         source,
         now,
+        now,
       );
       for (const [accountId, minutes] of Object.entries(minutesByAccount)) {
         await txn.runAsync(
-          'INSERT INTO weekly_plan_lines (id,weekly_plan_id,account_id,planned_minutes) VALUES (?,?,?,?)',
+          'INSERT INTO weekly_plan_lines (id,weekly_plan_id,account_id,planned_minutes,created_at,updated_at) VALUES (?,?,?,?,?,?)',
           randomUUID(),
           planId,
           accountId,
           Math.round(minutes),
+          now,
+          now,
         );
       }
     });
@@ -605,10 +647,11 @@ export class AppRepository {
   ): Promise<void> {
     const now = new Date().toISOString();
     await this.db.runAsync(
-      `INSERT INTO day_closures (id,date,closed_at,planned_minutes,actual_minutes,snapshot_json,note)
-       VALUES (?,?,?,?,?,?,?)
+      `INSERT INTO day_closures (id,date,closed_at,planned_minutes,actual_minutes,snapshot_json,note,updated_at)
+       VALUES (?,?,?,?,?,?,?,?)
        ON CONFLICT(date) DO UPDATE SET closed_at=excluded.closed_at,planned_minutes=excluded.planned_minutes,
-       actual_minutes=excluded.actual_minutes,snapshot_json=excluded.snapshot_json,note=excluded.note`,
+       actual_minutes=excluded.actual_minutes,snapshot_json=excluded.snapshot_json,note=excluded.note,
+       updated_at=excluded.updated_at,deleted_at=NULL`,
       randomUUID(),
       day,
       now,
@@ -616,6 +659,7 @@ export class AppRepository {
       actualMinutes,
       snapshotJson,
       note,
+      now,
     );
   }
 
@@ -668,6 +712,9 @@ export class AppRepository {
       'weekly_comments',
       'today_item_additions',
       'settings',
+      'sync_outbox',
+      'sync_conflicts',
+      'sync_state',
     ] as const;
     const result: Record<string, Row[]> = {};
     for (const table of tableNames) {
@@ -679,6 +726,9 @@ export class AppRepository {
   async resetAllData(): Promise<void> {
     await this.db.withExclusiveTransactionAsync(async (txn) => {
       await txn.execAsync(`
+        DELETE FROM sync_outbox;
+        DELETE FROM sync_conflicts;
+        DELETE FROM sync_state;
         DELETE FROM project_kpi_records;
         DELETE FROM project_kpis;
         DELETE FROM entries;

@@ -16,6 +16,7 @@ import {
   textStyles,
 } from '@/components/ui';
 import { useApp } from '@/context/app-context';
+import { useSync } from '@/context/sync-context';
 import { dateKey } from '@/domain/calculations';
 import type { Account, Entry, Item, ItemInput, ItemType } from '@/types/domain';
 
@@ -27,10 +28,11 @@ const itemTypes = [
   { value: 'event', label: '이벤트' },
 ] as const;
 const days = ['월', '화', '수', '목', '금', '토', '일'];
+const weekStartChoices = days.map((label, index) => ({ value: String(index), label }));
 const exportTables = [
   'accounts', 'projects', 'items', 'item_schedules', 'project_kpis', 'project_kpi_records',
   'weekly_plans', 'weekly_plan_lines', 'entries', 'day_notes', 'day_closures',
-  'weekly_comments', 'today_item_additions', 'settings',
+  'weekly_comments', 'today_item_additions', 'settings', 'sync_outbox', 'sync_conflicts', 'sync_state',
 ];
 
 function nullable(value: string): number | null {
@@ -43,6 +45,7 @@ function amountOf(entry: Entry): number {
 
 export default function SettingsScreen() {
   const app = useApp();
+  const sync = useSync();
   const params = useLocalSearchParams<{ itemId?: string | string[] }>();
   const routeItemId = Array.isArray(params.itemId) ? params.itemId[0] : params.itemId;
   const handledRouteItem = useRef<string | null>(null);
@@ -50,6 +53,7 @@ export default function SettingsScreen() {
   const activeProjects = app.snapshot.projects.filter((project) => !project.deletedAt);
   const activeItems = app.snapshot.items.filter((item) => !item.deletedAt);
   const [dayEnd, setDayEnd] = useState('23:00');
+  const [weekStartDay, setWeekStartDay] = useState('0');
   const [notificationTime, setNotificationTime] = useState('21:30');
   const [notificationEnabled, setNotificationEnabled] = useState('1');
   const [notificationAlways, setNotificationAlways] = useState('0');
@@ -76,8 +80,11 @@ export default function SettingsScreen() {
   const [entryForm, setEntryForm] = useState<Entry | null>(null);
   const [entryValue, setEntryValue] = useState('');
   const [entryNote, setEntryNote] = useState('');
+  const [authEmail, setAuthEmail] = useState('');
+  const [magicLinkSent, setMagicLinkSent] = useState(false);
 
   useEffect(() => {
+    setWeekStartDay(app.snapshot.settings.week_start_day ?? '0');
     setDayEnd(app.snapshot.settings.day_end_time ?? '23:00');
     setNotificationTime(app.snapshot.settings.close_notification_time ?? '21:30');
     setNotificationEnabled(app.snapshot.settings.close_notification_enabled ?? '1');
@@ -183,7 +190,7 @@ export default function SettingsScreen() {
       Alert.alert('입력 확인', '시각은 HH:MM 형식으로 입력하십시오.');
       return;
     }
-    await app.setSetting('week_start_day', '0');
+    await app.setSetting('week_start_day', weekStartDay);
     await app.setSetting('day_end_time', dayEnd);
     await app.setSetting('close_notification_time', notificationTime);
     await app.setSetting('close_notification_enabled', notificationEnabled);
@@ -201,7 +208,7 @@ export default function SettingsScreen() {
   }
 
   function confirmReset() {
-    Alert.alert('전체 초기화 1/2', '모든 로컬 기록과 변경 이력이 삭제되고 §4.4 시드로 돌아갑니다. 먼저 내보내기를 권장합니다.', [
+    Alert.alert('전체 초기화 1/2', '모든 로컬 기록과 변경 이력이 삭제되고 §4.4 시드로 돌아갑니다. 로그인 상태이면 보존된 원격 백업이 다음 동기화 때 다시 내려올 수 있습니다. 먼저 내보내기를 권장합니다.', [
       { text: '취소', style: 'cancel' },
       {
         text: '계속',
@@ -214,21 +221,34 @@ export default function SettingsScreen() {
     ]);
   }
 
+  async function sendMagicLink() {
+    if (!authEmail.trim() || !authEmail.includes('@')) return;
+    try {
+      await sync.requestMagicLink(authEmail);
+      setMagicLinkSent(true);
+      Alert.alert('로그인 링크 발송', '이메일의 로그인 링크를 이 기기에서 여십시오.');
+    } catch {
+      // SyncContext가 표시할 오류 문구를 보존한다.
+    }
+  }
+
   const deletedEntries = app.snapshot.entries.filter((entry) => entry.deletedAt);
   const deletedItems = app.snapshot.items.filter((item) => item.deletedAt);
   const deletedAccounts = app.snapshot.accounts.filter((account) => account.deletedAt);
   const deletedProjects = app.snapshot.projects.filter((project) => project.deletedAt);
   const deletedKpis = app.snapshot.kpis.filter((kpi) => kpi.deletedAt);
+  const deletedKpiRecords = app.snapshot.kpiRecords.filter((record) => record.deletedAt);
   const recentEntries = app.snapshot.entries.filter((entry) => !entry.deletedAt && !entry.startedAt).slice(0, 30);
 
   return (
     <>
       <Screen>
-        <Heading subtitle="모든 설정은 기기 로컬에 저장됩니다.">설정</Heading>
+        <Heading subtitle="기록은 기기에 먼저 저장되고 로그인 시 Supabase와 동기화됩니다.">설정</Heading>
         {app.error ? <StatusBanner message={app.error} onClose={app.clearError} /> : null}
+        {sync.error ? <StatusBanner message={sync.error} onClose={sync.clearError} /> : null}
         <Section title="시간과 알림">
           <Card>
-            <Text style={textStyles.body}>주 시작 요일: 월요일</Text>
+            <ChoiceRow label="주 시작 요일" choices={weekStartChoices} value={weekStartDay} onChange={setWeekStartDay} />
             <Field label="하루 종료 시각" value={dayEnd} onChangeText={setDayEnd} placeholder="23:00" />
             <Field label="오늘 종료 알림" value={notificationTime} onChangeText={setNotificationTime} placeholder="21:30" />
             <ChoiceRow
@@ -256,6 +276,69 @@ export default function SettingsScreen() {
               onPress={() => void app.requestNotifications().then((granted) => Alert.alert('알림 권한', granted ? '허용됨' : '허용되지 않음'))}
             />
           </Card>
+        </Section>
+
+        <Section title="동기화와 백업">
+          <Card>
+            {!sync.configured ? (
+              <>
+                <Text style={textStyles.body}>Supabase 로컬 환경변수가 아직 연결되지 않았습니다.</Text>
+                <Text style={textStyles.muted}>연결 전에도 모든 기록은 SQLite에 계속 저장됩니다.</Text>
+              </>
+            ) : sync.loading ? (
+              <Text style={textStyles.body}>로그인 상태를 확인하는 중입니다.</Text>
+            ) : sync.session ? (
+              <>
+                <Text style={textStyles.body}>로그인 · {sync.session.user.email ?? sync.session.user.id}</Text>
+                <Text style={textStyles.muted}>
+                  마지막 동기화 · {sync.lastSyncedAt ? new Date(sync.lastSyncedAt).toLocaleString('ko-KR') : '아직 없음'}
+                </Text>
+                <Text style={textStyles.muted}>전송 대기 · {sync.pendingCount}건</Text>
+                <View style={styles.actions}>
+                  <AppButton
+                    label={sync.syncing ? '동기화 중' : '지금 동기화'}
+                    onPress={() => void sync.syncNow()}
+                    disabled={sync.syncing}
+                  />
+                  <AppButton label="로그아웃" variant="secondary" onPress={() => void sync.signOut()} />
+                </View>
+              </>
+            ) : (
+              <>
+                <Text style={textStyles.body}>이메일은 재설치 복구와 본인 데이터 RLS 구분에만 사용합니다.</Text>
+                <Field
+                  label="이메일"
+                  value={authEmail}
+                  onChangeText={setAuthEmail}
+                  keyboardType="email-address"
+                  placeholder="name@example.com"
+                />
+                {magicLinkSent ? (
+                  <>
+                    <Text style={textStyles.muted}>이메일의 로그인 링크를 누르면 앱으로 돌아와 동기화를 시작합니다.</Text>
+                    <AppButton label="로그인 링크 다시 보내기" variant="secondary" onPress={() => void sendMagicLink()} />
+                  </>
+                ) : (
+                  <AppButton label="로그인 링크 받기" onPress={() => void sendMagicLink()} disabled={!authEmail.includes('@')} />
+                )}
+              </>
+            )}
+          </Card>
+          {sync.conflicts.length > 0 ? (
+            <>
+              <Text style={textStyles.muted}>최근 충돌 {sync.conflicts.length}건 · 적용된 최종쓰기 결과를 표시합니다.</Text>
+              {sync.conflicts.slice(0, 10).map((conflict) => (
+                <Card key={conflict.id}>
+                  <Text style={textStyles.body}>{conflict.tableName} · {conflict.recordId}</Text>
+                  <Text style={textStyles.muted}>
+                    적용 · {conflict.winner === 'local' ? '기기 값' : '서버 값'} · {new Date(conflict.createdAt).toLocaleString('ko-KR')}
+                  </Text>
+                </Card>
+              ))}
+            </>
+          ) : (
+            <Text style={textStyles.muted}>기록된 동기화 충돌이 없습니다.</Text>
+          )}
         </Section>
 
         <Section title="항목 관리" action={<AppButton label="+ 항목" variant="plain" onPress={() => openItem('new')} />}>
@@ -327,7 +410,15 @@ export default function SettingsScreen() {
           {deletedKpis.map((kpi) => (
             <Card key={kpi.id}><Text style={textStyles.body}>KPI · {kpi.label}</Text><AppButton label="KPI 복구" variant="secondary" onPress={() => void app.restoreKpi(kpi.id)} /></Card>
           ))}
-          {deletedEntries.length + deletedItems.length + deletedAccounts.length + deletedProjects.length + deletedKpis.length === 0 ? (
+          {deletedKpiRecords.map((record) => (
+            <Card key={record.id}>
+              <Text style={textStyles.body}>
+                KPI 기록 · {app.snapshot.kpis.find((kpi) => kpi.id === record.kpiId)?.label ?? record.kpiId} · {record.value}
+              </Text>
+              <AppButton label="KPI 기록 복구" variant="secondary" onPress={() => void app.restoreKpiRecord(record.id)} />
+            </Card>
+          ))}
+          {deletedEntries.length + deletedItems.length + deletedAccounts.length + deletedProjects.length + deletedKpis.length + deletedKpiRecords.length === 0 ? (
             <Text style={textStyles.body}>삭제된 데이터가 없습니다.</Text>
           ) : null}
         </Section>
@@ -344,8 +435,8 @@ export default function SettingsScreen() {
 
         <Section title="앱 정보와 초기화">
           <Card>
-            <Text style={textStyles.body}>OOS Ops · Phase 1 · 로컬 우선</Text>
-            <Text style={textStyles.muted}>Supabase, Telegram, AI API는 현재 비활성화되어 있습니다.</Text>
+            <Text style={textStyles.body}>OOS Ops · Phase 2 · 로컬 우선</Text>
+            <Text style={textStyles.muted}>Telegram과 AI API는 현재 비활성화되어 있습니다.</Text>
             <AppButton label="전체 초기화" variant="danger" onPress={confirmReset} />
           </Card>
         </Section>

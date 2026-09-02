@@ -2,67 +2,108 @@
 
 ## 원칙
 
-- 모든 Phase 1 검증은 AC 번호와 TP-AC 번호를 1:1로 연결한다.
-- 단위 테스트만으로 완료 처리하지 않는다. 핵심 흐름은 repository 통합, UI 수동, 개발 빌드, 실기기 검증을 조합한다.
-- 로컬 알림과 딥링크는 Expo Go나 시뮬레이터만으로 완료 판정하지 않는다.
-- 실패, 형식 오류, 권한 거부, 앱 재시작, 비행기 모드, 소프트 삭제·복구, 내보내기 실패 경로를 포함한다.
-- 버그 수정에는 가능한 경우 재현 테스트를 먼저 추가하고 결과를 이 문서에 남긴다.
-- 증빙에는 빌드/커밋, 기기·OS, 명령, 기대값, 실제값, 파일 또는 화면 기록 경로를 남긴다.
+- TP-AC-01~TP-AC-18은 AC-1~AC-18과 1:1로 대응한다.
+- 자동테스트·번들 성공만으로 알림, 공유 sheet, 오프라인, 탭 수, 아이콘 실행을 통과 처리하지 않는다.
+- 최종 대상은 EAS development build가 설치된 Android 실기기다. 기기 모델, Android 버전, 앱 build URL/ID, 실행 날짜를 결과에 남긴다.
+- 실패/권한 거부/앱 재시작/비행기 모드/소프트 삭제·복구 경로를 포함한다.
 
-## Phase 1 AC별 검증 계획
+## 자동 게이트 결과 — 2026-08-20
 
-| ID | AC | 검증 방법 | 핵심 확인 사항 | 상태/증빙 |
+| 검사 | 결과 |
+|---|---|
+| Node/npm 프리플라이트 | Node v24.19.0, npm 11.17.0 |
+| TypeScript strict | 통과, 오류 0 |
+| ESLint | 통과, 경고·오류 0 |
+| Vitest | 3 files, 22 tests 통과 |
+| 도메인 커버리지 | statements 99.07%, branches 93.33%, functions 100%, lines 100% |
+| Expo dependency check | `Dependencies are up to date` |
+| expo-doctor | 21/21 checks passed |
+| Android Metro/Hermes | 1,367 modules bundle, HBC 생성 성공 |
+| 금지 문구/우회 정적 검색 | 게임화·사람 서술·`any`·게이트 우회 0건. `모의점수`는 사용자 KPI 이름이므로 허용 |
+
+전체 명령과 보안 경고 검토는 `docs/evidence/phase-1-automated.md`에 보존한다.
+
+## 개발 환경 복구 재검증 — 2026-09-02
+
+- `npm ci` 후 SDK 57 호환 패치를 `npx expo install --fix`로 정렬했다.
+- `npm run verify` 종료 코드 0: TypeScript/ESLint 0건, 21 tests, 도메인 커버리지 99.05/92.85/100/100, 의존성 호환 통과, expo-doctor 21/21, Android HBC 생성 성공.
+- Metro 개발 서버 HTTP 200과 `packager-status:running`을 확인했다.
+- 상세 명령·해시·감사 결과: `docs/evidence/phase-1-recovery-2026-09-02.md`.
+- 네이티브 패치가 바뀌었으므로 TP-AC-01~TP-AC-17은 새 build `5448b354-f54f-4d17-b657-36f8b97afa48`로 수행한다.
+- 정적 감사 보완 후 `npm run verify` 종료 코드 0: 22 tests, 도메인 커버리지 99.07/93.33/100/100, Android HBC 1,374 modules.
+- 사용자는 TP-AC-01~TP-AC-17 실기기 검증을 이전에 이미 완료했다고 2026-09-02 재확인했다. 현재 추가 확인 범위는 그 이후 코드로 보완된 RA-01~04와 Android 버전 기록이다.
+- Metro tunnel을 통한 Android bundle 요청·완료를 확인해 기기↔Metro 연결을 통과 처리했다. 시작 중 발견된 SDK 57 `SQLiteProvider` Suspense 옵션 충돌은 수정했고, 수정 후 `npm run verify`도 종료 코드 0으로 통과했다. 기기 재접속 후 시작 화면 확인은 대기 중이다.
+
+## AC별 검증
+
+| ID | 자동/코드 증빙 | development build 수동 절차 | 현재 상태 |
+|---|---|---|---|
+| TP-AC-01 | app/eas config, Android bundle, EAS build `FINISHED` | APK 설치 → 홈의 OOS Ops 아이콘 탭 → 한국어 오늘 화면 확인 | SM-S721N 업데이트 설치·Metro 연결 통과/시작 오류 수정 후 화면 재확인 대기 |
+| TP-AC-02 | §4.4 seed manifest 3 tests | 첫 실행 시 14계정·168h·8항목·2프로젝트 확인 → 시드 계정/항목 편집·보관·삭제·복구, 프로젝트 상태/삭제·복구, KPI 편집·삭제·복구 | Q-003 대기 |
+| TP-AC-03 | Today actions 구현 | 아이콘→`작업 시작`으로 편입 타이머 시작(총 2탭), 정지 1탭, 완료/횟수/되돌리기 1탭, 수동 시간 2~3탭과 5~10초 측정 | Q-003 대기 |
+| TP-AC-04 | repository lifecycle | 5개 유형을 각각 생성·기록·수정·삭제·복구하고 값/단위/횟수/시간 보존 확인 | Q-003 대기 |
+| TP-AC-05 | 요일/dedupe tests | 해당 요일의 통학/필수 일정 확인 → 같은 항목 수동 추가·재실행 후 한 행만 표시 확인 | Q-003 대기 |
+| TP-AC-06 | 남은 시간 경계값 tests | 하루 종료 시각 변경, 미수행 일정/완료 기록 변경 후 상단 남은 시간·계획→실제 즉시 반영 및 음수 표시 0 확인 | Q-003 대기 |
+| TP-AC-07 | close repository/UI | 오늘 종료에서 계산·긴 메모 저장 → 종료 후 기록 수정 → 종료 화면/주간 실제 변화와 비잠금 확인 | Q-003 대기 |
+| TP-AC-08 | week aggregates/UI | 계정 표와 합계 대조 → 항목·요일 분해 열기 → 요일 토글 → 긴 코멘트 저장/재시작 보존 | Q-003 대기 |
+| TP-AC-09 | 168 상태 tests | 168h 미만·초과·음수 계획에서 배지/합계 즉시 변경, `조정하기`와 `그대로 저장` 확인 | Q-003 대기 |
+| TP-AC-10 | append-only repository | 계획 2회 저장 → 모든 버전 열람 → 과거 복원 후 새 버전 증가와 이전 버전 불변 확인 | Q-003 대기 |
+| TP-AC-11 | copy repository/UI | 다음 주로 이동해 `지난주 계획 복사` 1탭 → source와 값 확인, 원본 불변 확인 | Q-003 대기 |
+| TP-AC-12 | KPI aggregation tests/UI | 프로젝트/KPI 추가 → 카드에서 값 기록 → 합계 확인 → 연결 time 기록 후 누적/이번 주 투입시간 대조 | Q-003 대기 |
+| TP-AC-13 | DAILY/DATE route code | 알림 시각을 3~5분 뒤로 설정 → 앱 완전 종료 → 알림 탭 → 오늘 종료 콜드 진입. 종료한 날 건너뜀/항상 받기 각각 확인 | Q-003 대기 |
+| TP-AC-14 | HIGH channel/permission/rebook code | 최초 허용, OS 설정에서 채널 중요도 확인, 거부 후 설정 재요청, 앱 강제종료·재시작 후 예약 복구 확인 | Q-003 대기 |
+| TP-AC-15 | CSV/JSON 3 tests | 삭제 행과 계획 여러 버전 생성 → JSON 전체/각 CSV 공유·저장 → 원본 SQLite 값/행과 대조 | Q-003 대기 |
+| TP-AC-16 | 원격 API 없음/SQLite 구조 | 비행기 모드 ON → 기록·수정·삭제·복구·계획·프로젝트·종료 → 앱 재시작 후 보존 → 비행기 모드 OFF | Q-003 대기 |
+| TP-AC-17 | 금지문구 정적 검색 | 오늘/주간/프로젝트/계획/분석/설정/모달/빈 상태/오류/알림 전체에서 판정·점수화·연속일수·사람 서술 0건 확인 | Q-003 대기 |
+| TP-AC-18 | 계산·export·seed 22 tests, 90% gate | 수동 절차 없음 | **통과** |
+
+## Phase 2 자동·실기기 게이트 — 2026-09-02
+
+| ID | 자동/코드 증빙 | development build 수동 절차 | 현재 상태 |
+|---|---|---|---|
+| TP-AC-19 | SQLite v2 backfill/trigger 실제 실행, 매직링크 callback fragment/PKCE/error 파서, pull-before-push 및 pristine seed 교체 bootstrap | 이메일 링크를 같은 기기에서 열어 앱 복귀·로그인 → 대기 0 확인 → 앱 데이터 초기화 후 세션 유지 재실행 → 전체 데이터 대조 | **통과**: 원격 63행, 복구 로컬 계획 1/14·기록 4·outbox 0·충돌 0, SQLite `quick_check=ok` |
+| TP-AC-20 | outbox unique capture, LWW 순수 함수, local/remote 양측 승자·충돌 단위테스트 | 모바일 데이터 차단 상태에서 기록 → 온라인 복귀 → 자동 전송 확인 → 충돌 로그와 최종값 확인 | **통과**: 오프라인 outbox 0→1, 온라인 1→0·원격 63→64; 실제 병합 충돌 7건 UI 표시 확인 후 검증 데이터 정리 |
+| TP-AC-21 | 설정 UI에 로그인·마지막 시각·대기 건수·수동 버튼·충돌 목록 연결 | `지금 동기화` 탭 → 시각 갱신, 대기 0, 로컬 기록 보존 확인 | **통과**: 최종 복원 후 시각 23:03:46→23:05:38, 대기 0·충돌 없음 |
+| TP-AC-22 | 원격 migration 적용, DB lint 오류 0, 익명 REST SELECT·RPC HTTP 401, 모든 정책에 `to authenticated`와 `(select auth.uid()) = user_id`; `phase_2_rls.sql`로 실제 소유자/타 사용자 인증 역할 실행 | 계정 A/B와 동등한 원격 역할 시뮬레이션으로 소유자 SELECT 허용 및 타 사용자 SELECT/UPDATE/DELETE/INSERT 차단 확인 | **통과**: `phase_2_rls_passed`, 트랜잭션 전체 롤백으로 데이터 변경 없음 |
+
+Phase 2 최종 `npm run verify` 종료 코드 0: TypeScript/ESLint 0건, 7 files/39 tests, 도메인 커버리지 99.07/93.33/100/100, 의존성 호환 통과, expo-doctor 21/21, Android HBC 1,438 modules. SQLite v2 migration, pristine 재설치 seed 교체, 로그인 전 로컬 변경 보존, 원격/로컬 LWW 충돌 경로를 Node 24 내장 SQLite에서 실제 실행으로 검증했다.
+
+Supabase project `majwsffhmbjwinvmxqzj`를 재개·연결해 migration `20260902053000`과 lint 보완 `20260902060000`을 적용했다. 원격 `supabase db lint --linked --level warning`은 오류 0이며, publishable key의 익명 역할로 `oos_sync_records` SELECT와 `apply_oos_sync_records` RPC를 호출했을 때 모두 HTTP 401을 확인했다. Q-007 확정 뒤 hosted Auth additional redirect에 `oosops://auth/callback`을 적용했고 재실행에서 Auth·Storage 모두 up to date를 확인했다.
+
+`supabase/tests/phase_2_rls.sql`을 linked 원격 DB에서 실행해 실제 동기화 소유자는 자기 행을 볼 수 있고 임의의 다른 인증 사용자 역할은 소유자 행의 SELECT·UPDATE·DELETE·INSERT가 모두 차단됨을 확인했다. 검사는 단일 transaction에서 실행 후 `rollback`했으며 결과는 `phase_2_rls_passed`다.
+
+SM-S721N(Android 16, SDK 36)을 ADB로 연결해 앱 데이터 초기화 전 백업, 매직링크 세션 복구, 원격 pull 복원을 수행했다. 최초 구현에서 새 설치의 현재 주 seed 계획이 원격 백업에 추가되는 문제를 발견해, 원격 백업이 있고 outbox가 pristine seed만 포함할 때 같은 transaction 안에서 sync 대상 seed를 원격 행으로 교체하도록 수정했다. 로그인 전 로컬 변경이 있으면 교체하지 않는 회귀 테스트를 함께 추가했다. 최종 서버는 검증용 16행을 제거해 63행, 로컬은 원본과 같은 사용자 데이터 63행이며 기기 전용 알림 설정만 새 ID로 재발급됐다.
+
+## 하루치 실기기 기록 시나리오
+
+1. OOS Ops 아이콘으로 실행하고 시드/오늘 자동 항목을 확인한다.
+2. 편입 공부 타이머, 운동 time+count, 완료형, 횟수형, 수치형, 이벤트형을 기록한다.
+3. 수동 시간을 수정하고 소프트 삭제·복구한다.
+4. 프로젝트 KPI를 기록하고 파생 투입시간을 대조한다.
+5. 계획을 168h 초과로 저장하고 새 버전·복원·지난주 복사를 확인한다.
+6. 비행기 모드에서 추가 기록과 앱 재시작 보존을 확인한다.
+7. 오늘 종료 알림 콜드 스타트, 메모/스냅샷, 종료 후 기록 수정을 확인한다.
+8. JSON/CSV를 저장해 삭제 행과 계획 전 버전을 대조한다.
+9. 모든 화면과 알림 문구를 TP-AC-17로 점검한다.
+
+## 2026-09-02 정적 감사 재현 항목
+
+| ID | 관련 범위 | 실기기 재현 | 통과 조건 | 상태 |
 |---|---|---|---|---|
-| TP-AC-01 | AC-1 | 실기기 개발 빌드 수동 | 설치, 아이콘 실행, 콜드 스타트, 한국어 첫 화면 | Q-001·구현 승인 대기 |
-| TP-AC-02 | AC-2 | migration/seed 통합 + 수동 | §4.4 시드 정확성, 168h 합계, 재실행 중복 0, 편집·보관·소프트 삭제 | 대기 |
-| TP-AC-03 | AC-3 | 실기기 UI 수동·화면 녹화 | 타이머 시작/정지 각 1탭, 완료/횟수 1탭, 수동 시간 2~3탭, 5~10초 | 대기 |
-| TP-AC-04 | AC-4 | repository 통합 + UI 수동 | 다섯 유형 각각 생성·기록·수정·삭제·복구, 유형별 필드 보존 | 대기 |
-| TP-AC-05 | AC-5 | 순수 함수 단위 + 재시작 통합 | 요일 마스크, 자동 생성, 수동 추가/진행 타이머 병합, 중복 0 | 대기 |
-| TP-AC-06 | AC-6 | 순수 함수 경계값 + UI 대조 | 종료 시각 전후, 미수행 고정 일정, 계획→실제 합계, 음수 표시 0 | 대기 |
-| TP-AC-07 | AC-7 | repository 통합 + UI 수동 | 스냅샷 값, 무제한 확장 메모, 종료 후 기록 추가·수정 가능 | 대기 |
-| TP-AC-08 | AC-8 | 집계 단위 + DB 원자료 대조 + UI 수동 | 계정별 계획/실제/차이, 총계, 항목·요일 분해, 해석 문구 없음 | 대기 |
-| TP-AC-09 | AC-9 | 계산 단위 + UI 수동 | 실시간 합계, 168h 미만/초과 배지, 조정하기, 그대로 저장 비차단 | 대기 |
-| TP-AC-10 | AC-10 | repository 통합 + DB 덤프 | 저장마다 version 증가, 과거 불변, 열람, 복원이 새 버전 | 대기 |
-| TP-AC-11 | AC-11 | 통합 + UI 탭 수 | 지난주 최신 계획 1탭 복사, source, 원본·기존 버전 불변 | 대기 |
-| TP-AC-12 | AC-12 | 집계 단위 + 통합 + UI 탭 수 | 프로젝트/KPI 생성, 사용자 정의 KPI, 1~2탭 기록, 파생 시간 일치 | 대기 |
-| TP-AC-13 | AC-13 | 실기기 예약·콜드 스타트 수동 | 기본 21:30, 종료 시 취소, 앱 종료 상태 알림 탭 → `/today/close` | Q-001·구현 승인 대기 |
-| TP-AC-14 | AC-14 | Android 개발 빌드 수동 | HIGH 채널, 권한 허용/거부/재요청, 예약 ID, 재시작 후 재예약 | Q-001·구현 승인 대기 |
-| TP-AC-15 | AC-15 | export 통합 + 파일/DB 자동 대조 | JSON 전체, CSV 테이블별, 모든 테이블, 삭제 행, 계획 전 버전, 문자 인코딩 | 대기 |
-| TP-AC-16 | AC-16 | 실기기 비행기 모드 수동 | 기록·수정·삭제·복구·계획·프로젝트·종료, 재시작 후 보존 | 대기 |
-| TP-AC-17 | AC-17 | 전 화면·알림 문구 수동 감사 | 판정·점수·등급·연속일수·보상·사용자 성향/심리 서술 0건 | 대기 |
-| TP-AC-18 | AC-18 | 도메인 단위 + 커버리지 | 주 경계, 최신 계획, 168h 합계, 차이, 자정 타이머, 요일 템플릿, 남은 시간, 90% 이상 | 대기 |
-
-## §10.3 Phase 1 게이트
-
-- [ ] `tsc --noEmit` 오류 0
-- [ ] ESLint 오류 0
-- [ ] 도메인 계산 단위 테스트 통과 및 도메인 모듈 커버리지 90% 이상
-- [ ] TP-AC-01~TP-AC-18 전부 통과 또는 사용자 승인된 보류
-- [ ] SQLite 마이그레이션, 앱 재시작, append-only 계획, 소프트 삭제·복구 검증
-- [ ] `expo-doctor` 경고 검토 및 무시 사유 기록
-- [ ] 개발 빌드·실기기 수동 테스트 완료
-- [ ] JSON/CSV 원본 대조 완료
-- [ ] 사용자 기기에서 하루치 실제 기록 완료
-- [ ] `PLAN.md`, `DECISIONS.md`, `QUESTIONS.md`, `CHANGELOG.md`, `README.md` 갱신
-
-실제 명령은 Phase 1 초기화 ADR과 `package.json` 스크립트가 확정된 뒤 적는다. 명령을 정하지 않았다는 이유로 §10.3 검사를 생략하지 않는다.
-
-## 하루치 실제 기록 시나리오
-
-1. 아이콘으로 콜드 스타트하고 시드와 오늘 자동 항목을 확인한다.
-2. 시간형 타이머, 완료형, 횟수형, 수치형, 이벤트형을 각각 기록한다.
-3. 수동 시간 수정과 소프트 삭제·복구를 수행한다.
-4. 프로젝트 KPI를 기록하고 파생 투입시간을 확인한다.
-5. 계획을 168h 초과 상태로 저장하고 새 버전·과거 버전을 확인한다.
-6. 비행기 모드에서 추가 기록 후 앱을 재시작해 보존을 확인한다.
-7. 로컬 알림을 탭해 오늘 종료로 진입하고 메모·스냅샷을 저장한다.
-8. 종료 후 기록을 수정하고 주간 집계 변화를 확인한다.
-9. JSON/CSV를 내보내 SQLite 원본, 삭제 행, 계획 전 버전과 대조한다.
-10. 전체 화면과 알림 문구를 AC-17 체크리스트로 감사한다.
+| RA-01 | AC-2, AC-5, I-8 | 요일 일정이 있는 항목 삭제 → 복구 → 해당 요일 오늘 화면과 항목 편집 재확인 | 항목과 기존 일정 규칙이 함께 복구됨 | 코드 보완·자동 게이트 통과/실기기 재현 대기 |
+| RA-02 | SPEC §5.8, §14 | 설정에서 주 시작 요일 변경 → 주간/계획 범위 재확인 | 선택한 요일 기준으로 주 범위와 저장값이 변경됨 | 코드 보완·단위테스트 통과/실기기 재현 대기 |
+| RA-03 | I-8, 프로젝트 데이터 | KPI 값 기록 → 수정 → 소프트 삭제 → 복구 | 값·메모·이력이 각 단계에서 보존됨 | 코드 보완·자동 게이트 통과/실기기 재현 대기 |
+| RA-04 | AC-13, AC-14 | 오늘 종료 → 알림 권한 다시 요청 → 예약 목록과 당일 알림 확인 | `항상 받기`가 꺼져 있으면 당일 종료 알림을 다시 예약하지 않음 | 코드 보완·자동 게이트 통과/실기기 재현 대기 |
 
 ## 결과 기록
 
-| 날짜 | 빌드/커밋 | 대상 기기·OS | TP/AC | 방법/명령 | 결과 | 증빙/비고 |
-|---|---|---|---|---|---|---|
+| 날짜 | Build ID/URL | 기기·Android | TP/AC | 결과 | 증빙/비고 |
+|---|---|---|---|---|---|
+| 2026-08-20 | 로컬 Android HBC | Windows 10/11 | TP-AC-18 및 자동 게이트 | 통과 | `docs/evidence/phase-1-automated.md` |
+| 2026-08-20 | EAS `67a46042-d559-42ee-a321-dd6db1101431` / [build page](https://expo.dev/accounts/ljh951206/projects/oos-ops/builds/67a46042-d559-42ee-a321-dd6db1101431) | 기기·Android 대기 | TP-AC-01 build, TP-AC-02~17 준비 | build 통과/실기기 대기 | SDK 57, app 0.1.0 (1), `com.oosops.app`, internal APK |
+| 2026-09-02 | EAS `5448b354-f54f-4d17-b657-36f8b97afa48` / [build page](https://expo.dev/accounts/ljh951206/projects/oos-ops/builds/5448b354-f54f-4d17-b657-36f8b97afa48) | SM-S721N(Galaxy S24 FE), Android 버전 대기 | TP-AC-01 build·설치, TP-AC-02~17 준비 | build·업데이트 설치 통과/Metro 연결·실기기 검증 대기 | `FINISHED`, fingerprint `0668842a14ccfdacce6088a43baa0fc190bdea90`, build URL 만료 2026-09-16 03:24 KST, APK 로컬 보존 |
+| 2026-09-02 | 사용자 기존 검증 재확인 | SM-S721N(Galaxy S24 FE), Android 버전 대기 | TP-AC-01~17 | 기존 실기기 검증 완료 확인/세부 결과 승계 | 이후 수정된 RA-01~04만 Metro로 재확인 필요 |
+| 2026-09-02 | EAS `154087e2-b93d-451a-b62c-ba6e988f4592` / [build page](https://expo.dev/accounts/ljh951206/projects/oos-ops/builds/154087e2-b93d-451a-b62c-ba6e988f4592) | SM-S721N(Galaxy S24 FE), Android 버전 대기 | TP-AC-19, TP-AC-21 | 매직링크 로그인·최초 업로드·상태 표시 통과 | Metro Android 1,601 modules bundle 완료, 사용자 `로그인 완료 / 마지막 동기화 표시 / 전송 대기 0건`, 원격 `oos_sync_records` 추정 63행 |
+| 2026-09-02 | 같은 0.2.0(3) development build + 최종 Metro source | SM-S721N(Galaxy S24 FE), Android 16/API 36 | TP-AC-19~22 | **Phase 2 통과** | 오프라인 outbox 0→1→0, 원격 원본 63행 복구, 초기화 후 계획 1/14·기록 4·충돌 0, 수동 동기화 23:03:46→23:05:38, `phase_2_rls_passed` |
 
-아직 실행된 테스트가 없다.
+EAS의 새 build URL은 2026-09-16 03:24 KST에 만료되지만 로컬 APK와 이미 설치된 앱이 그 시각 삭제되는 것은 아니다. Android 버전과 TP-AC-01~TP-AC-17 결과를 같은 표에 이어서 기록한다.

@@ -66,6 +66,9 @@ interface AppContextValue {
   deleteKpi: (kpiId: string) => Promise<void>;
   restoreKpi: (kpiId: string) => Promise<void>;
   recordKpi: (kpiId: string, value: number, note: string | null) => Promise<void>;
+  updateKpiRecord: (recordId: string, value: number, note: string | null) => Promise<void>;
+  deleteKpiRecord: (recordId: string) => Promise<void>;
+  restoreKpiRecord: (recordId: string) => Promise<void>;
   saveWeeklyPlan: (
     weekStart: string,
     values: Readonly<Record<string, number>>,
@@ -127,7 +130,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     ).catch(
       (caught: unknown) => setError(caught instanceof Error ? caught.message : '알림 예약을 확인하지 못했습니다.'),
     );
-  }, [loading, repository, snapshot.closures, snapshot.items, snapshot.schedules]);
+  }, [loading, repository, snapshot.closures, snapshot.items, snapshot.schedules, snapshot.settings]);
 
   const mutate = useCallback(
     async <T,>(task: () => Promise<T>, shouldRefresh = true): Promise<T> => {
@@ -191,6 +194,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       deleteKpi: (kpiId) => mutate(() => repository.deleteKpi(kpiId)),
       restoreKpi: (kpiId) => mutate(() => repository.restoreKpi(kpiId)),
       recordKpi: (kpiId, amount, note) => mutate(() => repository.recordKpi(kpiId, amount, note)),
+      updateKpiRecord: (recordId, amount, note) =>
+        mutate(() => repository.updateKpiRecord(recordId, amount, note)),
+      deleteKpiRecord: (recordId) => mutate(() => repository.deleteKpiRecord(recordId)),
+      restoreKpiRecord: (recordId) => mutate(() => repository.restoreKpiRecord(recordId)),
       saveWeeklyPlan: (weekStart, values, source = 'app', note = null) =>
         mutate(() => repository.saveWeeklyPlan(weekStart, values, source, note)),
       copyPreviousWeek: (weekStart) => mutate(() => repository.copyPreviousWeek(weekStart)),
@@ -204,7 +211,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         mutate(async () => {
           await repository.setSetting(key, settingValue);
           if (key.startsWith('close_notification') || key === 'notification_always' || key.startsWith('item_notification:')) {
-            await ensureNotificationSchedule(repository, false, snapshot.items, snapshot.schedules);
+            const today = dateKey(new Date());
+            const todayClosed = snapshot.closures.some((closure) => closure.date === today);
+            await ensureNotificationSchedule(repository, todayClosed, snapshot.items, snapshot.schedules);
           }
         }),
       getWeeklyComment: (weekStart) => repository.getWeeklyComment(weekStart),
@@ -224,7 +233,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       requestNotifications: () =>
         mutate(async () => {
           const granted = await requestNotificationPermission(repository);
-          if (granted) await ensureNotificationSchedule(repository, false, snapshot.items, snapshot.schedules);
+          if (granted) {
+            const today = dateKey(new Date());
+            const todayClosed = snapshot.closures.some((closure) => closure.date === today);
+            await ensureNotificationSchedule(repository, todayClosed, snapshot.items, snapshot.schedules);
+          }
           return granted;
         }, false),
       resetAllData: () => mutate(() => repository.resetAllData()),

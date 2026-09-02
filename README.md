@@ -1,75 +1,87 @@
-# OOS_ops_system
+# OOS Ops
 
-자신의 168시간, 프로젝트, 성과, 컨디션과 계획 변경을 직접 지휘하는 개인 운영체제입니다. 앱은 계획과 실제를 계산하는 회계사이고, AI는 데이터를 분석해 선택지를 제안하는 참모입니다. 저장·변경·적용의 결정권은 사용자에게 있습니다.
+168시간 계획, 실제 기록, 프로젝트 KPI와 변경 이력을 사용자가 직접 관리하는 로컬 우선 모바일 앱입니다. `docs/SPEC.md`가 제품과 구현의 source of truth입니다.
 
 ## 현재 상태
 
-- Phase 1 구현 전 문서 계획 단계
-- 애플리케이션 코드와 `package.json` 없음
-- Phase 1 AC-1~AC-18 구현 계획 및 검증 계획 작성 완료
-- 사용자 승인 전에는 애플리케이션 구현을 시작하지 않음
-- 현재 사용자 결정 항목: `docs/QUESTIONS.md` Q-001(실기기 검증 대상)
+- Phase 1 AC-1~AC-18 게이트 통과(기존 수기 검증 사용자 승인 승계)
+- TypeScript strict, ESLint, 단위테스트·커버리지, Expo 패키지 검사, `expo-doctor`, Android Hermes 번들 검사 2026-09-02 재통과
+- Phase 2 SQLite outbox/LWW/충돌 로그, Supabase 매직링크/RLS, 자동·수동 동기화 구현 및 자동 게이트 통과
+- Phase 2 원격 migration 적용, 0.2.0 development APK, SM-S721N 실기기 AC-19~AC-22 게이트 완료
+- Phase 3 Telegram, Phase 4 AI는 구현하지 않음
 
-따라서 지금은 앱을 실행하거나 개발 빌드를 만들 수 없습니다. 승인 후 프로젝트를 초기화하면 아래 절차를 실제 스크립트와 검증된 명령으로 갱신합니다.
+Phase 2의 로그인·최초 업로드·오프라인 복귀·재설치 복구·RLS 실기기/원격 검증 결과는 `docs/TESTPLAN.md`와 `docs/evidence/phase-2-readiness-2026-09-02.md`에 기록되어 있습니다.
 
-## 기술 스택
+## 고정 환경
 
-- Expo / React Native / Expo Router
-- expo-sqlite 기반 로컬 우선 저장
-- expo-notifications 기반 로컬 예약 알림
-- Supabase 동기화 및 백업(Phase 2)
-- Telegram Bot 보조 입력(Phase 3)
-- 제공자 중립 AI 분석 서비스(Phase 4)
+- Node.js 24.19.0 LTS
+- npm 11.17.0만 사용 (`yarn`, `pnpm`, `bun` 금지)
+- Expo SDK 57 / React Native 0.86 / Expo Router
+- 앱 경로: `mobile/`
+- 패키지 잠금: `mobile/package-lock.json`
+- Expo CLI: 전역 설치하지 않고 `npx expo` 사용
 
-## 실행 방법
+운영체제별 설치 절차는 `docs/ENVIRONMENT.md`를 참조합니다.
 
-Phase 1 초기화 후 사용할 예정인 개발 흐름입니다. 현재 저장소에서는 아직 실행하지 않습니다.
+## 설치와 전체 검증
 
-1. Node.js와 프로젝트에서 확정할 패키지 관리자를 준비합니다.
-2. 의존성을 설치합니다.
-3. 개발 빌드를 기기에 설치합니다.
-4. Expo 개발 서버를 dev-client 모드로 시작합니다.
-5. 설치된 앱 아이콘으로 실행하고 개발 서버에 연결합니다.
+저장소 루트에서 다음 명령을 실행합니다.
 
-정확한 설치·실행·테스트 명령과 지원 Node.js 버전은 초기화 ADR 및 `package.json`이 생긴 뒤 이 절에 기록합니다. Expo Go는 편의 확인에만 사용할 수 있고, Phase 1 완료 증빙에는 개발 빌드와 실기기가 필요합니다.
+```bat
+cd mobile
+npm ci
+npm run verify
+```
 
-## 개발 빌드 방법
+`verify`는 다음을 순서대로 실행합니다.
 
-- Android: Q-001에서 정한 Android 기기와 로컬 또는 EAS development build 경로를 사용합니다.
-- iOS: Q-001에서 iPhone을 정한 경우 서명 가능한 macOS/EAS development build 경로와 사용자 개발자 계정 조건을 확인합니다.
-- 알림 최종 검증: 앱을 완전히 종료한 상태의 로컬 알림 탭, `/today/close` 콜드 스타트 딥링크, Android 채널·권한·재예약을 확인합니다.
+1. `tsc --noEmit`
+2. ESLint(경고 포함 0건)
+3. Vitest와 도메인 커버리지 90% 게이트
+4. 현재 Expo SDK 의존성 호환성 검사
+5. `expo-doctor`
+6. Android Hermes 번들 생성
 
-빌드 프로필, 앱 식별자, 서명 방식은 구현 승인 후 기술 결정과 사용자 기기 조건이 확정될 때 추가합니다.
+## 개발 빌드 실행
+
+Android Studio/JDK 로컬 환경은 Phase 1에 요구하지 않습니다. `mobile/eas.json`의 `development` 프로필은 EAS Cloud에서 SDK 57 이미지로 설치 가능한 development-client APK를 생성합니다.
+
+EAS 프로젝트는 `@ljh951206/oos-ops`에 연결됐습니다. 현재 소스용 Android development build `5448b354-f54f-4d17-b657-36f8b97afa48`은 완료됐고 APK는 `C:\Users\skljh\Downloads\OOS-Ops-0.1.0-development-5448b354.apk`에도 보존했습니다. 설치 절차는 `docs/QUESTIONS.md` Q-003과 `docs/TESTPLAN.md`를 따릅니다. APK가 기기에 설치된 뒤 PC에서 다음 명령으로 개발 서버를 시작합니다.
+
+```bat
+cd mobile
+npx expo start --dev-client
+```
+
+휴대폰과 PC를 같은 네트워크에 연결하고 설치된 `OOS Ops` 아이콘으로 실행합니다. 네트워크 연결이 어려우면 개발 서버 실행 방법을 별도로 점검하며, 로컬 기록 자체는 SQLite에서 오프라인으로 동작합니다.
+
+## 구현 기능
+
+- 오늘: 일정/수동/진행 중 항목, 타이머, 5개 기록 유형, 남은 가용시간, 오늘 종료
+- 주간: 계정별 계획·실제·차이, 총계, 항목·요일 분해, 주간 코멘트
+- 계획: 168시간 실시간 계산, 비차단 저장, append-only 버전·복원·지난주 복사
+- 프로젝트: 프로젝트 상태·실험·판정일, KPI 선택/기록, 연결 항목의 파생 투입시간
+- 설정: 계정·항목·프로젝트·KPI 관리, 소프트 삭제 복구, JSON/CSV 내보내기, 2단계 초기화
+- 알림: 오늘 종료, 선택형 항목 일정, 선택형 타이머 상한, Android HIGH 채널, 콜드 스타트 딥링크
+- 동기화: 이메일 매직링크와 앱 딥링크 복귀, SQLite outbox, online/foreground 자동 재시도, 수동 동기화, 마지막 동기화 시각, 충돌 로그, Supabase RLS
 
 ## 환경변수와 비밀값
 
-Phase 1 로컬 기능에는 외부 서비스 환경변수가 필요하지 않습니다. 후속 Phase의 값은 해당 단계 승인 전에는 만들거나 저장소에 넣지 않습니다.
+Phase 2는 EAS 프로젝트의 `EXPO_PUBLIC_SUPABASE_*` 변수 두 개를 사용합니다. 로컬 개발값은 `npx eas-cli@latest env:pull development --non-interactive --path .env.local`로 받고 `.env.local`은 커밋하지 않습니다. 공개 URL/publishable key는 앱 배포용 값이며 데이터 보호는 RLS가 담당합니다. database password, service-role key, secret key는 앱이나 저장소에 넣지 않습니다.
 
-| Phase | 값 | 저장 위치/정책 | 현재 상태 |
-|---|---|---|---|
-| 1 | 없음 | SQLite와 로컬 알림만 사용 | 해당 없음 |
-| 2 | Supabase URL, 클라이언트 공개 키 | 앱 환경 설정. 변수명은 Phase 2 ADR에서 확정 | 미정·미사용 |
-| 3 | Telegram bot token, 허용 chat_id | 서버 환경변수 전용. 앱 번들 금지 | 미정·미사용 |
-| 4 | AI 제공자·모델·API 키 | 기기 키는 보안 저장소, 서버 키는 서버 환경변수 | 미정·미사용 |
+| Phase | 값 | 정책 |
+|---|---|---|
+| 2 | Supabase URL/공개 클라이언트 키 | EAS environment + ignore된 `.env.local`, RLS 필수 |
+| 3 | Telegram token/chat_id | 서버 환경변수 전용, 앱 번들 금지 |
+| 4 | AI provider/model/key | 기기 키는 SecureStore, 서버 키는 서버 환경변수 |
 
-토큰·개인 키·서비스 역할 키는 코드, 문서, 커밋, 앱 번들에 넣지 않습니다. 예시 파일을 만들 때도 실제 값은 포함하지 않습니다.
+토큰, 개인 키, 서비스 역할 키는 코드·문서·커밋·앱 번들에 넣지 않습니다.
 
-## 개발 작업 순서
+## 기준 문서
 
-1. `docs/SPEC.md` 전체와 특히 §1, §2, §3, §10, 현재 Phase, §11, §12를 읽습니다.
-2. `docs/PLAN.md`에서 현재 단계·AC·게이트를 확인합니다.
-3. §10.4 정지 조건은 `docs/QUESTIONS.md`, 기술 내부 결정은 `docs/DECISIONS.md`에 기록합니다.
-4. 각 AC의 검증을 `docs/TESTPLAN.md`에 연결하고 결과·증빙을 남깁니다.
-5. 사용자 의미 변경은 `docs/CHANGELOG.md`, 명세 밖 제안은 `docs/FUTURE.md`에 기록합니다.
-
-Phase 1의 AC-1~AC-18과 §10.3 게이트를 모두 통과하고 사용자 기기에서 하루치 실제 기록을 완료해야 초안 v0.1 완성입니다.
-
-## 문서
-
-- `docs/SPEC.md`: 제품 명세, 불변조건, 단계, 수용 기준의 기준 문서
-- `docs/PLAN.md`: 현재 단계, AC별 구현 계획, 게이트 증빙
-- `docs/DECISIONS.md`: 자율 기술 결정 ADR
-- `docs/QUESTIONS.md`: 현재 사용자 결정이 필요한 정지 항목
-- `docs/CHANGELOG.md`: 제품·범위·계획 변경 이력
-- `docs/TESTPLAN.md`: AC별 검증 방법과 실행 결과
-- `docs/FUTURE.md`: 현재 승인 범위 밖의 후보
+- `docs/SPEC.md`: 불변조건, 기능, 수용기준
+- `docs/PLAN.md`: AC별 구현 상태와 게이트
+- `docs/TESTPLAN.md`: 자동·실기기 검증 절차와 결과
+- `docs/DECISIONS.md`: 기술 ADR
+- `docs/QUESTIONS.md`: 현재 사용자 행동/결정이 필요한 항목
+- `docs/ENVIRONMENT.md`: Windows/macOS 재현 절차

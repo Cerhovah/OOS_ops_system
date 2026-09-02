@@ -7,6 +7,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { LoadingView } from '@/components/ui';
 import { DATABASE_NAME } from '@/constants/app';
 import { AppProvider } from '@/context/app-context';
+import { SyncProvider } from '@/context/sync-context';
 import { migrateDatabase } from '@/data/migrations';
 import { observeNotificationNavigation } from '@/services/notifications';
 
@@ -19,6 +20,7 @@ function Navigation() {
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="today/close" options={{ title: '오늘 종료', presentation: 'modal' }} />
       <Stack.Screen name="settings" options={{ title: '설정' }} />
+      <Stack.Screen name="auth/callback" options={{ title: '로그인 확인' }} />
     </Stack>
   );
 }
@@ -30,12 +32,11 @@ export default function RootLayout() {
         <SQLiteProvider
           databaseName={DATABASE_NAME}
           onInit={migrateDatabase}
-          onError={(error) => {
-            throw error;
-          }}
           useSuspense>
           <AppProvider>
-            <Navigation />
+            <SyncProvider>
+              <Navigation />
+            </SyncProvider>
           </AppProvider>
         </SQLiteProvider>
       </Suspense>

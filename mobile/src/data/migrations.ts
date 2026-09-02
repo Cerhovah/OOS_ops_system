@@ -6,9 +6,127 @@ import {
   DEFAULT_WEEK_START_DAY,
 } from '@/constants/app';
 import { dateKey, weekRange } from '@/domain/calculations';
+import { syncTableDefinitions } from '@/sync/schema';
 
-const DATABASE_VERSION = 1;
-const SEED_TIME = '2026-08-20T00:00:00.000+09:00';
+export const DATABASE_VERSION = 2;
+export const SEED_TIME = '2026-08-20T00:00:00.000+09:00';
+
+const sqlNow = "strftime('%Y-%m-%dT%H:%M:%fZ','now')";
+const syncableSettingsSql = `(
+  NEW.key IN (
+    'week_start_day','day_end_time','close_notification_time','close_notification_enabled',
+    'notification_always','timer_limit_notifications_enabled','time_zone'
+  ) OR NEW.key LIKE 'item_notification:%'
+)`;
+
+function payloadSql(columns: readonly string[], prefix: 'NEW.' | ''): string {
+  return `json_object(${columns.map((column) => `'${column}', ${prefix}${column}`).join(', ')})`;
+}
+
+async function createSyncCapture(db: SQLiteDatabase): Promise<void> {
+  for (const definition of syncTableDefinitions) {
+    const condition = definition.name === 'settings' ? ` AND ${syncableSettingsSql}` : '';
+    const payload = payloadSql(definition.columns, 'NEW.');
+    const recordId = `NEW.${definition.primaryKey}`;
+    const timestamp = `COALESCE(NEW.updated_at, ${sqlNow})`;
+    for (const operation of ['insert', 'update'] as const) {
+      await db.execAsync(`
+        CREATE TRIGGER sync_capture_${definition.name}_${operation}
+        AFTER ${operation.toUpperCase()} ON ${definition.name}
+        WHEN COALESCE((SELECT value FROM sync_state WHERE key='capture_suppressed'), '0') <> '1'${condition}
+        BEGIN
+          INSERT INTO sync_outbox
+            (id,table_name,record_id,operation,payload_json,local_updated_at,attempts,last_error,created_at)
+          VALUES
+            (lower(hex(randomblob(16))),'${definition.name}',${recordId},'upsert',${payload},${timestamp},0,NULL,${sqlNow})
+          ON CONFLICT(table_name,record_id) DO UPDATE SET
+            operation='upsert', payload_json=excluded.payload_json,
+            local_updated_at=excluded.local_updated_at, attempts=0, last_error=NULL;
+        END;
+      `);
+    }
+  }
+}
+
+async function queueExistingData(db: SQLiteDatabase): Promise<void> {
+  for (const definition of syncTableDefinitions) {
+    const settingsFilter = definition.name === 'settings'
+      ? `AND (key IN (
+          'week_start_day','day_end_time','close_notification_time','close_notification_enabled',
+          'notification_always','timer_limit_notifications_enabled','time_zone'
+        ) OR key LIKE 'item_notification:%')`
+      : '';
+    await db.execAsync(`
+      INSERT INTO sync_outbox
+        (id,table_name,record_id,operation,payload_json,local_updated_at,attempts,last_error,created_at)
+      SELECT lower(hex(randomblob(16))),'${definition.name}',${definition.primaryKey},'upsert',
+        ${payloadSql(definition.columns, '')},COALESCE(updated_at,${sqlNow}),0,NULL,${sqlNow}
+      FROM ${definition.name}
+      WHERE 1=1 ${settingsFilter}
+      ON CONFLICT(table_name,record_id) DO UPDATE SET
+        payload_json=excluded.payload_json,local_updated_at=excluded.local_updated_at,
+        attempts=0,last_error=NULL;
+    `);
+  }
+}
+
+async function migrateToVersion2(db: SQLiteDatabase): Promise<void> {
+  await db.execAsync(`
+    ALTER TABLE weekly_plans ADD COLUMN updated_at TEXT;
+    ALTER TABLE weekly_plans ADD COLUMN deleted_at TEXT;
+    ALTER TABLE weekly_plan_lines ADD COLUMN created_at TEXT;
+    ALTER TABLE weekly_plan_lines ADD COLUMN updated_at TEXT;
+    ALTER TABLE weekly_plan_lines ADD COLUMN deleted_at TEXT;
+    ALTER TABLE day_notes ADD COLUMN deleted_at TEXT;
+    ALTER TABLE day_closures ADD COLUMN updated_at TEXT;
+    ALTER TABLE day_closures ADD COLUMN deleted_at TEXT;
+    ALTER TABLE weekly_comments ADD COLUMN deleted_at TEXT;
+    ALTER TABLE today_item_additions ADD COLUMN updated_at TEXT;
+    ALTER TABLE today_item_additions ADD COLUMN deleted_at TEXT;
+
+    UPDATE weekly_plans SET updated_at=created_at WHERE updated_at IS NULL;
+    UPDATE weekly_plan_lines
+      SET created_at=COALESCE((SELECT created_at FROM weekly_plans WHERE id=weekly_plan_id), ${sqlNow}),
+          updated_at=COALESCE((SELECT created_at FROM weekly_plans WHERE id=weekly_plan_id), ${sqlNow})
+      WHERE updated_at IS NULL;
+    UPDATE day_closures SET updated_at=closed_at WHERE updated_at IS NULL;
+    UPDATE today_item_additions SET updated_at=created_at WHERE updated_at IS NULL;
+
+    CREATE TABLE sync_state (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+    CREATE TABLE sync_outbox (
+      id TEXT PRIMARY KEY,
+      table_name TEXT NOT NULL,
+      record_id TEXT NOT NULL,
+      operation TEXT NOT NULL CHECK (operation IN ('upsert')),
+      payload_json TEXT NOT NULL,
+      local_updated_at TEXT NOT NULL,
+      attempts INTEGER NOT NULL DEFAULT 0,
+      last_error TEXT,
+      created_at TEXT NOT NULL,
+      UNIQUE(table_name,record_id)
+    );
+    CREATE TABLE sync_conflicts (
+      id TEXT PRIMARY KEY,
+      table_name TEXT NOT NULL,
+      record_id TEXT NOT NULL,
+      local_payload_json TEXT,
+      remote_payload_json TEXT NOT NULL,
+      local_updated_at TEXT,
+      remote_updated_at TEXT NOT NULL,
+      winner TEXT NOT NULL CHECK (winner IN ('local','remote')),
+      created_at TEXT NOT NULL,
+      resolved_at TEXT NOT NULL
+    );
+    CREATE INDEX idx_sync_outbox_created ON sync_outbox(created_at);
+    CREATE INDEX idx_sync_conflicts_created ON sync_conflicts(created_at DESC);
+  `);
+  await createSyncCapture(db);
+  await queueExistingData(db);
+}
 
 export const accountSeeds = [
   ['seed-account-sleep', '수면', '#526D82', '기반', 0, 49 * 60],
@@ -63,7 +181,7 @@ export const kpiSeeds = [
 export async function migrateDatabase(db: SQLiteDatabase): Promise<void> {
   await db.execAsync('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');
   const versionRow = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
-  const currentVersion = versionRow?.user_version ?? 0;
+  let currentVersion = versionRow?.user_version ?? 0;
   if (currentVersion > DATABASE_VERSION) {
     throw new Error(`지원하지 않는 데이터베이스 버전입니다: ${currentVersion}`);
   }
@@ -150,7 +268,12 @@ export async function migrateDatabase(db: SQLiteDatabase): Promise<void> {
       CREATE INDEX idx_kpi_records_kpi ON project_kpi_records(kpi_id, occurred_at);
     `);
     await seedDatabase(db);
-    await db.execAsync(`PRAGMA user_version = ${DATABASE_VERSION}`);
+    await db.execAsync('PRAGMA user_version = 1');
+    currentVersion = 1;
+  }
+  if (currentVersion < 2) {
+    await migrateToVersion2(db);
+    await db.execAsync('PRAGMA user_version = 2');
   }
 }
 
@@ -158,6 +281,8 @@ export async function seedDatabase(db: SQLiteDatabase): Promise<void> {
   const count = await db.getFirstAsync<{ count: number }>('SELECT COUNT(*) AS count FROM accounts');
   if ((count?.count ?? 0) > 0) return;
   const currentWeek = weekRange(dateKey(new Date())).start;
+  const planColumns = await db.getAllAsync<{ name: string }>('PRAGMA table_info(weekly_plans)');
+  const hasSyncColumns = planColumns.some((column) => column.name === 'updated_at');
 
   await db.withExclusiveTransactionAsync(async (txn) => {
     for (const [id, name, color, kind, sortOrder] of accountSeeds) {
@@ -214,21 +339,44 @@ export async function seedDatabase(db: SQLiteDatabase): Promise<void> {
       );
     }
     const planId = `seed-plan-${currentWeek}-v1`;
-    await txn.runAsync(
-      'INSERT INTO weekly_plans (id,week_start,version,note,source,created_at) VALUES (?,?,1,NULL,?,?)',
-      planId,
-      currentWeek,
-      'app',
-      SEED_TIME,
-    );
-    for (const [accountId, , , , , plannedMinutes] of accountSeeds) {
+    if (hasSyncColumns) {
       await txn.runAsync(
-        'INSERT INTO weekly_plan_lines (id,weekly_plan_id,account_id,planned_minutes) VALUES (?,?,?,?)',
-        `${planId}-${accountId}`,
+        'INSERT INTO weekly_plans (id,week_start,version,note,source,created_at,updated_at) VALUES (?,?,1,NULL,?,?,?)',
         planId,
-        accountId,
-        plannedMinutes,
+        currentWeek,
+        'app',
+        SEED_TIME,
+        SEED_TIME,
       );
+    } else {
+      await txn.runAsync(
+        'INSERT INTO weekly_plans (id,week_start,version,note,source,created_at) VALUES (?,?,1,NULL,?,?)',
+        planId,
+        currentWeek,
+        'app',
+        SEED_TIME,
+      );
+    }
+    for (const [accountId, , , , , plannedMinutes] of accountSeeds) {
+      if (hasSyncColumns) {
+        await txn.runAsync(
+          'INSERT INTO weekly_plan_lines (id,weekly_plan_id,account_id,planned_minutes,created_at,updated_at) VALUES (?,?,?,?,?,?)',
+          `${planId}-${accountId}`,
+          planId,
+          accountId,
+          plannedMinutes,
+          SEED_TIME,
+          SEED_TIME,
+        );
+      } else {
+        await txn.runAsync(
+          'INSERT INTO weekly_plan_lines (id,weekly_plan_id,account_id,planned_minutes) VALUES (?,?,?,?)',
+          `${planId}-${accountId}`,
+          planId,
+          accountId,
+          plannedMinutes,
+        );
+      }
     }
     const settings = [
       ['week_start_day', String(DEFAULT_WEEK_START_DAY)],

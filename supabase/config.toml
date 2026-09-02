@@ -1,0 +1,19 @@
+project_id = "oos_ops_system"
+
+# Hosted project values are mirrored here so `config push` changes only the
+# explicitly approved mobile callback URL.
+[auth]
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["oosops://auth/callback"]
+
+[auth.mfa.totp]
+enroll_enabled = true
+verify_enabled = true
+
+[auth.email]
+enable_confirmations = true
+max_frequency = "1m0s"
+otp_length = 8
+
+[storage.vector]
+enabled = false

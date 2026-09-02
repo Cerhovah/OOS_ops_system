@@ -4,11 +4,12 @@ import { Alert, StyleSheet, Text, View } from 'react-native';
 import { AppButton, Card, Field, Heading, LoadingView, Screen, Section, textStyles } from '@/components/ui';
 import { COLORS } from '@/constants/app';
 import { useApp } from '@/context/app-context';
-import { addDays, dateKey, formatMinutes, latestPlanForWeek, planStatus, weekRange } from '@/domain/calculations';
+import { addDays, dateKey, formatMinutes, latestPlanForWeek, parseWeekStartDay, planStatus, weekRange } from '@/domain/calculations';
 
 export default function PlanScreen() {
   const app = useApp();
-  const initial = weekRange(dateKey(new Date())).start;
+  const weekStartDay = parseWeekStartDay(app.snapshot.settings.week_start_day);
+  const initial = weekRange(dateKey(new Date()), weekStartDay).start;
   const [weekStart, setWeekStart] = useState(initial);
   const [hours, setHours] = useState<Record<string, string>>({});
   const accounts = useMemo(
@@ -19,6 +20,10 @@ export default function PlanScreen() {
     () => latestPlanForWeek(app.snapshot.plans, app.snapshot.planLines, weekStart),
     [app.snapshot.planLines, app.snapshot.plans, weekStart],
   );
+
+  useEffect(() => {
+    setWeekStart(weekRange(dateKey(new Date()), weekStartDay).start);
+  }, [weekStartDay]);
 
   useEffect(() => {
     const values = Object.fromEntries(

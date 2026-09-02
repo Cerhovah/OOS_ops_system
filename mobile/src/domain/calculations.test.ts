@@ -8,6 +8,7 @@ import {
   entryBelongsToRange,
   formatMinutes,
   latestPlanForWeek,
+  parseWeekStartDay,
   planStatus,
   remainingAvailableToday,
   scheduleMatchesDate,
@@ -88,6 +89,12 @@ describe('date and week calculations', () => {
 
   it('returns a Monday-through-Sunday range across month boundaries', () => {
     expect(weekRange('2026-09-01')).toEqual({ start: '2026-08-31', end: '2026-09-06' });
+  });
+
+  it('uses a configurable week start and falls back to Monday for invalid settings', () => {
+    expect(weekRange('2026-09-01', parseWeekStartDay('6'))).toEqual({ start: '2026-08-30', end: '2026-09-05' });
+    expect(parseWeekStartDay('7')).toBe(0);
+    expect(parseWeekStartDay(undefined)).toBe(0);
   });
 });
 

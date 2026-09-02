@@ -14,8 +14,8 @@ import {
   textStyles,
 } from '@/components/ui';
 import { useApp } from '@/context/app-context';
-import { aggregateKpi, dateKey, entryBelongsToRange, formatMinutes, weekRange } from '@/domain/calculations';
-import type { Aggregation, Project, ProjectKpi, ProjectStatus } from '@/types/domain';
+import { aggregateKpi, dateKey, entryBelongsToRange, formatMinutes, parseWeekStartDay, weekRange } from '@/domain/calculations';
+import type { Aggregation, Project, ProjectKpi, ProjectKpiRecord, ProjectStatus } from '@/types/domain';
 
 const statusChoices = [
   { value: 'active', label: '진행' },
@@ -53,10 +53,13 @@ export default function ProjectsScreen() {
   const [kpiLabel, setKpiLabel] = useState('');
   const [kpiUnit, setKpiUnit] = useState('');
   const [aggregation, setAggregation] = useState<Aggregation>('sum');
-  const [recordKpiId, setRecordKpiId] = useState<string | null>(null);
+  const [recordForm, setRecordForm] = useState<{ kpiId: string; record: ProjectKpiRecord | null } | null>(null);
   const [recordValue, setRecordValue] = useState('');
   const [recordNote, setRecordNote] = useState('');
-  const currentWeek = weekRange(dateKey(new Date()));
+  const currentWeek = weekRange(
+    dateKey(new Date()),
+    parseWeekStartDay(app.snapshot.settings.week_start_day),
+  );
 
   const derived = useMemo(() => {
     if (!selected) return { total: 0, week: 0 };
@@ -111,14 +114,18 @@ export default function ProjectsScreen() {
   }
 
   async function submitKpiRecord() {
-    if (!recordKpiId) return;
+    if (!recordForm) return;
     const value = Number(recordValue);
     if (!Number.isFinite(value)) {
       Alert.alert('입력 확인', '숫자를 입력하십시오.');
       return;
     }
-    await app.recordKpi(recordKpiId, value, recordNote.trim() || null);
-    setRecordKpiId(null);
+    if (recordForm.record) {
+      await app.updateKpiRecord(recordForm.record.id, value, recordNote.trim() || null);
+    } else {
+      await app.recordKpi(recordForm.kpiId, value, recordNote.trim() || null);
+    }
+    setRecordForm(null);
   }
 
   const selectedKpis = selected ? app.snapshot.kpis.filter((kpi) => kpi.projectId === selected.id && !kpi.deletedAt) : [];
@@ -162,9 +169,9 @@ export default function ProjectsScreen() {
             }} />}>
               {selectedKpis.length === 0 ? <Text style={textStyles.body}>선택된 KPI가 없습니다.</Text> : null}
               {selectedKpis.map((kpi) => {
-                const values = app.snapshot.kpiRecords
-                  .filter((record) => record.kpiId === kpi.id && !record.deletedAt)
-                  .map((record) => record.value);
+                const records = app.snapshot.kpiRecords.filter((record) => record.kpiId === kpi.id && !record.deletedAt);
+                const values = records.map((record) => record.value);
+                const recentRecords = records.slice().reverse().slice(0, 10);
                 const total = aggregateKpi(values, kpi.aggregation);
                 return (
                   <Card key={kpi.id}>
@@ -174,11 +181,31 @@ export default function ProjectsScreen() {
                     <AppButton
                       label="+ 기록"
                       onPress={() => {
-                        setRecordKpiId(kpi.id);
+                        setRecordForm({ kpiId: kpi.id, record: null });
                         setRecordValue('');
                         setRecordNote('');
                       }}
                     />
+                    {recentRecords.map((record) => (
+                      <View key={record.id} style={styles.recordRow}>
+                        <View style={styles.flex}>
+                          <Text style={textStyles.body}>
+                            {record.value}{kpi.unit ? ` ${kpi.unit}` : ''} · {dateKey(new Date(record.occurredAt))}
+                          </Text>
+                          {record.note ? <Text style={textStyles.muted}>{record.note}</Text> : null}
+                        </View>
+                        <AppButton
+                          label="수정"
+                          variant="plain"
+                          onPress={() => {
+                            setRecordForm({ kpiId: kpi.id, record });
+                            setRecordValue(String(record.value));
+                            setRecordNote(record.note ?? '');
+                          }}
+                        />
+                        <AppButton label="삭제" variant="danger" onPress={() => void app.deleteKpiRecord(record.id)} />
+                      </View>
+                    ))}
                     <AppButton label="KPI 편집" variant="secondary" onPress={() => {
                       setKpiForm(kpi);
                       setKpiPreset('');
@@ -254,10 +281,13 @@ export default function ProjectsScreen() {
         ) : null}
       </Sheet>
 
-      <Sheet visible={recordKpiId !== null} title="KPI 값 기록" onClose={() => setRecordKpiId(null)}>
+      <Sheet
+        visible={recordForm !== null}
+        title={recordForm?.record ? 'KPI 값 수정' : 'KPI 값 기록'}
+        onClose={() => setRecordForm(null)}>
         <Field label="값" value={recordValue} onChangeText={setRecordValue} keyboardType="decimal-pad" />
         <Field label="메모(선택)" value={recordNote} onChangeText={setRecordNote} multiline />
-        <AppButton label="기록 저장" onPress={() => void submitKpiRecord()} disabled={!recordValue.trim()} />
+        <AppButton label={recordForm?.record ? '수정 저장' : '기록 저장'} onPress={() => void submitKpiRecord()} disabled={!recordValue.trim()} />
       </Sheet>
     </>
   );
@@ -267,5 +297,6 @@ const styles = StyleSheet.create({
   projectChoices: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', gap: 10 },
   flex: { flex: 1, gap: 4 },
+  recordRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   kpiValue: { color: '#17202A', fontSize: 24, fontWeight: '800', fontVariant: ['tabular-nums'] },
 });

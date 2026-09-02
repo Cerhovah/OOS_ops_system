@@ -1,6 +1,45 @@
-import { describe, expect, it } from 'vitest';
+/// <reference types="node" />
 
-import { accountSeeds, itemSeeds, kpiSeeds, projectSeeds, scheduleSeeds } from './migrations';
+import { randomUUID as nodeRandomUUID } from 'node:crypto';
+import { DatabaseSync, type SQLInputValue } from 'node:sqlite';
+import type { SQLiteDatabase } from 'expo-sqlite';
+import { describe, expect, it, vi } from 'vitest';
+
+import { accountSeeds, itemSeeds, kpiSeeds, migrateDatabase, projectSeeds, scheduleSeeds } from './migrations';
+import { SyncRepository, type RemoteSyncRecord } from './sync-repository';
+
+vi.mock('expo-crypto', () => ({ randomUUID: nodeRandomUUID }));
+
+class TestDatabase {
+  readonly raw = new DatabaseSync(':memory:');
+
+  async execAsync(sql: string): Promise<void> {
+    this.raw.exec(sql);
+  }
+
+  async getFirstAsync<T>(sql: string, ...params: SQLInputValue[]): Promise<T | null> {
+    return (this.raw.prepare(sql).get(...params) as T | undefined) ?? null;
+  }
+
+  async getAllAsync<T>(sql: string, ...params: SQLInputValue[]): Promise<T[]> {
+    return this.raw.prepare(sql).all(...params) as T[];
+  }
+
+  async runAsync(sql: string, ...params: SQLInputValue[]): Promise<void> {
+    this.raw.prepare(sql).run(...params);
+  }
+
+  async withExclusiveTransactionAsync(task: (transaction: SQLiteDatabase) => Promise<void>): Promise<void> {
+    this.raw.exec('BEGIN EXCLUSIVE');
+    try {
+      await task(this as unknown as SQLiteDatabase);
+      this.raw.exec('COMMIT');
+    } catch (error) {
+      this.raw.exec('ROLLBACK');
+      throw error;
+    }
+  }
+}
 
 describe('Phase 1 seed manifest', () => {
   it('contains the exact 14-account 168-hour allocation from SPEC 4.4', () => {
@@ -43,5 +82,98 @@ describe('Phase 1 seed manifest', () => {
     expect(scheduleSeeds.find((seed) => seed[1] === 'seed-item-codyssey')?.[2]).toBe(0b0000011);
     expect(scheduleSeeds.find((seed) => seed[1] === 'seed-item-commute')?.[2]).toBe(0b0011011);
     expect(scheduleSeeds.find((seed) => seed[1] === 'seed-item-required')?.[2]).toBe(0b0111111);
+  });
+
+  it('creates the additive v2 outbox schema and captures later mutations', async () => {
+    const db = new TestDatabase();
+    await migrateDatabase(db as unknown as SQLiteDatabase);
+
+    expect(db.raw.prepare('PRAGMA user_version').get()).toMatchObject({ user_version: 2 });
+    const initial = db.raw.prepare('SELECT COUNT(*) AS count FROM sync_outbox').get() as { count: number };
+    expect(initial.count).toBeGreaterThan(0);
+
+    db.raw.prepare("UPDATE accounts SET name='수면 수정',updated_at='2026-09-02T01:00:00.000Z' WHERE id='seed-account-sleep'").run();
+    const captured = db.raw.prepare(
+      "SELECT payload_json,local_updated_at FROM sync_outbox WHERE table_name='accounts' AND record_id='seed-account-sleep'",
+    ).get() as { payload_json: string; local_updated_at: string };
+    expect(JSON.parse(captured.payload_json)).toMatchObject({ id: 'seed-account-sleep', name: '수면 수정' });
+    expect(captured.local_updated_at).toBe('2026-09-02T01:00:00.000Z');
+    db.raw.close();
+  });
+
+  it('applies a newer remote row, keeps a newer local row, and logs both conflicts', async () => {
+    const db = new TestDatabase();
+    await migrateDatabase(db as unknown as SQLiteDatabase);
+    const repository = new SyncRepository(db as unknown as SQLiteDatabase);
+    const base = db.raw.prepare("SELECT * FROM accounts WHERE id='seed-account-sleep'").get() as Record<string, string | number | null>;
+
+    const remoteWins: RemoteSyncRecord = {
+      user_id: 'user-a',
+      table_name: 'accounts',
+      local_id: 'seed-account-sleep',
+      payload: { ...base, name: '서버 수면', updated_at: '2026-09-02T02:00:00.000Z' },
+      client_updated_at: '2026-09-02T02:00:00.000Z',
+      deleted_at: null,
+      server_updated_at: '2026-09-02T02:00:01.000Z',
+    };
+    await repository.applyRemoteRecords([remoteWins]);
+    expect(db.raw.prepare("SELECT name FROM accounts WHERE id='seed-account-sleep'").get()).toMatchObject({ name: '서버 수면' });
+
+    db.raw.prepare(
+      "UPDATE accounts SET name='기기 수면',updated_at='2026-09-02T03:00:00.000Z' WHERE id='seed-account-sleep'",
+    ).run();
+    const localWins: RemoteSyncRecord = {
+      ...remoteWins,
+      payload: { ...base, name: '이전 서버 수면', updated_at: '2026-09-02T02:30:00.000Z' },
+      client_updated_at: '2026-09-02T02:30:00.000Z',
+      server_updated_at: '2026-09-02T02:30:01.000Z',
+    };
+    await repository.applyRemoteRecords([localWins]);
+
+    expect(db.raw.prepare("SELECT name FROM accounts WHERE id='seed-account-sleep'").get()).toMatchObject({ name: '기기 수면' });
+    expect(db.raw.prepare("SELECT COUNT(*) AS count FROM sync_conflicts WHERE record_id='seed-account-sleep'").get()).toMatchObject({ count: 2 });
+    expect(db.raw.prepare("SELECT COUNT(*) AS count FROM sync_conflicts WHERE record_id='seed-account-sleep' AND winner='local'").get()).toMatchObject({ count: 1 });
+    expect(db.raw.prepare("SELECT COUNT(*) AS count FROM sync_outbox WHERE record_id='seed-account-sleep'").get()).toMatchObject({ count: 1 });
+    db.raw.close();
+  });
+
+  it('atomically replaces pristine install seeds when a remote backup exists', async () => {
+    const db = new TestDatabase();
+    await migrateDatabase(db as unknown as SQLiteDatabase);
+    const repository = new SyncRepository(db as unknown as SQLiteDatabase);
+    const remoteAccount = db.raw.prepare(
+      "SELECT * FROM accounts WHERE id='seed-account-sleep'",
+    ).get() as Record<string, string | number | null>;
+
+    expect(await repository.shouldReplaceSeedBootstrap(true)).toBe(true);
+    await repository.applyRemoteRecords([{
+      user_id: 'user-a',
+      table_name: 'accounts',
+      local_id: 'seed-account-sleep',
+      payload: { ...remoteAccount, name: '복구된 수면', updated_at: '2026-09-02T02:00:00.000Z' },
+      client_updated_at: '2026-09-02T02:00:00.000Z',
+      deleted_at: null,
+      server_updated_at: '2026-09-02T02:00:01.000Z',
+    }], { replaceSeedBootstrap: true });
+
+    expect(db.raw.prepare('SELECT COUNT(*) AS count FROM accounts').get()).toMatchObject({ count: 1 });
+    expect(db.raw.prepare("SELECT name FROM accounts WHERE id='seed-account-sleep'").get()).toMatchObject({ name: '복구된 수면' });
+    expect(db.raw.prepare('SELECT COUNT(*) AS count FROM weekly_plans').get()).toMatchObject({ count: 0 });
+    expect(db.raw.prepare('SELECT COUNT(*) AS count FROM sync_outbox').get()).toMatchObject({ count: 0 });
+    expect(db.raw.prepare('SELECT COUNT(*) AS count FROM sync_conflicts').get()).toMatchObject({ count: 0 });
+    db.raw.close();
+  });
+
+  it('preserves local work performed before the first login', async () => {
+    const db = new TestDatabase();
+    await migrateDatabase(db as unknown as SQLiteDatabase);
+    const repository = new SyncRepository(db as unknown as SQLiteDatabase);
+
+    db.raw.prepare(
+      "UPDATE accounts SET name='로그인 전 수정',updated_at='2026-09-02T03:00:00.000Z' WHERE id='seed-account-sleep'",
+    ).run();
+
+    expect(await repository.shouldReplaceSeedBootstrap(true)).toBe(false);
+    db.raw.close();
   });
 });

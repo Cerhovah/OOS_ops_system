@@ -10,6 +10,7 @@ import {
   entryBelongsToRange,
   formatMinutes,
   latestPlanForWeek,
+  parseWeekStartDay,
   weekRange,
 } from '@/domain/calculations';
 import type { Account } from '@/types/domain';
@@ -18,7 +19,8 @@ const dayLabels = ['월', '화', '수', '목', '금', '토', '일'];
 
 export default function WeekScreen() {
   const app = useApp();
-  const initial = weekRange(dateKey(new Date())).start;
+  const weekStartDay = parseWeekStartDay(app.snapshot.settings.week_start_day);
+  const initial = weekRange(dateKey(new Date()), weekStartDay).start;
   const [weekStart, setWeekStart] = useState(initial);
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
   const [showDays, setShowDays] = useState(false);
@@ -31,6 +33,10 @@ export default function WeekScreen() {
   );
   const actuals = actualMinutesByAccount(entries);
   const plannedByAccount = Object.fromEntries(plan.lines.map((line) => [line.accountId, line.plannedMinutes]));
+
+  useEffect(() => {
+    setWeekStart(weekRange(dateKey(new Date()), weekStartDay).start);
+  }, [weekStartDay]);
 
   useEffect(() => {
     void app.getWeeklyComment(weekStart).then(setComment);
@@ -92,13 +98,15 @@ export default function WeekScreen() {
               </Card>
             </>
           ) : (
-            dayLabels.map((label, index) => {
+            dayLabels.map((_, index) => {
+              const weekday = (weekStartDay + index) % 7;
+              const label = dayLabels[weekday];
               const key = addDays(weekStart, index);
               const actual = entries
                 .filter((entry) => dateKey(new Date(entry.startedAt ?? entry.occurredAt)) === key && entry.type === 'time')
                 .reduce((sum, entry) => sum + (entry.durationMin ?? 0), 0);
               const planned = app.snapshot.schedules
-                .filter((schedule) => !schedule.deletedAt && (schedule.weekdayMask & (1 << index)) !== 0)
+                .filter((schedule) => !schedule.deletedAt && (schedule.weekdayMask & (1 << weekday)) !== 0)
                 .reduce((sum, schedule) => sum + (schedule.plannedValue ?? 0), 0);
               return (
                 <Card key={key}>
@@ -125,7 +133,8 @@ export default function WeekScreen() {
               <Text style={textStyles.title}>{item.name}</Text>
               <Text style={textStyles.body}>시간 {formatMinutes(time)} · 횟수/완료 {count}</Text>
               <Text style={textStyles.muted}>
-                {dayLabels.map((label, index) => {
+                {dayLabels.map((_, index) => {
+                  const label = dayLabels[(weekStartDay + index) % 7];
                   const key = addDays(weekStart, index);
                   const value = itemEntries
                     .filter((entry) => dateKey(new Date(entry.startedAt ?? entry.occurredAt)) === key)

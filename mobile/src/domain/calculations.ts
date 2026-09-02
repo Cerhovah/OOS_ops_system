@@ -58,6 +58,11 @@ export function weekRange(key: string, weekStartDay = 0): { start: string; end: 
   return { start, end: addDays(start, 6) };
 }
 
+export function parseWeekStartDay(value: string | undefined): number {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed >= 0 && parsed <= 6 ? parsed : 0;
+}
+
 export function planStatus(minutes: readonly number[]): PlanStatus {
   const totalMinutes = minutes.reduce((sum, value) => sum + value, 0);
   const deltaMinutes = totalMinutes - WEEKLY_MINUTES;
