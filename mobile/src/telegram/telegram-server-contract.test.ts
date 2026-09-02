@@ -82,10 +82,13 @@ describe('Telegram server contract', () => {
   it('keeps one-time setup credentials out of command history and temporary files', () => {
     expect(setupScript).toContain('-AsSecureString');
     expect(setupScript).toContain('ZeroFreeBSTR');
-    expect(setupScript).toContain('secrets set --env-file');
+    expect(setupScript).toContain("'secrets', 'set', '--env-file'");
     expect(setupScript).toContain('vault.create_secret');
     expect(setupScript).toContain('Remove-Item -LiteralPath $tempSecretFile -Force');
     expect(setupScript).toContain("secret_token = $webhookSecret");
+    expect(setupScript).toContain("$ErrorActionPreference = 'Continue'");
+    expect(setupScript).toContain('2>&1');
+    expect(setupScript).toContain("if ($exitCode -ne 0)");
     expect(setupScript).not.toMatch(/\d{6,}:[A-Za-z0-9_-]{20,}/);
   });
 });

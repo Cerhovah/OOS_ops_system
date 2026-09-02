@@ -15,6 +15,40 @@ $projectRef = (Get-Content -LiteralPath $projectRefPath -Raw).Trim()
 if ($projectRef -notmatch '^[a-z0-9]{20}$') { throw 'Supabase project ref 형식이 올바르지 않습니다.' }
 if (-not (Get-Command npx.cmd -ErrorAction SilentlyContinue)) { throw 'npx.cmd를 찾을 수 없습니다.' }
 
+function Invoke-SupabaseCommand {
+  param(
+    [Parameter(Mandatory)][string[]]$Arguments,
+    [Parameter(Mandatory)][string]$FailureMessage
+  )
+  $previousPreference = $ErrorActionPreference
+  $ErrorActionPreference = 'Continue'
+  try {
+    $output = & npx.cmd supabase @Arguments 2>&1
+    $exitCode = $LASTEXITCODE
+  } finally {
+    $ErrorActionPreference = $previousPreference
+  }
+  foreach ($line in $output) { Write-Host ([string]$line) }
+  if ($exitCode -ne 0) { throw $FailureMessage }
+}
+
+function Invoke-SupabaseJson {
+  param(
+    [Parameter(Mandatory)][string[]]$Arguments,
+    [Parameter(Mandatory)][string]$FailureMessage
+  )
+  $previousPreference = $ErrorActionPreference
+  $ErrorActionPreference = 'Continue'
+  try {
+    $output = & npx.cmd supabase @Arguments 2>$null
+    $exitCode = $LASTEXITCODE
+  } finally {
+    $ErrorActionPreference = $previousPreference
+  }
+  if ($exitCode -ne 0) { throw $FailureMessage }
+  return ($output -join "`n")
+}
+
 function Invoke-TelegramApi {
   param(
     [Parameter(Mandatory)][string]$Method,
@@ -74,9 +108,13 @@ $chatId = [Int64]$startUpdates[0].message.chat.id
 $confirmation = Read-Host "탐지된 허용 chat_id는 $chatId 입니다. 이 대화만 허용하려면 YES를 입력하십시오"
 if ($confirmation -ne 'YES') { throw 'Telegram 연결을 변경하지 않았습니다.' }
 
-$ownerResult = & npx.cmd supabase --workdir $repoPath --output json db query --linked 'select id from auth.users order by created_at asc limit 2;' 2>$null
-if ($LASTEXITCODE -ne 0) { throw 'Supabase 사용자 조회에 실패했습니다.' }
-$ownerRows = @((($ownerResult -join "`n") | ConvertFrom-Json).rows)
+$ownerResult = Invoke-SupabaseJson -Arguments @(
+  '--workdir', $repoPath,
+  '--output', 'json',
+  'db', 'query', '--linked',
+  'select id from auth.users order by created_at asc limit 2;'
+) -FailureMessage 'Supabase 사용자 조회에 실패했습니다.'
+$ownerRows = @((($ownerResult | ConvertFrom-Json).rows))
 if ($ownerRows.Count -ne 1) { throw '인증 사용자가 정확히 1명일 때만 자동 연결할 수 있습니다.' }
 $ownerUserId = [string]$ownerRows[0].id
 if ($ownerUserId -notmatch '^[0-9a-f-]{36}$') { throw 'Supabase 사용자 ID 형식이 올바르지 않습니다.' }
@@ -94,8 +132,10 @@ try {
     "OOS_OWNER_USER_ID=$ownerUserId"
   ) -join "`n"
   Write-Utf8NoBom -Path $tempSecretFile -Value $secretText
-  & npx.cmd supabase --workdir $repoPath secrets set --env-file $tempSecretFile
-  if ($LASTEXITCODE -ne 0) { throw 'Supabase Edge Function secret 등록에 실패했습니다.' }
+  Invoke-SupabaseCommand -Arguments @(
+    '--workdir', $repoPath,
+    'secrets', 'set', '--env-file', $tempSecretFile
+  ) -FailureMessage 'Supabase Edge Function secret 등록에 실패했습니다.'
 
   $functionUrl = "https://$projectRef.supabase.co/functions/v1/telegram-bot"
   $sqlTemplate = @'
@@ -143,8 +183,10 @@ select cron.schedule(
 '@
   $sql = $sqlTemplate -f $ownerUserId, $chatId, $botUsername, $cronSecret, $functionUrl
   Write-Utf8NoBom -Path $tempSqlFile -Value $sql
-  & npx.cmd supabase --workdir $repoPath db query --linked --file $tempSqlFile
-  if ($LASTEXITCODE -ne 0) { throw 'Telegram 연결 행 또는 cron 설정에 실패했습니다.' }
+  Invoke-SupabaseCommand -Arguments @(
+    '--workdir', $repoPath,
+    'db', 'query', '--linked', '--file', $tempSqlFile
+  ) -FailureMessage 'Telegram 연결 행 또는 cron 설정에 실패했습니다.'
 
   [void](Invoke-TelegramApi -Method 'setMyCommands' -Body @{ commands = @(
     @{ command = 'today'; description = '오늘 기록 요약' },
