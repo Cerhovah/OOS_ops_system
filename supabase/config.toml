@@ -17,3 +17,6 @@ otp_length = 8
 
 [storage.vector]
 enabled = false
+
+[functions.telegram-bot]
+verify_jwt = false

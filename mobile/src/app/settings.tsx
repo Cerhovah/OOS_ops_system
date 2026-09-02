@@ -83,6 +83,8 @@ export default function SettingsScreen() {
   const [entryNote, setEntryNote] = useState('');
   const [authEmail, setAuthEmail] = useState('');
   const [magicLinkSent, setMagicLinkSent] = useState(false);
+  const [telegramTime, setTelegramTime] = useState('21:30');
+  const [telegramEnabled, setTelegramEnabled] = useState('1');
 
   useEffect(() => {
     setWeekStartDay(app.snapshot.settings.week_start_day ?? '0');
@@ -92,6 +94,12 @@ export default function SettingsScreen() {
     setNotificationAlways(app.snapshot.settings.notification_always ?? '0');
     setTimerNotifications(app.snapshot.settings.timer_limit_notifications_enabled ?? '0');
   }, [app.snapshot.settings]);
+
+  useEffect(() => {
+    if (!sync.telegramSettings) return;
+    setTelegramTime(sync.telegramSettings.notificationTime);
+    setTelegramEnabled(sync.telegramSettings.enabled ? '1' : '0');
+  }, [sync.telegramSettings]);
 
   useEffect(() => {
     if (app.loading || !routeItemId || handledRouteItem.current === routeItemId) return;
@@ -349,6 +357,42 @@ export default function SettingsScreen() {
           )}
         </Section>
 
+        <Section title="Telegram">
+          <Card>
+            {!sync.session ? (
+              <Text style={textStyles.body}>Telegram 연결 상태를 확인하려면 Supabase에 로그인하십시오.</Text>
+            ) : sync.telegramLoading ? (
+              <Text style={textStyles.body}>Telegram 연결 상태를 확인하는 중입니다.</Text>
+            ) : sync.telegramSettings ? (
+              <>
+                <Text style={textStyles.body}>연결됨 · @{sync.telegramSettings.botUsername}</Text>
+                <Text style={textStyles.muted}>허용 chat_id · {sync.telegramSettings.allowedChatId}</Text>
+                <Text style={textStyles.muted}>시간대 · {sync.telegramSettings.timeZone}</Text>
+                <TimeField label="봇 오늘 요약 시각" value={telegramTime} onChange={setTelegramTime} />
+                <ChoiceRow
+                  label="예약 메시지"
+                  choices={[{ value: '1', label: '사용' }, { value: '0', label: '사용 안 함' }]}
+                  value={telegramEnabled}
+                  onChange={setTelegramEnabled}
+                />
+                <View style={styles.actions}>
+                  <AppButton
+                    label="Telegram 설정 저장"
+                    onPress={() => void sync.updateTelegram(telegramTime, telegramEnabled === '1')}
+                  />
+                  <AppButton label="연결 상태 새로고침" variant="secondary" onPress={() => void sync.refreshTelegram()} />
+                </View>
+              </>
+            ) : (
+              <>
+                <Text style={textStyles.body}>Telegram 봇이 아직 연결되지 않았습니다.</Text>
+                <Text style={textStyles.muted}>연결 후 허용 chat_id와 예약 메시지 시각이 여기에 표시됩니다.</Text>
+                <AppButton label="연결 상태 새로고침" variant="secondary" onPress={() => void sync.refreshTelegram()} />
+              </>
+            )}
+          </Card>
+        </Section>
+
         <Section title="항목 관리" action={<AppButton label="+ 항목" variant="plain" onPress={() => openItem('new')} />}>
           {activeItems.map((item) => (
             <Card key={item.id}>
@@ -443,8 +487,8 @@ export default function SettingsScreen() {
 
         <Section title="앱 정보와 초기화">
           <Card>
-            <Text style={textStyles.body}>OOS Ops · Phase 2 · 로컬 우선</Text>
-            <Text style={textStyles.muted}>Telegram과 AI API는 현재 비활성화되어 있습니다.</Text>
+            <Text style={textStyles.body}>OOS Ops · Phase 3 · 로컬 우선</Text>
+            <Text style={textStyles.muted}>Telegram은 서버 연결 상태에 따라 동작하며 AI 분석은 Phase 4에서 활성화됩니다.</Text>
             <AppButton label="전체 초기화" variant="danger" onPress={confirmReset} />
           </Card>
         </Section>
