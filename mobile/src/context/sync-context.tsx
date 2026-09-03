@@ -26,11 +26,6 @@ import {
   isSupabaseConfigured,
 } from '@/services/supabase';
 import { synchronize, type SyncRunResult } from '@/services/sync-service';
-import {
-  fetchTelegramSettings,
-  saveTelegramSettings,
-  type TelegramConnectionSettings,
-} from '@/services/telegram';
 
 interface SyncContextValue {
   configured: boolean;
@@ -41,14 +36,10 @@ interface SyncContextValue {
   lastSyncedAt: string | null;
   pendingCount: number;
   conflicts: SyncConflict[];
-  telegramSettings: TelegramConnectionSettings | null;
-  telegramLoading: boolean;
   clearError: () => void;
   requestMagicLink: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
   syncNow: () => Promise<SyncRunResult | null>;
-  refreshTelegram: () => Promise<void>;
-  updateTelegram: (notificationTime: string, enabled: boolean) => Promise<void>;
 }
 
 const SyncContext = createContext<SyncContextValue | null>(null);
@@ -72,8 +63,6 @@ export function SyncProvider({ children }: { children: ReactNode }) {
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
   const [pendingCount, setPendingCount] = useState(0);
   const [conflicts, setConflicts] = useState<SyncConflict[]>([]);
-  const [telegramSettings, setTelegramSettings] = useState<TelegramConnectionSettings | null>(null);
-  const [telegramLoading, setTelegramLoading] = useState(false);
   const syncPromise = useRef<Promise<SyncRunResult | null> | null>(null);
   const handledAuthUrl = useRef<string | null>(null);
 
@@ -122,25 +111,6 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       .finally(() => setLoading(false));
   }, [linkingUrl]);
 
-  const refreshTelegram = useCallback(async (): Promise<void> => {
-    if (!session) {
-      setTelegramSettings(null);
-      return;
-    }
-    setTelegramLoading(true);
-    try {
-      setTelegramSettings(await fetchTelegramSettings(session.user.id));
-    } catch (caught) {
-      setError(errorMessage(caught));
-    } finally {
-      setTelegramLoading(false);
-    }
-  }, [session]);
-
-  useEffect(() => {
-    void refreshTelegram();
-  }, [refreshTelegram]);
-
   const syncNow = useCallback(async (): Promise<SyncRunResult | null> => {
     if (!session) return null;
     if (syncPromise.current) return syncPromise.current;
@@ -150,7 +120,6 @@ export function SyncProvider({ children }: { children: ReactNode }) {
         const result = await synchronize(db, session.user.id);
         await refreshApp();
         await refreshMetadata();
-        await refreshTelegram();
         setError(null);
         return result;
       } catch (caught) {
@@ -164,7 +133,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     })();
     syncPromise.current = task;
     return task;
-  }, [db, refreshApp, refreshMetadata, refreshTelegram, session]);
+  }, [db, refreshApp, refreshMetadata, session]);
 
   useEffect(() => {
     if (!session) return;
@@ -201,8 +170,6 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     lastSyncedAt,
     pendingCount,
     conflicts,
-    telegramSettings,
-    telegramLoading,
     clearError: () => setError(null),
     requestMagicLink: async (email) => {
       setError(null);
@@ -225,22 +192,10 @@ export function SyncProvider({ children }: { children: ReactNode }) {
         throw authError;
       }
       setSession(null);
-      setTelegramSettings(null);
     },
     syncNow,
-    refreshTelegram,
-    updateTelegram: async (notificationTime, enabled) => {
-      if (!session) throw new Error('Telegram 설정을 변경하려면 먼저 로그인하십시오.');
-      setError(null);
-      try {
-        setTelegramSettings(await saveTelegramSettings(session.user.id, notificationTime, enabled));
-      } catch (caught) {
-        setError(errorMessage(caught));
-      }
-    },
   }), [
-    conflicts, error, lastSyncedAt, loading, pendingCount, refreshTelegram, session, syncNow, syncing,
-    telegramLoading, telegramSettings,
+    conflicts, error, lastSyncedAt, loading, pendingCount, session, syncNow, syncing,
   ]);
 
   return <SyncContext.Provider value={value}>{children}</SyncContext.Provider>;

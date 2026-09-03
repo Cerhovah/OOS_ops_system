@@ -1,5 +1,5 @@
 export type ItemType = 'time' | 'completion' | 'count' | 'numeric' | 'event';
-export type EntrySource = 'app' | 'telegram' | 'voice' | 'import' | 'ai_applied';
+export type EntrySource = 'app' | 'import' | 'ai_applied';
 export type PlanSource = 'app' | 'copy_last_week' | 'ai_applied';
 export type ProjectStatus = 'active' | 'paused' | 'closed';
 export type Aggregation = 'sum' | 'last' | 'max';

@@ -2,13 +2,13 @@
 
 ## 결론
 
-현재 SPEC의 Phase 1~4 완료는 개인용 로컬 앱, Supabase 동기화·백업, Telegram 보조 인터페이스, AI 분석까지의 기능 완성을 뜻한다. 앱 스토어 공개 배포와 실제 결제, 다중 사용자 상용 운영 서버의 완결을 뜻하지 않는다.
+현재 SPEC의 활성 Phase 1·2·4 완료는 개인용 로컬 앱, Supabase 동기화·백업, AI 분석까지의 기능 완성을 뜻한다. 앱 스토어 공개 배포와 실제 결제, 다중 사용자 상용 운영 서버의 완결을 뜻하지 않는다. Telegram Phase 3은 2026-09-03 사용자 지시로 철회됐다.
 
 개발/개인용 standalone/상용 production의 권장 전환 전략은 `docs/evidence/build-release-strategy-2026-09-02.md`에 별도로 기록한다.
 
 근거:
 
-- SPEC §3.2: Phase 1 초안, Phase 2 동기화, Phase 3 봇, Phase 4 분석, Phase 5 후순위 확장.
+- SPEC §3.2: Phase 1 초안, Phase 2 동기화, 철회된 Phase 3, Phase 4 분석, Phase 5 후순위 확장.
 - SPEC §3.3: `앱 스토어 공개 배포 준비(개인 설치용 개발 빌드면 충분)`를 명시적 비목표로 둔다.
 - SPEC의 `결제`, `매출`, `유료 결제`는 사용자가 기록하는 event/KPI 데이터이며 결제 처리 API나 상품 판매 기능이 아니다.
 - `mobile/eas.json`에는 `developmentClient: true`, `distribution: internal`, Android `apk`인 development profile만 있고 production/AAB profile이 없다.
@@ -20,7 +20,7 @@
 |---|---|---|
 | Phase 1 | 개인 설치용 v0.1 초안, 로컬 SQLite, 기록·계획·KPI·알림·내보내기 | 자동 게이트와 실기기 TP-AC-01~17 완료 |
 | Phase 2 | 단일 사용자 Supabase 백업·복구·다기기 동기화·RLS | AC-19~AC-22 자동·SM-S721N 실기기 게이트 완료 |
-| Phase 3 | 허용된 Telegram chat의 서버 webhook/명령/음성 보조 입력 | 미구현 |
+| Phase 3 | 사용자 결정으로 제품 범위에서 철회 | 앱·서버·원격 리소스 제거 완료 |
 | Phase 4 | 제공자 중립 AI 분석, 세션·비용·사용자 승인형 제안 적용 | 미구현 |
 | Phase 5 | 웹 대시보드·외부 데이터 등 승인된 후순위 후보 | 미구현, 상용화는 기존 후보가 아니었음 |
 

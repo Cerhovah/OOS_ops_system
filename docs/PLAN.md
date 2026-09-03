@@ -2,13 +2,13 @@
 
 ## 현재 단계
 
-- 단계: Phase 3 — Telegram
-- 상태: **개인 bot·예약 발송 통과 — 수신 명령/버튼 대조와 음성 전사 제공자(Q-009) 대기**
+- 단계: Phase 3 — 철회 및 제거 완료
+- 상태: **사용자 지시로 제품 범위·앱·원격 서버에서 제거, Phase 4 진입 준비**
 - PLAN/구현 승인: 2026-08-20
 - Phase 종료 커밋 규칙: `docs/COMMIT_WORKFLOW.md`
 - 주 검증 플랫폼: Android 실기기, iOS 호환성 유지
 - 고정값: 월요일 시작, 하루 종료 23:00, 오늘 종료 알림 21:30, §4.4 시드, 앱 이름 `OOS Ops`
-- Phase 3 경계: Supabase Edge Function + Telegram Bot API를 사용하며, 봇 토큰은 서버 secret에만 저장한다. Phase 4 분석 기능은 구현하지 않는다.
+- Phase 경계: 앱 자체 로컬 알림과 Phase 2 동기화는 유지한다. Telegram은 다음 Phase의 선행조건이 아니다. Phase 4 분석 기능은 아직 구현하지 않는다.
 
 ## Phase 1 AC-1~AC-18 1:1 구현·증빙
 
@@ -65,19 +65,18 @@
 | AC-21 | 설정의 로그인 상태, 마지막 동기화, 전송 대기, 지금 동기화, 최근 충돌 표시 | **통과**: 최종 복원 후 로그인·대기 0·충돌 없음, 수동 동기화 시각 23:03:46→23:05:38 갱신 | `settings.tsx` |
 | AC-22 | `(user_id,table_name,local_id)` PK, `auth.uid()` RLS와 인증 사용자 전용 RPC | **통과**: 원격 적용·DB lint·익명 REST/RPC 거부와 소유자/타 사용자 역할의 SELECT·UPDATE·DELETE·INSERT 격리 검증 통과 | `supabase/migrations/20260902053000_phase_2_sync.sql`, `20260902060000_fix_apply_oos_sync_records_conflict_target.sql`, `supabase/tests/phase_2_rls.sql` |
 
-## Phase 3 AC-23~AC-26 구현·증빙
+## Phase 3 철회·제거 증빙
 
-| AC | 구현 계획 | 현재 상태 | 예정 증빙 |
+| 범위 | 결과 | 상태 | 증빙 |
 |---|---|---|---|
-| AC-23 | Telegram webhook secret 검증, 서버 `ALLOWED_CHAT_ID` 일치 확인, update id 처리 상태·결정적 record ID로 재시도 멱등 보장 | **연결 통과/수신 명령 대기** | 16 Telegram tests, Edge Function v2 ACTIVE·health 200, 단일 chat/webhook 설정 완료 |
-| AC-24 | Supabase Cron이 설정 시각(기본 21:30)에 오늘 숫자 요약과 `[오늘 종료][수정][나중에]`를 발송하고 종료 버튼이 `day_closures`를 생성 | **예약 발송 통과/버튼 대기** | 21:19 임시 예약 실발송·delivery 완료 후 21:30 복원, 종료 버튼·앱 pull 대조 대기 |
-| AC-25 | `/today`, `/study`, `/log`, `/done`, `/count`, `/end`, `/plan`, `/week` 파싱과 `source='telegram'` 원격 기록 | **파서·번들 통과/실명령 대기** | 명령 파서 테스트, 결정적 upsert, 실제 명령·앱 동기화 대조 대기 |
-| AC-26 | 자유 문장 규칙 파서와 pending 제안·확인 버튼, 음성 다운로드·전사 어댑터·동일 확인 흐름 | **텍스트 구현 통과/음성 제공자·실대화 대기** | 실제 텍스트 확인과 Q-009 음성 전사 후 앱 대조 |
+| 제품 범위 | SPEC에서 Telegram 스택·설정·AC-23~AC-26 제거 | **완료** | SPEC v0.2, ADR-014 |
+| 모바일 | 설정 UI·context·service·Telegram 테스트 제거 | **완료** | app 0.3.1(5), 12 files/58 tests, Android bundle·실기기 오류 0 |
+| 원격 | webhook·봇 명령, cron, Vault, 전용 DB 테이블, Edge Functions, Telegram secrets 제거 | **완료** | removal migration, resource 0, DB lint 0, `upToDate:true` |
+| 사용자 데이터 | Telegram/voice 출처 core entry 0건 확인 뒤 전용 metadata 2행 제거 | **완료** | 제거 전 inventory와 migration 결과 |
 
 ## 다음 작업
 
-1. 실제 Telegram에서 `/today`, `/study 1`, 자유 문장 제안·확인, 오늘 종료 버튼을 실행하고 앱의 `지금 동기화` 뒤 값을 대조한다.
-2. Q-009 전사 제공자 결정과 secret 등록 뒤 실제 음성 제안·확인을 검증해 AC-23~AC-26 최종 게이트를 닫는다.
+1. 사용자가 Phase 4 착수를 지시하면 AI provider/model/key 질문을 현재 분석 명세에 맞춰 확정한다.
 
 ## 2026-09-02 정적 구현 감사 후속
 
@@ -93,7 +92,7 @@
 ## 후속 Phase
 
 - [x] Phase 2 — 동기화: AC-19~AC-22. 구현·자동·원격·SM-S721N 실기기 게이트 통과.
-- [ ] Phase 3 — Telegram: AC-23~AC-26. 구현·서버·bot·예약 발송 통과, 수신 명령/버튼·음성 실연동 게이트 대기.
+- [x] Phase 3 — 철회: Telegram 구현과 원격 리소스를 사용자 지시에 따라 제거. 후속 Phase의 게이트가 아님.
 - [ ] Phase 4 — 분석: AC-27~AC-30. 진입 시 AI provider/model/key 결정.
 - [ ] 상용화 명세 확장 — 앱 스토어 production 배포, 결제, 운영 서버·보안·백업·모니터링. 현재 SPEC §3.3 비목표이므로 Q-005 승인 뒤 별도 AC를 정의.
 - [ ] Phase 5 — 확장: 사용자 승인된 `FUTURE.md` 항목만 진행.

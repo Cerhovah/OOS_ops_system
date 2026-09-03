@@ -1,10 +1,10 @@
-# Phase 3 Telegram 서버 준비 증빙 — 2026-09-03
+# Phase 3 Telegram 구현·철회 증빙 — 2026-09-03
 
 ## 판정
 
-- **서버 준비 게이트: 통과**
-- **AC-23~AC-26 최종 게이트: 아직 미확정**
-- 개인 bot token/chat 연결과 실제 예약 발송까지 통과했다. 남은 대기 사유는 Q-009의 음성 전사 제공자와 실제 수신 명령·버튼 대조다.
+- **구현·서버 준비·예약 발송: 검증 이력 보존**
+- **최종 판정: 사용자 지시로 Phase 3 철회 및 제거 완료**
+- AC-23~AC-26은 더 이상 제품 수용 기준이나 Phase 4 선행 게이트가 아니다.
 
 ## 구현 범위
 
@@ -57,7 +57,7 @@ RLS 검사는 소유자가 자기 Telegram 설정·proposal만 읽고 허용된 
 
 실기기 재실행 중 Android 알림 채널의 `sound: 'default'`가 SDK 57에서 커스텀 음원 조회로 처리되는 기존 오류 로그를 발견했다. 채널 sound 필드를 생략해 Android 시스템 기본음을 사용하도록 수정했고 Metro reload 후 동일 오류가 사라지고 앱이 top-resumed 상태임을 ADB로 확인했다.
 
-## 남은 실제 게이트
+## 제거 전 남았던 실제 게이트
 
 1. 허용 chat에서 정확 명령, 자유 문장 확인, 오늘 종료 버튼과 앱 pull을 대조한다.
 2. Q-009: 음성 전사/구조화 provider와 key 사용을 승인하고 실제 음성 proposal·확인을 대조한다.
@@ -71,3 +71,26 @@ Windows PowerShell 5가 Supabase CLI의 정상 진행 문구 `Initialising login
 두 번째 시도에서는 대화형 CLI JSON wrapper가 자동 환경과 달라 `rows` 속성 접근에서 중단됐다. 쓰기 전 단계임을 다시 확인했으며, wrapper 객체 이름에 의존하지 않고 SQL 전용 alias `oos_owner_user_id`에 대응하는 UUID만 추출하도록 수정했다.
 
 세 번째 시도는 Edge secret 5개, `telegram_settings`, Vault cron secret, 활성 cron job과 webhook 설정까지 완료됐고 마지막 선택적 `sendMessage`만 로컬 PowerShell에서 실패했다. 서버 cron으로 발송 시각을 21:19에 임시 설정해 Telegram API가 메시지를 접수하고 `telegram_delivery_log.sent_at=2026-09-03 12:19:01.826+00`를 기록함을 확인한 뒤 21:30으로 복원했다. 연결 완료 조건을 선택적 환영 메시지가 아니라 최종 webhook URL 일치로 수정했다.
+
+## 사용자 철회와 제거 결과
+
+사용자는 앱 자체 로컬 알림이면 충분하다는 판단으로 `텔레그램 제거해.`라고 명시했다. 삭제 직전 원격 inventory는 settings 1행, delivery 1행, cron 1개, Vault secret 1개였고 updates·proposals·`source in ('telegram','voice')` core records는 모두 0행이었다.
+
+제거 순서는 다음과 같다.
+
+1. 서버에만 있던 bot token을 사용하는 일회성 Edge Function으로 `deleteWebhook`, `deleteMyCommands`, 빈 webhook URL을 확인했다.
+2. migration `20260903020000_remove_telegram_integration.sql`로 cron job, Vault secret, Telegram 전용 테이블 4개와 trigger function을 제거했다.
+3. `telegram-bot`과 일회성 `telegram-cleanup` Edge Function을 삭제했다.
+4. Telegram 전용 Supabase secret 5개를 삭제했다.
+5. 모바일 설정 UI/context/service, Telegram 서버·파서·테스트·설정 스크립트를 제거했다.
+
+적용됐던 생성 migration 두 개는 원격/신규 환경 재현을 위해 보존하고 상향 제거 migration으로 닫았다. Telegram 계정에 생성한 bot 자체는 Telegram 계정 권한이 필요한 별도 객체이며 앱·서버와의 webhook/token 연결은 해제됐다.
+
+### 제거 후 최종 검증
+
+- 원격 DB: Telegram 전용 테이블 4개가 모두 없고 cron job 0개, Vault secret 0개, Telegram/voice 출처 core record 0건이다.
+- 원격 함수·secret: Edge Function 0개이며 Telegram/OOS owner 사용자 secret은 없다. Supabase가 자동 관리하는 시스템 secret만 남았다.
+- migration·schema: linked dry-run `upToDate:true`, DB lint 오류 0이다.
+- 저장소 활성 코드: `mobile/src`, `mobile/app.json`, `supabase/config.toml`에서 Telegram 식별자 0건이다. 이미 적용된 생성 migration과 철회 이력 문서는 감사·재현 목적으로 보존한다.
+- 앱 자동 게이트: TypeScript/ESLint 오류 0, 12 files/58 tests 통과, 커버리지 99.07/93.33/100/100, Expo 의존성 호환, expo-doctor 21/21, Android Hermes 1,440 modules이다.
+- 실기기: SM-S721N에서 최신 Metro bundle로 앱이 `ResumedActivity`이며 앱 PID 대상 Android error log 0건이다. Metro tunnel은 계속 실행 상태로 유지했다.

@@ -183,7 +183,7 @@
 ### ADR-013 — 단일 허용 대화의 Telegram Edge Function과 확인형 쓰기
 
 - 날짜: 2026-09-03
-- 상태: 승인
+- 상태: 대체
 - 맥락: Phase 3은 앱과 같은 원격 데이터를 Telegram에서 조회·기록하고 21:30 요약을 자율 발송해야 하지만 bot token을 앱에 포함하거나 자유 문장·음성을 즉시 적용하면 안 된다.
 - 결정: Supabase Edge Function 하나가 Telegram webhook과 Vault secret으로 인증된 cron 요청을 처리한다. webhook secret, 정확히 하나의 `allowed_chat_id`, 단일 owner user ID를 모두 확인한다. 정확 명령만 즉시 `source='telegram'`으로 쓰고 자유 문장·음성은 만료되는 proposal을 만든 뒤 확인 callback에서만 쓴다. update 상태와 결정적 record ID로 실패 재시도를 중복 없이 처리한다.
 - 대안: token을 모바일 앱에 포함, polling worker 상시 운영, 자유 문장/음성을 즉시 적용, 사용자별 다중 bot.
@@ -191,7 +191,20 @@
 - 결과 및 위험: token·webhook/cron secret은 Supabase secret/Vault에만 있고 앱은 비민감 연결 상태와 발송 시각만 본다. 실제 음성은 Q-009 제공자·비용 승인 전 호출하지 않는다. cron은 매분 실행하되 각 사용자 시간대/분과 delivery unique key로 하루 한 번만 발송한다.
 - 되돌림/재검토 조건: 다중 사용자/봇, 고가용성 queue, retry dead-letter, 별도 운영 서버가 상용화 AC로 승인되거나 현재 Edge 실행 한도가 부족할 때 분리한다.
 - 관련 불변조건/AC: I-1, I-2, I-7, I-8, I-10, I-12, AC-23~AC-26
-- 대체 관계: ADR-007·ADR-008의 원격 record 형식을 확장하며 대체하지 않음
+- 대체 관계: ADR-014가 Telegram 제품 범위와 구현을 제거해 이 결정을 대체함
+
+### ADR-014 — Telegram 범위 철회와 앱 자체 알림 유지
+
+- 날짜: 2026-09-03
+- 상태: 승인
+- 맥락: Telegram Phase는 앱 외부에서 조회·기록·서버 요약을 제공하지만, 사용자가 원하는 알림은 이미 AC-13~AC-14의 앱 자체 로컬 알림으로 충족된다. 봇은 token, webhook, cron, 외부 대화 채널이라는 별도 운영·보안 표면을 추가한다.
+- 결정: Telegram을 제품 범위와 후속 Phase 게이트에서 제거한다. 앱의 로컬 알림, SQLite 기록, Supabase 동기화는 그대로 유지한다. webhook과 봇 명령을 먼저 해제하고, Telegram 전용 cron·Vault secret·DB 테이블·Edge Functions·Supabase secrets 및 모바일 UI/서비스를 제거한다. 이미 원격에 적용된 migration은 이력 재현을 위해 보존하고 상향 제거 migration으로 닫는다.
+- 대안: Telegram을 선택 기능으로 비활성화만 유지, Phase 3 실대화 검증 완료 후 유지.
+- 근거: Telegram은 로컬 알림이나 앱 배포·결제에 필수가 아니며, 사용자가 명시적으로 제거를 지시했다. 핵심 데이터에 Telegram/voice 출처 기록이 0건임을 삭제 전에 확인했다.
+- 결과 및 위험: 외부 봇을 통한 명령·음성 입력과 서버 요약은 제공하지 않는다. 앱의 21:30 로컬 알림은 계속 동작한다. Telegram 계정에 생성된 bot 자체 삭제는 BotFather 계정 권한이 필요한 사용자 작업이지만 webhook·token·서버 리소스는 제거되어 앱과 연결되지 않는다.
+- 되돌림/재검토 조건: 사용자가 외부 입력 채널을 새 명세와 AC로 다시 승인할 때 처음부터 보안·비용 범위를 재정의한다.
+- 관련 불변조건/AC: I-7, I-10, I-12, AC-13~AC-14; 철회된 AC-23~AC-26
+- 대체 관계: ADR-013을 대체
 
 ## 기록 형식
 

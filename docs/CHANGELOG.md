@@ -58,6 +58,13 @@
 - 2026-09-02: 매직링크 callback 기준 Android development build `154087e2-b93d-451a-b62c-ba6e988f4592` 완료 및 APK 로컬 보존
 - 2026-09-02: 남은 Android 실기기 게이트 자동화를 위해 공식 ADB Platform-Tools 37.0.1 개발 환경 추가
 - 2026-09-03: 앱 버전을 Phase 3 기준 `0.3.0(4)`로 상향하고 Supabase `telegram-bot` Edge Function v2와 두 Phase 3 migration을 원격 배포
+- 2026-09-03: Telegram 제거 릴리스 기준 앱 버전을 `0.3.1(5)`로 상향하고 Phase 4를 다음 활성 단계로 지정
+
+### Removed
+
+- 2026-09-03: 사용자 지시에 따라 Telegram을 제품 범위에서 철회하고 모바일 설정 UI·서비스·파서/서버 코드와 테스트를 제거
+- 2026-09-03: Telegram webhook·봇 명령, 예약 cron, Vault secret, 전용 DB 테이블, Edge Functions와 Supabase Telegram secret 5개 제거
+- 2026-09-03: 제거 후 12 files/58 tests, Expo Doctor 21/21, Android bundle·SM-S721N 런타임 오류 0, 원격 Telegram resource 0을 재검증
 
 ### Fixed
 

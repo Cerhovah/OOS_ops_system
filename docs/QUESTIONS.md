@@ -10,18 +10,6 @@
 
 ## 열린 질문
 
-### Q-009 — Phase 3 음성 전사와 자유 문장 AI fallback 제공자
-
-- 날짜: 2026-09-03
-- 상태: OPEN
-- 관련 명세: §9.1 음성 메시지·자유 문장, §10.4 비용·외부 자격증명, AC-26
-- 멈춘 단계/작업: 실제 음성 전사와 규칙 파서 실패 시 AI 구조화의 원격 게이트만 대기한다. 규칙 파서, 제안·확인 흐름, 제공자 중립 어댑터와 자동 테스트는 완료했다.
-- 필요한 결정: OpenAI 호환 전사/구조화 API를 사용할지, 다른 제공자를 사용할지, Phase 4 제공자 결정과 함께 할지.
-- 선택지와 영향: 지금 제공자를 고르면 AC-26 실서비스 검증까지 닫을 수 있다. Phase 4와 함께 고르면 Phase 3의 음성 실서비스 게이트만 사용자 승인 보류로 남는다.
-- 에이전트 기본 제안: OpenAI 호환 HTTP 어댑터를 제공자 중립으로 구현하고 비밀값은 Supabase secret에만 둔다. 실제 유료 API 선택·키 등록 전에는 호출하지 않는다.
-- 결정 전 임시 조치: 비용 없는 규칙 기반 자유 문장과 전체 확인 버튼 흐름을 구현·테스트했고, provider secret이 없으면 음성은 적용하지 않고 사실형 안내만 보낸다.
-- 사용자 답변:
-
 ### Q-005 — 공개 배포·결제·운영 서버를 포함한 상용화 명세 확장
 
 - 날짜: 2026-09-02
@@ -39,14 +27,23 @@
 
 ## 답변 완료
 
+### Q-009 — Phase 3 음성 전사와 자유 문장 AI fallback 제공자
+
+- 날짜: 2026-09-03
+- 상태: SUPERSEDED
+- 관련 명세: 철회 전 §9.1, AC-26
+- 결정: Telegram 범위 전체 제거에 따라 봇 음성 전사와 자유 문장 AI fallback 제공자 질문도 폐기한다. Phase 4 분석 제공자 선택과 결합하지 않는다.
+- 영향: 음성 전사 server adapter와 관련 secret 요구가 제거됐다. Phase 4 provider/model/key는 Phase 4 착수 때 별도로 결정한다.
+- 사용자 답변: 2026-09-03 — `텔레그램 제거해.`
+
 ### Q-008 — Phase 3 Telegram bot token과 허용 chat_id
 
 - 날짜: 2026-09-03
-- 상태: ANSWERED
+- 상태: SUPERSEDED
 - 관련 명세: §5.8, §9.1, §10.4, §14, AC-23~AC-26
 - 결정: Phase 3 전용 `@OOS_Opsbot`과 단일 개인 chat을 사용한다. token은 로컬 보안 입력을 거쳐 Supabase Edge secret에만 등록하고 저장소·채팅에는 남기지 않는다.
-- 영향: bot secret, 허용 chat, owner mapping, Vault cron, Telegram webhook이 연결됐다. 앱의 기존 로컬 알림은 그대로 유지하며 Telegram은 앱을 열지 않은 조회·기록·서버 요약 채널로만 사용한다.
-- 사용자 답변: 2026-09-03 — BotFather token을 보안 입력하고 탐지된 개인 대화를 `YES`로 승인했다. 원격 설정·cron·Vault·secret 생성과 21:19 예약 발송을 확인했다.
+- 영향: 연결 검증 후 사용자의 제거 지시에 따라 webhook·명령·cron·Vault·secret·전용 DB·앱 UI를 제거했다. 기존 로컬 알림과 Phase 2 동기화는 유지한다.
+- 사용자 답변: 2026-09-03 — BotFather token을 보안 입력하고 개인 대화를 승인했으나, 외부 봇 대신 앱 자체 알림을 사용하기로 하고 `텔레그램 제거해.`라고 최종 지시했다.
 
 ### Q-007 — 무료 Supabase에서 사용할 Phase 2 인증 방식
 
@@ -125,7 +122,6 @@
 - 초기 계정·예산: SPEC §4.4 그대로
 - 앱 임시 이름: OOS Ops
 - Supabase/Auth: Phase 2 진입 때 결정
-- Telegram token/chat_id: Phase 3 진입 때 결정
 - AI provider/model/key: Phase 4 진입 때 결정
 
 ## 기록 형식

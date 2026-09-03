@@ -96,7 +96,7 @@ git commit -m "chore(repo): document phase commit workflow"
 | Phase 2 동기화 구현 | `feat(phase-2): add local-first Supabase sync` |
 | Phase 2 재시도·충돌 결함 | `fix(phase-2): preserve offline writes and conflict logs` |
 | Phase 2 최종 증빙 | `docs(phase-2): record final sync gate` |
-| Phase 3 구현/종료 | `feat(phase-3): add authorized Telegram interface` / `docs(phase-3): record final bot gate` |
+| Phase 3 철회·제거 | `refactor(phase-3): remove Telegram integration` / `docs(phase-3): record withdrawal` |
 | Phase 4 구현/종료 | `feat(phase-4): add grounded AI analysis` / `docs(phase-4): record final analysis gate` |
 | 상용화 Phase 구현/종료 | `feat(commercial): add production release foundation` / `docs(commercial): record release readiness gate` |
 
@@ -125,19 +125,19 @@ git status --short --branch
 git log -2 --oneline --decorate
 ```
 
-## 현재 Phase 3 간단 명령
+## Phase 3 철회 명령 기록
 
-현재 Phase 3은 에이전트가 시작 전 clean 상태와 전체 변경을 확인한 뒤 직접 커밋·푸시한다. 수동 복구가 필요하고 `git status --short`의 변경이 모두 Phase 3 작업일 때만 아래의 짧은 형태를 사용한다.
+Phase 3 Telegram은 사용자 지시로 제거했다. 수동 복구가 필요하고 `git status --short`의 변경이 모두 이 제거 작업일 때만 아래의 짧은 형태를 사용한다.
 
 ```bat
 git add -A
 git diff --cached --check
-git commit -m "feat(phase-3): add authorized Telegram interface"
+git commit -m "refactor(phase-3): remove Telegram integration"
 git pull --rebase origin main
 git push origin main
 ```
 
-원격이 앞서 있어도 `git pull --rebase`가 로컬 Phase 3 커밋을 최신 `origin/main` 위로 옮기므로 일반적인 `fetch first` 거절을 피한다. 충돌이 표시되면 임의로 강제 push하지 않고 충돌 파일을 검토한다.
+원격이 앞서 있어도 `git pull --rebase`가 로컬 커밋을 최신 `origin/main` 위로 옮기므로 일반적인 `fetch first` 거절을 피한다. 충돌이 표시되면 임의로 강제 push하지 않고 충돌 파일을 검토한다. 다음 활성 기능 커밋은 Phase 4 규칙을 사용한다.
 
 ## 금지 사항
 
