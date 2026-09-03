@@ -9,7 +9,7 @@
 - Phase 2 SQLite outbox/LWW/충돌 로그, Supabase 매직링크/RLS, 자동·수동 동기화 구현 및 자동 게이트 통과
 - Phase 2 원격 migration 적용, 0.2.0 development APK, SM-S721N 실기기 AC-19~AC-22 게이트 완료
 - Phase 3 Telegram 서버·앱 구현, 원격 migration/RLS/Edge Function 배포와 자동 게이트 완료
-- Phase 3 실제 개인 봇 연결은 로컬 보안 설정 스크립트 실행 대기, 음성 전사는 제공자 결정 대기
+- Phase 3 개인 봇·webhook·cron 연결과 실제 예약 발송 완료, 수신 명령/버튼 및 음성 전사는 최종 게이트 대기
 - Phase 4 AI는 구현하지 않음
 
 Phase 2의 실기기 결과와 Phase 3의 서버 준비 결과는 `docs/TESTPLAN.md`, `docs/evidence/phase-2-readiness-2026-09-02.md`, `docs/evidence/phase-3-readiness-2026-09-03.md`에 기록되어 있습니다.
@@ -70,7 +70,7 @@ npx expo start --dev-client
 
 ## Phase 3 Telegram 최초 연결
 
-서버 코드와 DB는 배포되어 있습니다. 실제 봇 연결 때만 저장소 루트의 PowerShell에서 아래 한 명령을 실행합니다.
+서버 코드와 DB, 개인 봇이 연결되어 있습니다. 봇을 새로 교체하거나 환경을 복원할 때만 저장소 루트의 PowerShell에서 아래 한 명령을 실행합니다.
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\supabase\scripts\configure-telegram.ps1

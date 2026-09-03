@@ -78,14 +78,14 @@ SM-S721N(Android 16, SDK 36)을 ADB로 연결해 앱 데이터 초기화 전 백
 
 | ID | 자동/원격 증빙 | 실제 Telegram 절차 | 현재 상태 |
 |---|---|---|---|
-| TP-AC-23 | webhook/cron 별도 secret, 단일 allowed chat, owner mapping, update 상태와 결정적 entry ID, RLS·권한 계약 검사 | 허용 대화에서 `/today`, 다른 대화/위조 header 거부 확인 | **자동·원격 통과/실대화 대기(Q-008)** |
-| TP-AC-24 | 기본 21:30·Asia/Seoul 설정, delivery unique ledger, 오늘 요약 3버튼, `day_closures` upsert, Vault cron 설정 스크립트 | 예약 요약 수신 → `오늘 종료` → 앱 동기화 후 종료 snapshot 확인 | **구현·원격 schema 통과/실발송 대기(Q-008)** |
-| TP-AC-25 | 8개 정확 명령·한국어 시간 파서 9 tests, 직접 기록 `source='telegram'`, 재시도 deterministic upsert | `/study 1`, `/done 항목`, `/count 항목` → 앱 동기화 후 각 1건 대조 | **자동 통과/실명령 대기(Q-008)** |
-| TP-AC-26 | 규칙 기반 자유 문장, pending proposal·확인/무시, 음성 download/transcription 및 구조화 provider adapter, 확인 뒤만 쓰기 | 자유 문장 제안·확인과 음성 메시지 제안·확인을 앱 기록과 대조 | **텍스트 구현 통과/실대화(Q-008)·음성 제공자(Q-009) 대기** |
+| TP-AC-23 | webhook/cron 별도 secret, 단일 allowed chat, owner mapping, update 상태와 결정적 entry ID, RLS·권한 계약 검사 | 허용 대화에서 `/today`, 다른 대화/위조 header 거부 확인 | **bot/webhook 연결 통과·수신 명령 대기** |
+| TP-AC-24 | 기본 21:30·Asia/Seoul 설정, delivery unique ledger, 오늘 요약 3버튼, `day_closures` upsert, Vault cron 설정 스크립트 | 예약 요약 수신 → `오늘 종료` → 앱 동기화 후 종료 snapshot 확인 | **21:19 예약 실발송 통과·종료 버튼 대기** |
+| TP-AC-25 | 8개 정확 명령·한국어 시간 파서 9 tests, 직접 기록 `source='telegram'`, 재시도 deterministic upsert | `/study 1`, `/done 항목`, `/count 항목` → 앱 동기화 후 각 1건 대조 | **자동 통과·실명령 대기** |
+| TP-AC-26 | 규칙 기반 자유 문장, pending proposal·확인/무시, 음성 download/transcription 및 구조화 provider adapter, 확인 뒤만 쓰기 | 자유 문장 제안·확인과 음성 메시지 제안·확인을 앱 기록과 대조 | **텍스트 구현 통과·실대화/음성 제공자(Q-009) 대기** |
 
 Phase 3 기준 `npm run verify` 종료 코드 0: TypeScript/ESLint 0건, 14 files/74 tests, Telegram 2 files/16 tests, 도메인 커버리지 99.07/93.33/100/100, Expo 의존성 호환, expo-doctor 21/21, Android Hermes 1,441 modules. PowerShell 설정 스크립트 구문 검사도 통과했다. SM-S721N을 Metro로 재실행해 top-resumed 상태와 Android/React Native/Expo error log 0을 확인했다.
 
-원격 Supabase에는 migration `20260903010000`, `20260903011000`을 적용했다. DB lint 오류 0, `phase_3_telegram_rls_passed`, 재확인 dry-run `upToDate:true`이며 `telegram-bot` Edge Function v2가 `ACTIVE`, GET health가 HTTP 200이다. 실제 token/chat_id가 없으므로 webhook·예약·실대화 결과는 통과로 과장하지 않고 Q-008 이후 이어서 기록한다.
+원격 Supabase에는 migration `20260903010000`, `20260903011000`을 적용했다. DB lint 오류 0, `phase_3_telegram_rls_passed`, 재확인 dry-run `upToDate:true`이며 `telegram-bot` Edge Function v2가 `ACTIVE`, GET health가 HTTP 200이다. 개인 bot/chat/webhook/cron을 연결했고 21:19 임시 예약 메시지의 Telegram 접수와 delivery 완료를 확인한 뒤 21:30으로 복원했다.
 
 ## 하루치 실기기 기록 시나리오
 

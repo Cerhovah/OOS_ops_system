@@ -5,6 +5,9 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+$utf8NoBom = [Text.UTF8Encoding]::new($false)
+[Console]::OutputEncoding = $utf8NoBom
+$OutputEncoding = $utf8NoBom
 
 $repoPath = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
 $projectRefPath = Join-Path $repoPath 'supabase\.temp\project-ref'
@@ -208,11 +211,8 @@ select cron.schedule(
     allowed_updates = @('message', 'callback_query')
     drop_pending_updates = $true
   })
-  [void](Invoke-TelegramApi -Method 'sendMessage' -Body @{
-    chat_id = $chatId
-    text = "OOS Ops Telegram 연결됨`n허용 chat_id · $chatId`n예약 시각 · 21:30 Asia/Seoul"
-  })
   $finalWebhook = Invoke-TelegramApi -Method 'getWebhookInfo' -Body @{}
+  if ([string]$finalWebhook.url -ne $functionUrl) { throw 'Telegram webhook 최종 URL 검증에 실패했습니다.' }
   Write-Host "연결 완료 · @$botUsername · chat_id $chatId"
   Write-Host "webhook · $($finalWebhook.url)"
   Write-Host '봇 토큰과 생성된 secret은 저장소에 기록되지 않았습니다.'

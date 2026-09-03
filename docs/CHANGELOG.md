@@ -76,3 +76,4 @@
 - 2026-09-03: Android 알림 채널의 기본음을 커스텀 파일명 `default`로 전달해 런타임 오류 로그가 발생하던 설정을 SDK 기본음 생략 방식으로 수정
 - 2026-09-03: Windows PowerShell 5가 Supabase CLI의 정상 stderr 진행 문구를 terminating error로 처리해 Telegram 설정이 중단되던 호환성을 실제 CLI 종료 코드 판정으로 수정
 - 2026-09-03: 대화형 Supabase CLI의 JSON wrapper 차이로 `rows` 속성 조회가 중단되던 설정 경로를 전용 SQL alias의 UUID 추출 방식으로 수정
+- 2026-09-03: webhook 완료 뒤 선택적 환영 메시지 실패가 전체 연결 실패처럼 보고되던 경로를 제거하고 webhook URL 자체를 최종 성공 조건으로 변경

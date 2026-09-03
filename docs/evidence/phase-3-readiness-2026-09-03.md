@@ -4,7 +4,7 @@
 
 - **서버 준비 게이트: 통과**
 - **AC-23~AC-26 최종 게이트: 아직 미확정**
-- 대기 사유는 코드 결함이 아니라 외부 소유권·비용 경계다. Q-008의 개인 bot token/chat 대화와 Q-009의 음성 전사 제공자는 사용자가 직접 소유·승인해야 한다.
+- 개인 bot token/chat 연결과 실제 예약 발송까지 통과했다. 남은 대기 사유는 Q-009의 음성 전사 제공자와 실제 수신 명령·버튼 대조다.
 
 ## 구현 범위
 
@@ -59,9 +59,8 @@ RLS 검사는 소유자가 자기 Telegram 설정·proposal만 읽고 허용된 
 
 ## 남은 실제 게이트
 
-1. Q-008: 사용자가 Phase 3 전용 bot을 만들고 token을 로컬 보안 입력에 한 번 붙여넣은 뒤 봇 대화에서 `/start`를 보낸다.
-2. 자동 설정 완료 뒤 허용 chat, 위조/다른 chat 차단, 정확 명령, 자유 문장 확인, 21:30 또는 임시 설정 시각 발송, 오늘 종료와 앱 pull을 대조한다.
-3. Q-009: 음성 전사/구조화 provider와 key 사용을 승인하고 실제 음성 proposal·확인을 대조한다.
+1. 허용 chat에서 정확 명령, 자유 문장 확인, 오늘 종료 버튼과 앱 pull을 대조한다.
+2. Q-009: 음성 전사/구조화 provider와 key 사용을 승인하고 실제 음성 proposal·확인을 대조한다.
 
 token, service-role key, webhook/cron secret의 실제 값은 이 문서와 로그에 기록하지 않는다.
 
@@ -70,3 +69,5 @@ token, service-role key, webhook/cron secret의 실제 값은 이 문서와 로�
 Windows PowerShell 5가 Supabase CLI의 정상 진행 문구 `Initialising login role...`를 `NativeCommandError`로 승격해 사용자 조회 직전에 스크립트가 중단됐다. 중단 시점은 secret·DB·cron·webhook 쓰기 전이며 원격 재검사에서 Telegram custom secret 0, settings 0행, cron 0건을 확인했다. CLI 호출부가 stderr 내용이 아니라 `$LASTEXITCODE`로 성공 여부를 판정하도록 수정하고 PowerShell parser와 계약 테스트를 재통과시켰다.
 
 두 번째 시도에서는 대화형 CLI JSON wrapper가 자동 환경과 달라 `rows` 속성 접근에서 중단됐다. 쓰기 전 단계임을 다시 확인했으며, wrapper 객체 이름에 의존하지 않고 SQL 전용 alias `oos_owner_user_id`에 대응하는 UUID만 추출하도록 수정했다.
+
+세 번째 시도는 Edge secret 5개, `telegram_settings`, Vault cron secret, 활성 cron job과 webhook 설정까지 완료됐고 마지막 선택적 `sendMessage`만 로컬 PowerShell에서 실패했다. 서버 cron으로 발송 시각을 21:19에 임시 설정해 Telegram API가 메시지를 접수하고 `telegram_delivery_log.sent_at=2026-09-03 12:19:01.826+00`를 기록함을 확인한 뒤 21:30으로 복원했다. 연결 완료 조건을 선택적 환영 메시지가 아니라 최종 webhook URL 일치로 수정했다.

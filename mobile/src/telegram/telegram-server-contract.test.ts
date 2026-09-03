@@ -91,6 +91,8 @@ describe('Telegram server contract', () => {
     expect(setupScript).toContain("if ($exitCode -ne 0)");
     expect(setupScript).toContain('oos_owner_user_id');
     expect(setupScript).not.toContain('ConvertFrom-Json');
+    expect(setupScript).toContain('[Console]::OutputEncoding = $utf8NoBom');
+    expect(setupScript).toContain("if ([string]$finalWebhook.url -ne $functionUrl)");
     expect(setupScript).not.toMatch(/\d{6,}:[A-Za-z0-9_-]{20,}/);
   });
 });

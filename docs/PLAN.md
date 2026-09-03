@@ -3,7 +3,7 @@
 ## 현재 단계
 
 - 단계: Phase 3 — Telegram
-- 상태: **서버 준비 게이트 통과 — 개인 bot 실연동(Q-008)과 음성 전사 제공자(Q-009) 대기**
+- 상태: **개인 bot·예약 발송 통과 — 수신 명령/버튼 대조와 음성 전사 제공자(Q-009) 대기**
 - PLAN/구현 승인: 2026-08-20
 - Phase 종료 커밋 규칙: `docs/COMMIT_WORKFLOW.md`
 - 주 검증 플랫폼: Android 실기기, iOS 호환성 유지
@@ -69,16 +69,15 @@
 
 | AC | 구현 계획 | 현재 상태 | 예정 증빙 |
 |---|---|---|---|
-| AC-23 | Telegram webhook secret 검증, 서버 `ALLOWED_CHAT_ID` 일치 확인, update id 처리 상태·결정적 record ID로 재시도 멱등 보장 | **자동·원격 통과/실대화 대기** | 16 Telegram tests, Edge Function v2 ACTIVE·health 200, Q-008 뒤 허용/비허용 chat 실대화 |
-| AC-24 | Supabase Cron이 설정 시각(기본 21:30)에 오늘 숫자 요약과 `[오늘 종료][수정][나중에]`를 발송하고 종료 버튼이 `day_closures`를 생성 | **구현·원격 schema 통과/실발송 대기** | delivery unique ledger, Vault/cron 자동 설정, Q-008 뒤 실제 버튼·앱 pull 대조 |
-| AC-25 | `/today`, `/study`, `/log`, `/done`, `/count`, `/end`, `/plan`, `/week` 파싱과 `source='telegram'` 원격 기록 | **파서·번들 통과/실명령 대기** | 명령 파서 테스트, 결정적 upsert, Q-008 뒤 실제 명령·앱 동기화 대조 |
-| AC-26 | 자유 문장 규칙 파서와 pending 제안·확인 버튼, 음성 다운로드·전사 어댑터·동일 확인 흐름 | **텍스트 구현 통과/음성 제공자·실대화 대기** | 제안 계약 테스트, Q-008 텍스트 확인과 Q-009 음성 전사 후 앱 대조 |
+| AC-23 | Telegram webhook secret 검증, 서버 `ALLOWED_CHAT_ID` 일치 확인, update id 처리 상태·결정적 record ID로 재시도 멱등 보장 | **연결 통과/수신 명령 대기** | 16 Telegram tests, Edge Function v2 ACTIVE·health 200, 단일 chat/webhook 설정 완료 |
+| AC-24 | Supabase Cron이 설정 시각(기본 21:30)에 오늘 숫자 요약과 `[오늘 종료][수정][나중에]`를 발송하고 종료 버튼이 `day_closures`를 생성 | **예약 발송 통과/버튼 대기** | 21:19 임시 예약 실발송·delivery 완료 후 21:30 복원, 종료 버튼·앱 pull 대조 대기 |
+| AC-25 | `/today`, `/study`, `/log`, `/done`, `/count`, `/end`, `/plan`, `/week` 파싱과 `source='telegram'` 원격 기록 | **파서·번들 통과/실명령 대기** | 명령 파서 테스트, 결정적 upsert, 실제 명령·앱 동기화 대조 대기 |
+| AC-26 | 자유 문장 규칙 파서와 pending 제안·확인 버튼, 음성 다운로드·전사 어댑터·동일 확인 흐름 | **텍스트 구현 통과/음성 제공자·실대화 대기** | 실제 텍스트 확인과 Q-009 음성 전사 후 앱 대조 |
 
 ## 다음 작업
 
-1. Q-008의 1회 설정 스크립트로 bot token을 서버 secret에 등록하고 허용 `chat_id`, webhook, cron을 자동 연결한다.
-2. 실제 Telegram에서 `/today`, `/study 1`, 자유 문장 제안·확인, 오늘 종료 버튼을 실행하고 앱의 `지금 동기화` 뒤 값을 대조한다.
-3. Q-009 전사 제공자 결정과 secret 등록 뒤 실제 음성 제안·확인을 검증해 AC-23~AC-26 최종 게이트를 닫는다.
+1. 실제 Telegram에서 `/today`, `/study 1`, 자유 문장 제안·확인, 오늘 종료 버튼을 실행하고 앱의 `지금 동기화` 뒤 값을 대조한다.
+2. Q-009 전사 제공자 결정과 secret 등록 뒤 실제 음성 제안·확인을 검증해 AC-23~AC-26 최종 게이트를 닫는다.
 
 ## 2026-09-02 정적 구현 감사 후속
 
@@ -94,7 +93,7 @@
 ## 후속 Phase
 
 - [x] Phase 2 — 동기화: AC-19~AC-22. 구현·자동·원격·SM-S721N 실기기 게이트 통과.
-- [ ] Phase 3 — Telegram: AC-23~AC-26. 구현·자동·원격 서버 준비 통과, token/chat_id·음성 실연동 게이트 대기.
+- [ ] Phase 3 — Telegram: AC-23~AC-26. 구현·서버·bot·예약 발송 통과, 수신 명령/버튼·음성 실연동 게이트 대기.
 - [ ] Phase 4 — 분석: AC-27~AC-30. 진입 시 AI provider/model/key 결정.
 - [ ] 상용화 명세 확장 — 앱 스토어 production 배포, 결제, 운영 서버·보안·백업·모니터링. 현재 SPEC §3.3 비목표이므로 Q-005 승인 뒤 별도 AC를 정의.
 - [ ] Phase 5 — 확장: 사용자 승인된 `FUTURE.md` 항목만 진행.

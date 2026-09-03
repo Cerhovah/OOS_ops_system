@@ -22,18 +22,6 @@
 - 결정 전 임시 조치: 비용 없는 규칙 기반 자유 문장과 전체 확인 버튼 흐름을 구현·테스트했고, provider secret이 없으면 음성은 적용하지 않고 사실형 안내만 보낸다.
 - 사용자 답변:
 
-### Q-008 — Phase 3 Telegram bot token과 허용 chat_id
-
-- 날짜: 2026-09-03
-- 상태: OPEN
-- 관련 명세: §5.8, §9.1, §10.4, §14, AC-23~AC-26
-- 멈춘 단계/작업: 실제 Telegram 웹훅 연결과 실대화 게이트만 대기한다. 서버·앱 구현, migration/RLS, Edge Function v2 배포와 자동 검증은 완료했다.
-- 필요한 결정: 사용자가 BotFather에서 발급한 bot token. 허용 chat_id는 사용자가 봇에 `/start`를 보낸 뒤 설정 스크립트가 자동 탐지한다.
-- 선택지와 영향: 새 개인용 봇을 만들거나 기존 개인용 봇을 사용한다. 기존 봇에 다른 webhook이 있으면 교체되므로 새 봇이 안전하다.
-- 에이전트 기본 제안: Phase 3 전용 새 봇을 만들고, token은 대화나 저장소에 붙이지 않고 로컬 보안 입력을 거쳐 Supabase secret으로 직접 등록한다.
-- 결정 전 임시 조치: token 문자열을 코드·문서·앱 번들에 넣지 않는다. `supabase/scripts/configure-telegram.ps1`가 token을 숨김 입력으로 받아 secret·chat_id·Vault cron·webhook을 일괄 설정하도록 준비했다.
-- 사용자 답변:
-
 ### Q-005 — 공개 배포·결제·운영 서버를 포함한 상용화 명세 확장
 
 - 날짜: 2026-09-02
@@ -50,6 +38,15 @@
 - 사용자 답변: 배포 및 결제를 바로 붙일 수 있는 완결 앱과 완전한 서버를 원한다는 목표를 2026-09-02 확인. 개발 중에는 내부 development APK를 사용하되, 최종적으로 APK를 직접 관리하지 않고 사용할 개인 앱, 쉬운 리팩터링, 빌드·스토어 배포·결제 확장을 염두에 둔 구조를 원함. 플랫폼·판매 대상·운영 범위 세부 선택은 대기 중.
 
 ## 답변 완료
+
+### Q-008 — Phase 3 Telegram bot token과 허용 chat_id
+
+- 날짜: 2026-09-03
+- 상태: ANSWERED
+- 관련 명세: §5.8, §9.1, §10.4, §14, AC-23~AC-26
+- 결정: Phase 3 전용 `@OOS_Opsbot`과 단일 개인 chat을 사용한다. token은 로컬 보안 입력을 거쳐 Supabase Edge secret에만 등록하고 저장소·채팅에는 남기지 않는다.
+- 영향: bot secret, 허용 chat, owner mapping, Vault cron, Telegram webhook이 연결됐다. 앱의 기존 로컬 알림은 그대로 유지하며 Telegram은 앱을 열지 않은 조회·기록·서버 요약 채널로만 사용한다.
+- 사용자 답변: 2026-09-03 — BotFather token을 보안 입력하고 탐지된 개인 대화를 `YES`로 승인했다. 원격 설정·cron·Vault·secret 생성과 21:19 예약 발송을 확인했다.
 
 ### Q-007 — 무료 Supabase에서 사용할 Phase 2 인증 방식
 
