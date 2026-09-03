@@ -16,6 +16,7 @@ import {
   textStyles,
   TimeField,
 } from '@/components/ui';
+import { APP_NAME } from '@/constants/app';
 import { useApp } from '@/context/app-context';
 import { useSync } from '@/context/sync-context';
 import { dateKey } from '@/domain/calculations';
@@ -443,7 +444,7 @@ export default function SettingsScreen() {
 
         <Section title="앱 정보와 초기화">
           <Card>
-            <Text style={textStyles.body}>OOS Ops · 로컬 우선</Text>
+            <Text style={textStyles.body}>{APP_NAME} · 로컬 우선</Text>
             <Text style={textStyles.muted}>AI 분석은 현재 비활성화되어 있습니다.</Text>
             <AppButton label="전체 초기화" variant="danger" onPress={confirmReset} />
           </Card>

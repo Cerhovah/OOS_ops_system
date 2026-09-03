@@ -8,7 +8,7 @@
 - Expo CLI: 전역 설치 금지, `npx expo` 사용
 - 앱 경로: `mobile/`
 - 소스 줄바꿈: LF (`.gitattributes`)
-- Phase 1 Android 빌드: EAS Cloud development build 우선
+- Android 개발 빌드: EAS Cloud development build 우선
 
 ## Windows 10/11 x64
 
@@ -78,12 +78,13 @@ npx create-expo-app@latest mobile
 
 생성 후 `mobile/package-lock.json`을 반드시 유지한다. yarn, pnpm, bun 명령과 잠금 파일을 사용하지 않는다.
 
-## Phase 1 패키지 설치 규칙
+## 패키지 설치 규칙
 
-Expo SDK 패키지는 `mobile/`에서 SDK 호환 버전을 선택하는 `npx expo install`로 설치한다.
+정상 복구는 개별 패키지를 다시 고르지 않고 `mobile/package-lock.json`을 기준으로 `npm ci`를 실행한다. 새 Expo SDK 패키지를 추가할 때만 `mobile/`에서 SDK 호환 버전을 선택하는 `npx expo install`을 사용한다.
 
 ```bat
-npx expo install expo-sqlite expo-notifications expo-secure-store expo-dev-client expo-file-system expo-sharing expo-crypto
+npm ci
+npx expo install <새 Expo 패키지>
 ```
 
 Router는 create-expo-app 기본 템플릿의 `expo-router` 구성과 entry 설정을 확인한다. 일반 테스트·개발 도구만 `npm install --save-dev`로 설치한다.
@@ -103,7 +104,7 @@ set EAS_NO_VCS=
 
 현재 Windows 저장소 경로의 대괄호 때문에 기본 EAS 로컬 git archive가 실패하므로 이 경로에서만 `EAS_NO_VCS=1`을 사용한다. 대괄호 없는 경로에서는 먼저 기본 명령을 사용한다. PowerShell에서는 build 전 `$env:EAS_NO_VCS = '1'`, build 후 `Remove-Item Env:EAS_NO_VCS`로 같은 범위를 적용한다.
 
-현재 연결된 프로젝트는 `@ljh951206/oos-ops`, project ID는 `a0b6c215-c87a-40ff-b749-b715d1ed9352`다. 현재 소스 기준 2026-09-02 development build `5448b354-f54f-4d17-b657-36f8b97afa48`이 성공했고 APK는 `C:\Users\skljh\Downloads\OOS-Ops-0.1.0-development-5448b354.apk`에 보존했다. 빌드 페이지 또는 이 파일을 Android 실기기로 옮겨 설치한다. 비용·계정 플랜·자격증명 선택이 나타나면 임의로 진행하지 않는다.
+현재 연결된 프로젝트는 `@ljh951206/oos-ops`, project ID는 `a0b6c215-c87a-40ff-b749-b715d1ed9352`다. SM-S721N에서 검증한 최신 네이티브 개발 클라이언트는 매직링크 callback 기준 `0.2.0(3)` build `154087e2-b93d-451a-b62c-ba6e988f4592`다. 현재 JavaScript 소스 `0.3.2(6)`은 이 클라이언트에 이미 포함된 네이티브 모듈 범위에서 Metro로 검증한다. 새 native dependency·권한·config plugin을 추가하면 새 development build가 필요하다. 비용·계정 플랜·자격증명 선택이 나타나면 임의로 진행하지 않는다.
 
 ## Phase 2 Supabase 개발 환경
 
@@ -122,7 +123,7 @@ npx supabase@latest login
 
 Phase 2 인증은 Supabase Free 기본 메일의 매직링크를 사용한다. `supabase/config.toml`의 hosted Auth mirror를 유지한 채 `oosops://auth/callback`만 추가 리디렉션으로 배포한다. 커스텀 스킴이 네이티브 설정이므로 callback 변경 뒤에는 development build를 새로 생성한다.
 
-OTP 구현 기준 Android development build는 `1ead311c-9397-4f53-8893-36193025ab02`로 완료·보존했다. 매직링크 callback 기준 0.2.0(3) build `154087e2-b93d-451a-b62c-ba6e988f4592`도 완료했으며 APK는 `C:\Users\skljh\Downloads\OOS-Ops-0.2.0-magic-link-dev-154087e2.apk`에 보존했다.
+OTP 구현 build `1ead311c-9397-4f53-8893-36193025ab02`는 과거 이력이며, 매직링크 전환 뒤에는 `0.2.0(3)` build `154087e2-b93d-451a-b62c-ba6e988f4592`를 기준으로 한다. 로컬 APK 파일 경로는 기기별 정보이므로 재현 기준으로 사용하지 않고 EAS build ID와 `docs/evidence/phase-2-readiness-2026-09-02.md`의 해시를 사용한다.
 
 ## 재현 및 검증
 

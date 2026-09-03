@@ -5,11 +5,13 @@
 ## 현재 상태
 
 - Phase 1 AC-1~AC-18 게이트 통과(기존 수기 검증 사용자 승인 승계)
-- TypeScript strict, ESLint, 단위테스트·커버리지, Expo 패키지 검사, `expo-doctor`, Android Hermes 번들 검사 2026-09-02 재통과
+- TypeScript strict와 미사용 코드 검사, ESLint, 단위테스트·커버리지, Expo 패키지 검사, `expo-doctor`, Android Hermes 번들 검사 통과
 - Phase 2 SQLite outbox/LWW/충돌 로그, Supabase 매직링크/RLS, 자동·수동 동기화 구현 및 자동 게이트 통과
 - Phase 2 원격 migration 적용, 0.2.0 development APK, SM-S721N 실기기 AC-19~AC-22 게이트 완료
-- Phase 3 Telegram은 사용자 지시로 제품 범위에서 제거; webhook·cron·secret·전용 DB·앱 UI 정리 완료
+- Phase 3 철회 마감: Telegram 제거와 함께 레거시 동기화 스키마·템플릿 잔여물·중복 테스트 기반·문서 드리프트 정리
 - Phase 4 AI는 구현하지 않음
+
+현재 소스 버전은 `0.3.2(6)`이며 다음 활성 단계는 Phase 4입니다. Phase 1·2 기능은 완료 상태이고 Phase 3은 제품 범위에서 철회·정리된 상태입니다.
 
 Phase 2의 실기기 결과와 철회된 Phase 3의 구현·제거 이력은 `docs/TESTPLAN.md`, `docs/evidence/phase-2-readiness-2026-09-02.md`, `docs/evidence/phase-3-readiness-2026-09-03.md`에 기록되어 있습니다.
 
@@ -45,9 +47,11 @@ npm run verify
 
 ## 개발 빌드 실행
 
-Android Studio/JDK 로컬 환경은 Phase 1에 요구하지 않습니다. `mobile/eas.json`의 `development` 프로필은 EAS Cloud에서 SDK 57 이미지로 설치 가능한 development-client APK를 생성합니다.
+Android Studio/JDK 로컬 환경은 현재 개발 흐름에 요구하지 않습니다. `mobile/eas.json`의 `development` 프로필은 EAS Cloud에서 SDK 57 이미지로 설치 가능한 development-client APK를 생성합니다.
 
-EAS 프로젝트는 `@ljh951206/oos-ops`에 연결됐습니다. 현재 소스용 Android development build `5448b354-f54f-4d17-b657-36f8b97afa48`은 완료됐고 APK는 `C:\Users\skljh\Downloads\OOS-Ops-0.1.0-development-5448b354.apk`에도 보존했습니다. 설치 절차는 `docs/QUESTIONS.md` Q-003과 `docs/TESTPLAN.md`를 따릅니다. APK가 기기에 설치된 뒤 PC에서 다음 명령으로 개발 서버를 시작합니다.
+EAS 프로젝트는 `@ljh951206/oos-ops`에 연결됐습니다. 현재 실기기에서 검증한 최신 네이티브 개발 클라이언트는 매직링크 callback을 포함한 `0.2.0(3)` build `154087e2-b93d-451a-b62c-ba6e988f4592`입니다. 이후 변경은 이 클라이언트에 이미 포함된 네이티브 모듈 범위 안에서 최신 JavaScript bundle로 검증했습니다. 빌드 ID·해시·과거 APK 경로는 `docs/TESTPLAN.md`와 `docs/evidence/`의 이력만 기준으로 합니다.
+
+개발 클라이언트가 기기에 설치된 뒤 PC에서 다음 명령으로 개발 서버를 시작합니다.
 
 ```bat
 cd mobile
@@ -55,6 +59,13 @@ npx expo start --dev-client
 ```
 
 휴대폰과 PC를 같은 네트워크에 연결하고 설치된 `OOS Ops` 아이콘으로 실행합니다. 네트워크 연결이 어려우면 개발 서버 실행 방법을 별도로 점검하며, 로컬 기록 자체는 SQLite에서 오프라인으로 동작합니다.
+
+LAN 연결이 되지 않으면 다음 터널 명령을 사용합니다. `@expo/ngrok`은 이 경로를 재현하기 위해 유지하는 개발 의존성입니다.
+
+```bat
+cd mobile
+npx expo start --dev-client --tunnel
+```
 
 ## 구현 기능
 

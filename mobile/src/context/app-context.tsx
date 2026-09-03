@@ -12,7 +12,6 @@ import {
   scheduleTimerLimitNotification,
 } from '@/services/notifications';
 import type {
-  Account,
   Aggregation,
   AppSnapshot,
   Entry,
@@ -255,8 +254,4 @@ export function useApp(): AppContextValue {
   const value = useContext(AppContext);
   if (!value) throw new Error('useApp은 AppProvider 안에서 사용해야 합니다.');
   return value;
-}
-
-export function activeAccounts(accounts: readonly Account[]): Account[] {
-  return accounts.filter((account) => !account.deletedAt && !account.archived);
 }

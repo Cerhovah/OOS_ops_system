@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { Platform } from 'react-native';
 
 import {
+  APP_NAME,
   DEFAULT_CLOSE_NOTIFICATION_TIME,
   NOTIFICATION_ACTION_ID,
   NOTIFICATION_CATEGORY_ID,
@@ -24,7 +25,7 @@ Notifications.setNotificationHandler({
 
 function notificationContent(body = '오늘 기록이 아직 끝나지 않았습니다. 탭하면 오늘 종료로 이동합니다.'): Notifications.NotificationContentInput {
   return {
-    title: 'OOS Ops',
+    title: APP_NAME,
     body,
     categoryIdentifier: NOTIFICATION_CATEGORY_ID,
     data: { url: NOTIFICATION_ROUTE },
@@ -119,7 +120,7 @@ async function scheduleItemNotifications(
       identifiers.push(
         await Notifications.scheduleNotificationAsync({
           content: {
-            title: 'OOS Ops',
+            title: APP_NAME,
             body: `${item.name} · 일정 시각`,
             data: { url: '/', itemId: item.id },
           },
@@ -198,7 +199,7 @@ export async function scheduleTimerLimitNotification(
   if (!permission.granted) return;
   const identifier = await Notifications.scheduleNotificationAsync({
     content: {
-      title: 'OOS Ops',
+      title: APP_NAME,
       body: `${item.name} · 상한 ${item.levelMax}분에 도달했습니다. 타이머는 계속 실행됩니다.`,
       data: { url: '/', itemId: item.id },
     },

@@ -29,32 +29,32 @@
 - `npm run verify` 종료 코드 0: TypeScript/ESLint 0건, 21 tests, 도메인 커버리지 99.05/92.85/100/100, 의존성 호환 통과, expo-doctor 21/21, Android HBC 생성 성공.
 - Metro 개발 서버 HTTP 200과 `packager-status:running`을 확인했다.
 - 상세 명령·해시·감사 결과: `docs/evidence/phase-1-recovery-2026-09-02.md`.
-- 네이티브 패치가 바뀌었으므로 TP-AC-01~TP-AC-17은 새 build `5448b354-f54f-4d17-b657-36f8b97afa48`로 수행한다.
+- 네이티브 패치 기준 build `5448b354-f54f-4d17-b657-36f8b97afa48`을 설치했고, 사용자가 기존 TP-AC-01~17 실기기 결과를 승계하도록 승인했다.
 - 정적 감사 보완 후 `npm run verify` 종료 코드 0: 22 tests, 도메인 커버리지 99.07/93.33/100/100, Android HBC 1,374 modules.
-- 사용자는 TP-AC-01~TP-AC-17 실기기 검증을 이전에 이미 완료했다고 2026-09-02 재확인했다. 현재 추가 확인 범위는 그 이후 코드로 보완된 RA-01~04와 Android 버전 기록이다.
-- Metro tunnel을 통한 Android bundle 요청·완료를 확인해 기기↔Metro 연결을 통과 처리했다. 시작 중 발견된 SDK 57 `SQLiteProvider` Suspense 옵션 충돌은 수정했고, 수정 후 `npm run verify`도 종료 코드 0으로 통과했다. 기기 재접속 후 시작 화면 확인은 대기 중이다.
+- 사용자는 TP-AC-01~TP-AC-17 실기기 검증을 이전에 이미 완료했다고 2026-09-02 재확인했고, RA-01~04도 자동 회귀 결과를 근거로 반복 실기기 검증 없이 승계하도록 승인했다. 이후 SM-S721N의 Android 버전과 최신 Metro 런타임을 별도로 기록했다.
+- Metro tunnel을 통한 Android bundle 요청·완료를 확인해 기기↔Metro 연결을 통과 처리했다. 시작 중 발견된 SDK 57 `SQLiteProvider` Suspense 옵션 충돌은 수정했고, 이후 SM-S721N에서 앱 top-resumed와 오류 로그 0건을 재확인했다.
 
 ## AC별 검증
 
 | ID | 자동/코드 증빙 | development build 수동 절차 | 현재 상태 |
 |---|---|---|---|
-| TP-AC-01 | app/eas config, Android bundle, EAS build `FINISHED` | APK 설치 → 홈의 OOS Ops 아이콘 탭 → 한국어 오늘 화면 확인 | SM-S721N 업데이트 설치·Metro 연결 통과/시작 오류 수정 후 화면 재확인 대기 |
-| TP-AC-02 | §4.4 seed manifest 3 tests | 첫 실행 시 14계정·168h·8항목·2프로젝트 확인 → 시드 계정/항목 편집·보관·삭제·복구, 프로젝트 상태/삭제·복구, KPI 편집·삭제·복구 | Q-003 대기 |
-| TP-AC-03 | Today actions 구현 | 아이콘→`작업 시작`으로 편입 타이머 시작(총 2탭), 정지 1탭, 완료/횟수/되돌리기 1탭, 수동 시간 2~3탭과 5~10초 측정 | Q-003 대기 |
-| TP-AC-04 | repository lifecycle | 5개 유형을 각각 생성·기록·수정·삭제·복구하고 값/단위/횟수/시간 보존 확인 | Q-003 대기 |
-| TP-AC-05 | 요일/dedupe tests | 해당 요일의 통학/필수 일정 확인 → 같은 항목 수동 추가·재실행 후 한 행만 표시 확인 | Q-003 대기 |
-| TP-AC-06 | 남은 시간 경계값 tests | 하루 종료 시각 변경, 미수행 일정/완료 기록 변경 후 상단 남은 시간·계획→실제 즉시 반영 및 음수 표시 0 확인 | Q-003 대기 |
-| TP-AC-07 | close repository/UI | 오늘 종료에서 계산·긴 메모 저장 → 종료 후 기록 수정 → 종료 화면/주간 실제 변화와 비잠금 확인 | Q-003 대기 |
-| TP-AC-08 | week aggregates/UI | 계정 표와 합계 대조 → 항목·요일 분해 열기 → 요일 토글 → 긴 코멘트 저장/재시작 보존 | Q-003 대기 |
-| TP-AC-09 | 168 상태 tests | 168h 미만·초과·음수 계획에서 배지/합계 즉시 변경, `조정하기`와 `그대로 저장` 확인 | Q-003 대기 |
-| TP-AC-10 | append-only repository | 계획 2회 저장 → 모든 버전 열람 → 과거 복원 후 새 버전 증가와 이전 버전 불변 확인 | Q-003 대기 |
-| TP-AC-11 | copy repository/UI | 다음 주로 이동해 `지난주 계획 복사` 1탭 → source와 값 확인, 원본 불변 확인 | Q-003 대기 |
-| TP-AC-12 | KPI aggregation tests/UI | 프로젝트/KPI 추가 → 카드에서 값 기록 → 합계 확인 → 연결 time 기록 후 누적/이번 주 투입시간 대조 | Q-003 대기 |
-| TP-AC-13 | DAILY/DATE route code | 알림 시각을 3~5분 뒤로 설정 → 앱 완전 종료 → 알림 탭 → 오늘 종료 콜드 진입. 종료한 날 건너뜀/항상 받기 각각 확인 | Q-003 대기 |
-| TP-AC-14 | HIGH channel/permission/rebook code | 최초 허용, OS 설정에서 채널 중요도 확인, 거부 후 설정 재요청, 앱 강제종료·재시작 후 예약 복구 확인 | Q-003 대기 |
-| TP-AC-15 | CSV/JSON 3 tests | 삭제 행과 계획 여러 버전 생성 → JSON 전체/각 CSV 공유·저장 → 원본 SQLite 값/행과 대조 | Q-003 대기 |
-| TP-AC-16 | 원격 API 없음/SQLite 구조 | 비행기 모드 ON → 기록·수정·삭제·복구·계획·프로젝트·종료 → 앱 재시작 후 보존 → 비행기 모드 OFF | Q-003 대기 |
-| TP-AC-17 | 금지문구 정적 검색 | 오늘/주간/프로젝트/계획/분석/설정/모달/빈 상태/오류/알림 전체에서 판정·점수화·연속일수·사람 서술 0건 확인 | Q-003 대기 |
+| TP-AC-01 | app/eas config, Android bundle, EAS build `FINISHED` | APK 설치 → 홈의 OOS Ops 아이콘 탭 → 한국어 오늘 화면 확인 | **통과**: SM-S721N 설치·아이콘·Metro 실행 확인 |
+| TP-AC-02 | §4.4 seed manifest 3 tests | 첫 실행 시 14계정·168h·8항목·2프로젝트 확인 → 시드 계정/항목 편집·보관·삭제·복구, 프로젝트 상태/삭제·복구, KPI 편집·삭제·복구 | **통과(사용자 승인 승계)** |
+| TP-AC-03 | Today actions 구현 | 아이콘→`작업 시작`으로 편입 타이머 시작(총 2탭), 정지 1탭, 완료/횟수/되돌리기 1탭, 수동 시간 2~3탭과 5~10초 측정 | **통과(사용자 승인 승계)** |
+| TP-AC-04 | repository lifecycle | 5개 유형을 각각 생성·기록·수정·삭제·복구하고 값/단위/횟수/시간 보존 확인 | **통과(사용자 승인 승계)** |
+| TP-AC-05 | 요일/dedupe tests | 해당 요일의 통학/필수 일정 확인 → 같은 항목 수동 추가·재실행 후 한 행만 표시 확인 | **통과(사용자 승인 승계)** |
+| TP-AC-06 | 남은 시간 경계값 tests | 하루 종료 시각 변경, 미수행 일정/완료 기록 변경 후 상단 남은 시간·계획→실제 즉시 반영 및 음수 표시 0 확인 | **통과(사용자 승인 승계)** |
+| TP-AC-07 | close repository/UI | 오늘 종료에서 계산·긴 메모 저장 → 종료 후 기록 수정 → 종료 화면/주간 실제 변화와 비잠금 확인 | **통과(사용자 승인 승계)** |
+| TP-AC-08 | week aggregates/UI | 계정 표와 합계 대조 → 항목·요일 분해 열기 → 요일 토글 → 긴 코멘트 저장/재시작 보존 | **통과(사용자 승인 승계)** |
+| TP-AC-09 | 168 상태 tests | 168h 미만·초과·음수 계획에서 배지/합계 즉시 변경, `조정하기`와 `그대로 저장` 확인 | **통과(사용자 승인 승계)** |
+| TP-AC-10 | append-only repository | 계획 2회 저장 → 모든 버전 열람 → 과거 복원 후 새 버전 증가와 이전 버전 불변 확인 | **통과(사용자 승인 승계)** |
+| TP-AC-11 | copy repository/UI | 다음 주로 이동해 `지난주 계획 복사` 1탭 → source와 값 확인, 원본 불변 확인 | **통과(사용자 승인 승계)** |
+| TP-AC-12 | KPI aggregation tests/UI | 프로젝트/KPI 추가 → 카드에서 값 기록 → 합계 확인 → 연결 time 기록 후 누적/이번 주 투입시간 대조 | **통과(사용자 승인 승계)** |
+| TP-AC-13 | DAILY/DATE route code | 알림 시각을 3~5분 뒤로 설정 → 앱 완전 종료 → 알림 탭 → 오늘 종료 콜드 진입. 종료한 날 건너뜀/항상 받기 각각 확인 | **통과(사용자 승인 승계)** |
+| TP-AC-14 | HIGH channel/permission/rebook code | 최초 허용, OS 설정에서 채널 중요도 확인, 거부 후 설정 재요청, 앱 강제종료·재시작 후 예약 복구 확인 | **통과(사용자 승인 승계)** |
+| TP-AC-15 | CSV/JSON 3 tests | 삭제 행과 계획 여러 버전 생성 → JSON 전체/각 CSV 공유·저장 → 원본 SQLite 값/행과 대조 | **통과(사용자 승인 승계)** |
+| TP-AC-16 | 원격 API 없음/SQLite 구조 | 비행기 모드 ON → 기록·수정·삭제·복구·계획·프로젝트·종료 → 앱 재시작 후 보존 → 비행기 모드 OFF | **통과(사용자 승인 승계)** |
+| TP-AC-17 | 금지문구 정적 검색 | 오늘/주간/프로젝트/계획/분석/설정/모달/빈 상태/오류/알림 전체에서 판정·점수화·연속일수·사람 서술 0건 확인 | **통과(사용자 승인 승계)** |
 | TP-AC-18 | 계산·export·seed 22 tests, 90% gate | 수동 절차 없음 | **통과** |
 
 ## Phase 2 자동·실기기 게이트 — 2026-09-02
@@ -93,6 +93,8 @@ Phase 3 기준 `npm run verify` 종료 코드 0: TypeScript/ESLint 0건, 14 file
 
 제거 후 최종 게이트는 TypeScript/ESLint 오류 0, 12 files/58 tests, 커버리지 99.07/93.33/100/100, 의존성 검사 통과, expo-doctor 21/21, Android Hermes 1,440 modules이다. 원격은 Telegram table/function/cron/Vault/custom secret 0, migration `upToDate:true`, DB lint 오류 0이다. SM-S721N에서 최신 Metro bundle을 로드한 앱이 `ResumedActivity`이며 앱 PID 대상 Android error log도 0건이다.
 
+Phase 4 진입 전 Phase 3 마감 정리에서는 깨끗한 `npm ci` 뒤 강화된 TypeScript 미사용 검사·ESLint 오류 0, 12 files/59 tests, 커버리지 99.07/93.33/100/100, Expo 의존성 검사, expo-doctor 21/21, Android Hermes 1,440 modules를 통과했다. 레거시 `sync_records/sync_mutations/sync_conflicts`가 모두 0행임을 먼저 확인한 뒤 guarded migration `20260903030000`을 적용했고, 활성 `oos_sync_records` 63행과 `apply_oos_sync_records(jsonb)`를 보존했다. 원격 DB lint 오류는 0이다.
+
 ## 하루치 실기기 기록 시나리오
 
 1. OOS Ops 아이콘으로 실행하고 시드/오늘 자동 항목을 확인한다.
@@ -109,10 +111,10 @@ Phase 3 기준 `npm run verify` 종료 코드 0: TypeScript/ESLint 0건, 14 file
 
 | ID | 관련 범위 | 실기기 재현 | 통과 조건 | 상태 |
 |---|---|---|---|---|
-| RA-01 | AC-2, AC-5, I-8 | 요일 일정이 있는 항목 삭제 → 복구 → 해당 요일 오늘 화면과 항목 편집 재확인 | 항목과 기존 일정 규칙이 함께 복구됨 | 코드 보완·자동 게이트 통과/실기기 재현 대기 |
-| RA-02 | SPEC §5.8, §14 | 설정에서 주 시작 요일 변경 → 주간/계획 범위 재확인 | 선택한 요일 기준으로 주 범위와 저장값이 변경됨 | 코드 보완·단위테스트 통과/실기기 재현 대기 |
-| RA-03 | I-8, 프로젝트 데이터 | KPI 값 기록 → 수정 → 소프트 삭제 → 복구 | 값·메모·이력이 각 단계에서 보존됨 | 코드 보완·자동 게이트 통과/실기기 재현 대기 |
-| RA-04 | AC-13, AC-14 | 오늘 종료 → 알림 권한 다시 요청 → 예약 목록과 당일 알림 확인 | `항상 받기`가 꺼져 있으면 당일 종료 알림을 다시 예약하지 않음 | 코드 보완·자동 게이트 통과/실기기 재현 대기 |
+| RA-01 | AC-2, AC-5, I-8 | 요일 일정이 있는 항목 삭제 → 복구 → 해당 요일 오늘 화면과 항목 편집 재확인 | 항목과 기존 일정 규칙이 함께 복구됨 | **통과(사용자 승인 승계)** |
+| RA-02 | SPEC §5.8, §14 | 설정에서 주 시작 요일 변경 → 주간/계획 범위 재확인 | 선택한 요일 기준으로 주 범위와 저장값이 변경됨 | **통과(사용자 승인 승계)** |
+| RA-03 | I-8, 프로젝트 데이터 | KPI 값 기록 → 수정 → 소프트 삭제 → 복구 | 값·메모·이력이 각 단계에서 보존됨 | **통과(사용자 승인 승계)** |
+| RA-04 | AC-13, AC-14 | 오늘 종료 → 알림 권한 다시 요청 → 예약 목록과 당일 알림 확인 | `항상 받기`가 꺼져 있으면 당일 종료 알림을 다시 예약하지 않음 | **통과(사용자 승인 승계)** |
 
 ## 결과 기록
 
@@ -121,10 +123,11 @@ Phase 3 기준 `npm run verify` 종료 코드 0: TypeScript/ESLint 0건, 14 file
 | 2026-08-20 | 로컬 Android HBC | Windows 10/11 | TP-AC-18 및 자동 게이트 | 통과 | `docs/evidence/phase-1-automated.md` |
 | 2026-08-20 | EAS `67a46042-d559-42ee-a321-dd6db1101431` / [build page](https://expo.dev/accounts/ljh951206/projects/oos-ops/builds/67a46042-d559-42ee-a321-dd6db1101431) | 기기·Android 대기 | TP-AC-01 build, TP-AC-02~17 준비 | build 통과/실기기 대기 | SDK 57, app 0.1.0 (1), `com.oosops.app`, internal APK |
 | 2026-09-02 | EAS `5448b354-f54f-4d17-b657-36f8b97afa48` / [build page](https://expo.dev/accounts/ljh951206/projects/oos-ops/builds/5448b354-f54f-4d17-b657-36f8b97afa48) | SM-S721N(Galaxy S24 FE), Android 버전 대기 | TP-AC-01 build·설치, TP-AC-02~17 준비 | build·업데이트 설치 통과/Metro 연결·실기기 검증 대기 | `FINISHED`, fingerprint `0668842a14ccfdacce6088a43baa0fc190bdea90`, build URL 만료 2026-09-16 03:24 KST, APK 로컬 보존 |
-| 2026-09-02 | 사용자 기존 검증 재확인 | SM-S721N(Galaxy S24 FE), Android 버전 대기 | TP-AC-01~17 | 기존 실기기 검증 완료 확인/세부 결과 승계 | 이후 수정된 RA-01~04만 Metro로 재확인 필요 |
+| 2026-09-02 | 사용자 기존 검증 재확인 | SM-S721N(Galaxy S24 FE), Android 버전 당시 미기록 | TP-AC-01~17 | 기존 실기기 검증 완료 확인/세부 결과 승계 | 이후 RA-01~04도 반복 검증 없이 자동 회귀 결과를 승계하도록 승인 |
 | 2026-09-02 | EAS `154087e2-b93d-451a-b62c-ba6e988f4592` / [build page](https://expo.dev/accounts/ljh951206/projects/oos-ops/builds/154087e2-b93d-451a-b62c-ba6e988f4592) | SM-S721N(Galaxy S24 FE), Android 버전 대기 | TP-AC-19, TP-AC-21 | 매직링크 로그인·최초 업로드·상태 표시 통과 | Metro Android 1,601 modules bundle 완료, 사용자 `로그인 완료 / 마지막 동기화 표시 / 전송 대기 0건`, 원격 `oos_sync_records` 추정 63행 |
 | 2026-09-02 | 같은 0.2.0(3) development build + 최종 Metro source | SM-S721N(Galaxy S24 FE), Android 16/API 36 | TP-AC-19~22 | **Phase 2 통과** | 오프라인 outbox 0→1→0, 원격 원본 63행 복구, 초기화 후 계획 1/14·기록 4·충돌 0, 수동 동기화 23:03:46→23:05:38, `phase_2_rls_passed` |
 | 2026-09-03 | app 0.3.0(4), Edge Function `telegram-bot` v2 | 로컬/원격 자동 게이트 | TP-AC-23~26 서버 준비 | **검증 후 철회** | 74 tests, DB lint 0, 예약 발송 확인; 이후 사용자 지시로 제거 |
 | 2026-09-03 | app 0.3.1(5), removal migration | SM-S721N + 로컬/원격 제거 게이트 | Phase 3 철회 | **제거 완료** | 12 files/58 tests, Android 1,440 modules·error 0, 원격 Telegram resource 0, core record 보존 |
+| 2026-09-03 | app 0.3.2(6), repository closeout | SM-S721N(Galaxy S24 FE), Android 16/API 36 + 로컬·원격 정합성 게이트 | Phase 3 마감 | **통과** | 12 files/59 tests, strict unused·doctor 21/21·Android 1,440 modules, Metro 1,603 modules 재로드·앱 오류 0, legacy schema 제거·active 63행 보존 |
 
 EAS의 새 build URL은 2026-09-16 03:24 KST에 만료되지만 로컬 APK와 이미 설치된 앱이 그 시각 삭제되는 것은 아니다. Android 버전과 TP-AC-01~TP-AC-17 결과를 같은 표에 이어서 기록한다.

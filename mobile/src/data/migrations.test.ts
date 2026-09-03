@@ -1,45 +1,14 @@
 /// <reference types="node" />
 
 import { randomUUID as nodeRandomUUID } from 'node:crypto';
-import { DatabaseSync, type SQLInputValue } from 'node:sqlite';
-import type { SQLiteDatabase } from 'expo-sqlite';
 import { describe, expect, it, vi } from 'vitest';
+
+import { TestSQLiteDatabase } from '@/test/sqlite-adapter';
 
 import { accountSeeds, itemSeeds, kpiSeeds, migrateDatabase, projectSeeds, scheduleSeeds } from './migrations';
 import { SyncRepository, type RemoteSyncRecord } from './sync-repository';
 
 vi.mock('expo-crypto', () => ({ randomUUID: nodeRandomUUID }));
-
-class TestDatabase {
-  readonly raw = new DatabaseSync(':memory:');
-
-  async execAsync(sql: string): Promise<void> {
-    this.raw.exec(sql);
-  }
-
-  async getFirstAsync<T>(sql: string, ...params: SQLInputValue[]): Promise<T | null> {
-    return (this.raw.prepare(sql).get(...params) as T | undefined) ?? null;
-  }
-
-  async getAllAsync<T>(sql: string, ...params: SQLInputValue[]): Promise<T[]> {
-    return this.raw.prepare(sql).all(...params) as T[];
-  }
-
-  async runAsync(sql: string, ...params: SQLInputValue[]): Promise<void> {
-    this.raw.prepare(sql).run(...params);
-  }
-
-  async withExclusiveTransactionAsync(task: (transaction: SQLiteDatabase) => Promise<void>): Promise<void> {
-    this.raw.exec('BEGIN EXCLUSIVE');
-    try {
-      await task(this as unknown as SQLiteDatabase);
-      this.raw.exec('COMMIT');
-    } catch (error) {
-      this.raw.exec('ROLLBACK');
-      throw error;
-    }
-  }
-}
 
 describe('Phase 1 seed manifest', () => {
   it('contains the exact 14-account 168-hour allocation from SPEC 4.4', () => {
@@ -103,8 +72,8 @@ describe('Phase 1 seed manifest', () => {
   });
 
   it('creates the additive v2 outbox schema and captures later mutations', async () => {
-    const db = new TestDatabase();
-    await migrateDatabase(db as unknown as SQLiteDatabase);
+    const db = new TestSQLiteDatabase();
+    await migrateDatabase(db.asExpoDatabase());
 
     expect(db.raw.prepare('PRAGMA user_version').get()).toMatchObject({ user_version: 2 });
     const initial = db.raw.prepare('SELECT COUNT(*) AS count FROM sync_outbox').get() as { count: number };
@@ -120,9 +89,9 @@ describe('Phase 1 seed manifest', () => {
   });
 
   it('applies a newer remote row, keeps a newer local row, and logs both conflicts', async () => {
-    const db = new TestDatabase();
-    await migrateDatabase(db as unknown as SQLiteDatabase);
-    const repository = new SyncRepository(db as unknown as SQLiteDatabase);
+    const db = new TestSQLiteDatabase();
+    await migrateDatabase(db.asExpoDatabase());
+    const repository = new SyncRepository(db.asExpoDatabase());
     const base = db.raw.prepare("SELECT * FROM accounts WHERE id='seed-account-sleep'").get() as Record<string, string | number | null>;
 
     const remoteWins: RemoteSyncRecord = {
@@ -156,9 +125,9 @@ describe('Phase 1 seed manifest', () => {
   });
 
   it('atomically replaces pristine install seeds when a remote backup exists', async () => {
-    const db = new TestDatabase();
-    await migrateDatabase(db as unknown as SQLiteDatabase);
-    const repository = new SyncRepository(db as unknown as SQLiteDatabase);
+    const db = new TestSQLiteDatabase();
+    await migrateDatabase(db.asExpoDatabase());
+    const repository = new SyncRepository(db.asExpoDatabase());
     const remoteAccount = db.raw.prepare(
       "SELECT * FROM accounts WHERE id='seed-account-sleep'",
     ).get() as Record<string, string | number | null>;
@@ -183,9 +152,9 @@ describe('Phase 1 seed manifest', () => {
   });
 
   it('preserves local work performed before the first login', async () => {
-    const db = new TestDatabase();
-    await migrateDatabase(db as unknown as SQLiteDatabase);
-    const repository = new SyncRepository(db as unknown as SQLiteDatabase);
+    const db = new TestSQLiteDatabase();
+    await migrateDatabase(db.asExpoDatabase());
+    const repository = new SyncRepository(db.asExpoDatabase());
 
     db.raw.prepare(
       "UPDATE accounts SET name='로그인 전 수정',updated_at='2026-09-02T03:00:00.000Z' WHERE id='seed-account-sleep'",

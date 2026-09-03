@@ -59,12 +59,18 @@
 - 2026-09-02: 남은 Android 실기기 게이트 자동화를 위해 공식 ADB Platform-Tools 37.0.1 개발 환경 추가
 - 2026-09-03: 앱 버전을 Phase 3 기준 `0.3.0(4)`로 상향하고 Supabase `telegram-bot` Edge Function v2와 두 Phase 3 migration을 원격 배포
 - 2026-09-03: Telegram 제거 릴리스 기준 앱 버전을 `0.3.1(5)`로 상향하고 Phase 4를 다음 활성 단계로 지정
+- 2026-09-03: Phase 3 마감 정리 릴리스 기준 앱 버전을 `0.3.2(6)`로 상향
+- 2026-09-03: 앱 이름 문자열을 공통 상수로 통합하고 두 SQLite 통합테스트의 메모리 어댑터를 공용 테스트 유틸리티로 합침
+- 2026-09-03: TypeScript 미사용 local/parameter 검사를 상시 typecheck 게이트에 포함하고 README·SPEC·PLAN·TESTPLAN·ENVIRONMENT의 현재 단계·빌드 안내를 일치시킴
+- 2026-09-03: Phase 종료 시 에이전트가 검증·커밋·rebase·push를 자동 수행하도록 커밋 워크플로를 간소화
 
 ### Removed
 
 - 2026-09-03: 사용자 지시에 따라 Telegram을 제품 범위에서 철회하고 모바일 설정 UI·서비스·파서/서버 코드와 테스트를 제거
 - 2026-09-03: Telegram webhook·봇 명령, 예약 cron, Vault secret, 전용 DB 테이블, Edge Functions와 Supabase Telegram secret 5개 제거
 - 2026-09-03: 제거 후 12 files/58 tests, Expo Doctor 21/21, Android bundle·SM-S721N 런타임 오류 0, 원격 Telegram resource 0을 재검증
+- 2026-09-03: 참조되지 않는 Expo 템플릿 이미지 14개와 초기화 스크립트, 중복 직접 의존성 7개, 죽은 export 제거
+- 2026-09-03: 활성 `oos_sync_records` 63행을 보존하고 0행인 초기 `sync_*` 원격 테이블 3개·legacy RPC·sequence를 guarded migration으로 제거
 
 ### Fixed
 

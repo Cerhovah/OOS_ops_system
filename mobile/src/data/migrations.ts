@@ -1,6 +1,7 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
 import {
+  APP_NAME,
   DEFAULT_CLOSE_NOTIFICATION_TIME,
   DEFAULT_DAY_END_TIME,
   DEFAULT_WEEK_START_DAY,
@@ -8,7 +9,7 @@ import {
 import { dateKey, weekRange } from '@/domain/calculations';
 import { syncTableDefinitions } from '@/sync/schema';
 
-export const DATABASE_VERSION = 2;
+const DATABASE_VERSION = 2;
 export const SEED_TIME = '2026-08-20T00:00:00.000+09:00';
 
 const sqlNow = "strftime('%Y-%m-%dT%H:%M:%fZ','now')";
@@ -386,7 +387,7 @@ export async function seedDatabase(db: SQLiteDatabase): Promise<void> {
       ['notification_always', '0'],
       ['notification_permission_requested', '0'],
       ['timer_limit_notifications_enabled', '0'],
-      ['app_name', 'OOS Ops'],
+      ['app_name', APP_NAME],
       ['time_zone', 'Asia/Seoul'],
     ];
     for (const [key, value] of settings) {

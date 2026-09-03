@@ -57,7 +57,9 @@ RLS 검사는 소유자가 자기 Telegram 설정·proposal만 읽고 허용된 
 
 실기기 재실행 중 Android 알림 채널의 `sound: 'default'`가 SDK 57에서 커스텀 음원 조회로 처리되는 기존 오류 로그를 발견했다. 채널 sound 필드를 생략해 Android 시스템 기본음을 사용하도록 수정했고 Metro reload 후 동일 오류가 사라지고 앱이 top-resumed 상태임을 ADB로 확인했다.
 
-## 제거 전 남았던 실제 게이트
+## 철회 전 예정됐던 실제 게이트
+
+아래 항목은 제거 결정으로 폐기된 과거 계획이며 현재 사용자 작업이 아니다.
 
 1. 허용 chat에서 정확 명령, 자유 문장 확인, 오늘 종료 버튼과 앱 pull을 대조한다.
 2. Q-009: 음성 전사/구조화 provider와 key 사용을 승인하고 실제 음성 proposal·확인을 대조한다.
@@ -94,3 +96,14 @@ Windows PowerShell 5가 Supabase CLI의 정상 진행 문구 `Initialising login
 - 저장소 활성 코드: `mobile/src`, `mobile/app.json`, `supabase/config.toml`에서 Telegram 식별자 0건이다. 이미 적용된 생성 migration과 철회 이력 문서는 감사·재현 목적으로 보존한다.
 - 앱 자동 게이트: TypeScript/ESLint 오류 0, 12 files/58 tests 통과, 커버리지 99.07/93.33/100/100, Expo 의존성 호환, expo-doctor 21/21, Android Hermes 1,440 modules이다.
 - 실기기: SM-S721N에서 최신 Metro bundle로 앱이 `ResumedActivity`이며 앱 PID 대상 Android error log 0건이다. Metro tunnel은 계속 실행 상태로 유지했다.
+
+## Phase 4 진입 전 저장소 마감 감사
+
+- 앱 버전: `0.3.2(6)`.
+- 중복 제거: 두 SQLite 통합테스트의 메모리 어댑터를 `src/test/sqlite-adapter.ts` 하나로 통합하고 앱 이름 문자열을 공통 상수로 재사용했다.
+- 죽은 코드·자산: 미사용 export, Expo 초기화 스크립트, 참조 0건인 템플릿 이미지 14개와 불필요한 직접 의존성 7개를 제거했다. Expo Router 공식 설치 의존성과 Metro tunnel용 `@expo/ngrok`은 유지했다.
+- 정적 게이트: TypeScript `noUnusedLocals`·`noUnusedParameters`, ESLint 오류 0.
+- 전체 게이트: 깨끗한 `npm ci` 뒤 12 files/59 tests, 커버리지 99.07/93.33/100/100, Expo 의존성 검사, expo-doctor 21/21, Android Hermes 1,440 modules 통과.
+- 실기기 회귀: USB reverse로 Metro에 연결한 SM-S721N(Android 16/API 36)에서 최신 1,603-module bundle을 다시 로드했다. 앱은 `ResumedActivity`였고 로그 초기화 후 앱 PID의 Android error log는 0건이었다. Metro는 계속 실행 상태로 유지했다.
+- 원격 중복 스키마: 초기 `sync_records`, `sync_mutations`, `sync_conflicts`가 모두 0행임을 확인한 뒤, 데이터가 있으면 중단하는 migration `20260903030000_remove_legacy_sync_schema.sql`을 적용했다. 세 legacy table은 제거됐고 활성 `oos_sync_records` 63행과 RPC는 보존됐다. DB lint 오류 0이다.
+- 문서: SPEC의 잔여 봇 문구, README/ENVIRONMENT의 과거 build 오표기, PLAN/TESTPLAN의 종료된 실기기 대기 상태, QUESTIONS의 이미 확정된 값을 현재 상태와 맞췄다.

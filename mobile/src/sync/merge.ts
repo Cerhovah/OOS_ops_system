@@ -1,6 +1,6 @@
-export type MergeWinner = 'local' | 'remote' | 'same';
+type MergeWinner = 'local' | 'remote' | 'same';
 
-export interface MergeDecision {
+interface MergeDecision {
   winner: MergeWinner;
   conflict: boolean;
 }
@@ -39,4 +39,3 @@ export function decideMerge(input: {
   }
   return { winner: 'remote', conflict: true };
 }
-

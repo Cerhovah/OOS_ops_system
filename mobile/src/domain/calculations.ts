@@ -8,13 +8,13 @@ import type {
   WeeklyPlanLine,
 } from '@/types/domain';
 
-export interface PlanStatus {
+interface PlanStatus {
   totalMinutes: number;
   deltaMinutes: number;
   kind: 'balanced' | 'over' | 'unallocated';
 }
 
-export interface RemainingTime {
+interface RemainingTime {
   displayMinutes: number;
   rawMinutes: number;
 }

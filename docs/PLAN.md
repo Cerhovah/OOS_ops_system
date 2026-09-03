@@ -3,7 +3,7 @@
 ## 현재 단계
 
 - 단계: Phase 3 — 철회 및 제거 완료
-- 상태: **사용자 지시로 제품 범위·앱·원격 서버에서 제거, Phase 4 진입 준비**
+- 상태: **Phase 3 철회·정리 게이트 완료 후 Phase 4 진입 준비**
 - PLAN/구현 승인: 2026-08-20
 - Phase 종료 커밋 규칙: `docs/COMMIT_WORKFLOW.md`
 - 주 검증 플랫폼: Android 실기기, iOS 호환성 유지
@@ -12,29 +12,27 @@
 
 ## Phase 1 AC-1~AC-18 1:1 구현·증빙
 
-`구현 완료/실기기 대기`는 코드와 자동 검사가 끝났으나 §10.3의 development build 수동검증 전이라 AC 통과로 확정하지 않았다는 뜻이다.
-
-2026-09-02 사용자는 기존 TP-AC-01~17 실기기 검증을 이미 완료했다고 재확인했다. 아래의 기존 `실기기 대기` 표기는 당시 세부 증빙이 문서에 회수되지 않은 상태를 뜻하며, 현재 남은 실기기 범위는 이후 코드 감사로 추가된 RA-01~04뿐이다.
+아래 표는 Phase 1 종료 판정이다. 2026-09-02 사용자가 TP-AC-01~17 기존 실기기 검증 완료를 재확인하고 반복 검증 없이 결과를 승계하도록 승인했으며, 이후 Phase 2·3 회귀에서 SM-S721N 실행과 오류 로그를 다시 확인했다.
 
 | AC | 구현 결과 | 현재 상태 | 증빙 |
 |---|---|---|---|
-| AC-1 | Expo Router 앱, OOS Ops 아이콘/식별자, EAS development APK profile | SDK 57 패치 build 통과/SM-S721N 업데이트 설치 완료, 아이콘 실행 확인 대기 | `mobile/app.json`, `mobile/eas.json`, EAS build `5448b354-f54f-4d17-b657-36f8b97afa48`, TP-AC-01 |
-| AC-2 | SQLite v1, 멱등 시드, 계정·항목·프로젝트·KPI 편집/상태·보관/소프트 삭제·복구 | 구현 완료/실기기 대기 | `src/data/migrations.ts`, `migrations.test.ts`, TP-AC-02 |
-| AC-3 | 작업 시작·타이머 시작/정지 1탭, 완료/횟수 1탭·되돌리기, 수동 시간 sheet | 구현 완료/실기기 탭 측정 대기 | `src/app/(tabs)/index.tsx`, TP-AC-03 |
-| AC-4 | time/completion/count/numeric/event 생성·기록·수정·삭제·복구 | 구현 완료/실기기 대기 | `settings.tsx`, `repository.ts`, TP-AC-04 |
-| AC-5 | 요일 mask 자동 노출 + 수동/진행 중 병합, 항목 ID dedupe | 자동 단위 통과/실기기 대기 | `calculations.ts`, `calculations.test.ts`, TP-AC-05 |
-| AC-6 | 설정된 하루 종료 시각 기반 남은 가용시간, 계획→실제 합계 | 자동 경계값 통과/실기기 대기 | `calculations.test.ts`, `index.tsx`, TP-AC-06 |
-| AC-7 | 항목별 종료 계산, 무제한 메모, upsert 스냅샷, 기록 비잠금 | 구현 완료/실기기 대기 | `today/close.tsx`, `repository.ts`, TP-AC-07 |
-| AC-8 | 계정별 계획/실제/차이·총계, 항목/요일 분해, 요일 토글·코멘트 | 구현 완료/실기기 대기 | `week.tsx`, TP-AC-08 |
-| AC-9 | 실시간 168h 상태, 조정/그대로 저장, 유효 숫자 비차단 | 자동 계산 통과/실기기 대기 | `plan.tsx`, `calculations.test.ts`, TP-AC-09 |
-| AC-10 | 저장/복원 모두 append-only 새 버전, 이력 열람 | 구현 완료/DB 실기기 대기 | `repository.ts`, `plan.tsx`, TP-AC-10 |
-| AC-11 | 계획 없음/계획 화면의 지난주 최신 버전 1탭 복사 | 구현 완료/실기기 대기 | `repository.ts`, `week.tsx`, TP-AC-11 |
-| AC-12 | 프로젝트·기본/사용자 KPI·값 기록, 연결 항목 누적/주간 파생시간 | 자동 집계 통과/실기기 대기 | `projects.tsx`, `calculations.test.ts`, TP-AC-12 |
-| AC-13 | 설정 시각 DAILY 알림, 종료 시 건너뜀/항상 받기, `/today/close` 콜드 딥링크 | 구현 완료/실기기 필수 | `notifications.ts`, TP-AC-13 |
-| AC-14 | Android HIGH 채널, 최초 권한/설정 재요청, 예약 ID·시작 재예약 | 구현 완료/실기기 필수 | `notifications.ts`, `app-context.tsx`, TP-AC-14 |
-| AC-15 | 전체 테이블 JSON, 테이블별 UTF-8 BOM CSV, 삭제 행·전 계획 버전 포함 | 변환 단위 통과/실기기 공유·대조 대기 | `export.ts`, `export.test.ts`, TP-AC-15 |
-| AC-16 | Phase 1 경로가 SQLite/로컬 API만 사용, 원격 서비스 없음 | 구현 완료/비행기 모드 실기기 대기 | `repository.ts`, TP-AC-16 |
-| AC-17 | 정보형 숫자/차이 문구, 게임화·사용자 서술 없음 | 정적 검색 통과/전 화면 수동 점검 대기 | `src/`, TP-AC-17 |
+| AC-1 | Expo Router 앱, OOS Ops 아이콘/식별자, EAS development APK profile | **통과**: SDK 57 build·SM-S721N 설치·아이콘 실행 | `mobile/app.json`, `mobile/eas.json`, EAS build `5448b354-f54f-4d17-b657-36f8b97afa48`, TP-AC-01 |
+| AC-2 | SQLite v1, 멱등 시드, 계정·항목·프로젝트·KPI 편집/상태·보관/소프트 삭제·복구 | **통과(사용자 승인 승계)** | `src/data/migrations.ts`, `migrations.test.ts`, TP-AC-02 |
+| AC-3 | 작업 시작·타이머 시작/정지 1탭, 완료/횟수 1탭·되돌리기, 수동 시간 sheet | **통과(사용자 승인 승계)** | `src/app/(tabs)/index.tsx`, TP-AC-03 |
+| AC-4 | time/completion/count/numeric/event 생성·기록·수정·삭제·복구 | **통과(사용자 승인 승계)** | `settings.tsx`, `repository.ts`, TP-AC-04 |
+| AC-5 | 요일 mask 자동 노출 + 수동/진행 중 병합, 항목 ID dedupe | **통과**: 자동 단위검사·사용자 승인 승계 | `calculations.ts`, `calculations.test.ts`, TP-AC-05 |
+| AC-6 | 설정된 하루 종료 시각 기반 남은 가용시간, 계획→실제 합계 | **통과**: 자동 경계값·사용자 승인 승계 | `calculations.test.ts`, `index.tsx`, TP-AC-06 |
+| AC-7 | 항목별 종료 계산, 무제한 메모, upsert 스냅샷, 기록 비잠금 | **통과(사용자 승인 승계)** | `today/close.tsx`, `repository.ts`, TP-AC-07 |
+| AC-8 | 계정별 계획/실제/차이·총계, 항목/요일 분해, 요일 토글·코멘트 | **통과(사용자 승인 승계)** | `week.tsx`, TP-AC-08 |
+| AC-9 | 실시간 168h 상태, 조정/그대로 저장, 유효 숫자 비차단 | **통과**: 자동 계산·사용자 승인 승계 | `plan.tsx`, `calculations.test.ts`, TP-AC-09 |
+| AC-10 | 저장/복원 모두 append-only 새 버전, 이력 열람 | **통과(사용자 승인 승계)** | `repository.ts`, `plan.tsx`, TP-AC-10 |
+| AC-11 | 계획 없음/계획 화면의 지난주 최신 버전 1탭 복사 | **통과(사용자 승인 승계)** | `repository.ts`, `week.tsx`, TP-AC-11 |
+| AC-12 | 프로젝트·기본/사용자 KPI·값 기록, 연결 항목 누적/주간 파생시간 | **통과**: 자동 집계·사용자 승인 승계 | `projects.tsx`, `calculations.test.ts`, TP-AC-12 |
+| AC-13 | 설정 시각 DAILY 알림, 종료 시 건너뜀/항상 받기, `/today/close` 콜드 딥링크 | **통과(사용자 승인 승계)** | `notifications.ts`, TP-AC-13 |
+| AC-14 | Android HIGH 채널, 최초 권한/설정 재요청, 예약 ID·시작 재예약 | **통과(사용자 승인 승계)** | `notifications.ts`, `app-context.tsx`, TP-AC-14 |
+| AC-15 | 전체 테이블 JSON, 테이블별 UTF-8 BOM CSV, 삭제 행·전 계획 버전 포함 | **통과**: 변환 단위검사·사용자 승인 승계 | `export.ts`, `export.test.ts`, TP-AC-15 |
+| AC-16 | Phase 1 경로가 SQLite/로컬 API만 사용, 원격 서비스 없음 | **통과(사용자 승인 승계)** | `repository.ts`, TP-AC-16 |
+| AC-17 | 정보형 숫자/차이 문구, 게임화·사용자 서술 없음 | **통과**: 정적 검색·사용자 승인 승계 | `src/`, TP-AC-17 |
 | AC-18 | 주 경계, 설정형 주 시작, 168 합계, 차이, 자정 타이머, 요일, 남은 시간 테스트 | **통과** | 22 tests, 도메인 statements 99.07%/branches 93.33%/functions 100%/lines 100% |
 
 ## §10.3 Phase 1 게이트
@@ -54,7 +52,7 @@
 | 실기기 수동 테스트 | 통과(사용자 승인 승계) | SM-S721N(Galaxy S24 FE), 기존 전체 수기 검증 완료를 2026-09-02 재확인 |
 | 사용자 기기 하루치 실제 기록 | 통과(사용자 확인 승계) | 사용자가 이전 수기 검증을 완료했다고 재확인하고 Phase 2 진입 지시 |
 
-`npm audit --omit=dev`의 17건은 강제 수정 시 Expo 53으로 하향되는 빌드 도구 경로다. ADR-004에 검토와 보류 근거를 기록했으며 게이트를 숨기거나 약화하지 않았다.
+`npm audit --omit=dev`의 moderate 경고는 Expo SDK 57 전이 의존성 경로이며 자동 수정 제안이 호환되지 않는 구버전으로 바뀐다. ADR-004에 검토와 보류 근거를 기록했으며 게이트를 숨기거나 약화하지 않았다.
 
 ## Phase 2 AC-19~AC-22 구현·증빙
 
@@ -69,10 +67,13 @@
 
 | 범위 | 결과 | 상태 | 증빙 |
 |---|---|---|---|
-| 제품 범위 | SPEC에서 Telegram 스택·설정·AC-23~AC-26 제거 | **완료** | SPEC v0.2, ADR-014 |
-| 모바일 | 설정 UI·context·service·Telegram 테스트 제거 | **완료** | app 0.3.1(5), 12 files/58 tests, Android bundle·실기기 오류 0 |
+| 제품 범위 | SPEC에서 Telegram 스택·설정·AC-23~AC-26 제거 | **완료** | SPEC v0.2.1, ADR-014 |
+| 모바일 | 설정 UI·context·service·Telegram 테스트 제거 | **완료** | app 0.3.2(6), 12 files/59 tests, Android bundle·실기기 오류 0 |
 | 원격 | webhook·봇 명령, cron, Vault, 전용 DB 테이블, Edge Functions, Telegram secrets 제거 | **완료** | removal migration, resource 0, DB lint 0, `upToDate:true` |
 | 사용자 데이터 | Telegram/voice 출처 core entry 0건 확인 뒤 전용 metadata 2행 제거 | **완료** | 제거 전 inventory와 migration 결과 |
+| 코드 정리 | 템플릿 자산·미사용 직접 의존성·죽은 export 제거, SQLite 테스트 어댑터 통합 | **완료** | app 0.3.2(6), strict unused gate |
+| 스키마 정리 | 사용 중인 `oos_sync_records`와 중복된 초기 sync schema의 0행 확인 후 guarded migration으로 제거 | **완료** | migration `20260903030000`, active records 63행 보존 |
+| 문서 정합성 | README·SPEC·PLAN·TESTPLAN·ENVIRONMENT의 단계·빌드·상태 표현 통일 | **완료** | Phase 3 마감 감사 증빙 |
 
 ## 다음 작업
 
@@ -80,7 +81,7 @@
 
 ## 2026-09-02 정적 구현 감사 후속
 
-아래 항목은 2026-09-02 코드 보완과 자동 게이트를 통과했다. Phase 1 완료 전에 실기기 재현은 여전히 필요하다.
+아래 항목은 2026-09-02 코드 보완과 자동 게이트를 통과했고, 사용자가 기존 실기기 결과 승계를 승인해 Phase 1 종료 판정에 포함됐다.
 
 - [x] 항목 복구 트랜잭션이 동일 삭제 시각의 일정만 함께 복구하도록 수정했다(기존에 따로 삭제한 일정은 복구하지 않음).
 - [x] 설정에서 7개 주 시작 요일을 선택·저장하고 주간·계획·프로젝트 집계 범위와 요일 mask에 적용했다.

@@ -17,6 +17,12 @@ const ambiguityFixMigration = readFileSync(
   ),
   'utf8',
 );
+const legacyCleanupMigration = readFileSync(
+  fileURLToPath(
+    new URL('../../../supabase/migrations/20260903030000_remove_legacy_sync_schema.sql', import.meta.url),
+  ),
+  'utf8',
+);
 
 describe('Phase 2 Supabase RLS migration', () => {
   it('enables RLS and restricts every operation to the authenticated owner', () => {
@@ -42,5 +48,11 @@ describe('Phase 2 Supabase RLS migration', () => {
     expect(ambiguityFixMigration).not.toContain(
       'on conflict (user_id, table_name, local_id) do update set',
     );
+  });
+
+  it('removes only the empty legacy sync schema and preserves the active record store', () => {
+    expect(legacyCleanupMigration).toContain("raise exception 'legacy sync schema contains data; cleanup stopped'");
+    expect(legacyCleanupMigration).toContain('drop table if exists public.sync_records');
+    expect(legacyCleanupMigration).not.toContain('drop table if exists public.oos_sync_records');
   });
 });

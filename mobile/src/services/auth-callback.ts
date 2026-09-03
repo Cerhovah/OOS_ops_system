@@ -1,6 +1,6 @@
 export const AUTH_CALLBACK_URL = 'oosops://auth/callback';
 
-export type AuthCallbackResult =
+type AuthCallbackResult =
   | { kind: 'session'; accessToken: string; refreshToken: string }
   | { kind: 'code'; code: string }
   | { kind: 'error'; message: string };

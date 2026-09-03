@@ -1,55 +1,14 @@
-import { DatabaseSync, type SQLInputValue } from 'node:sqlite';
-
 import type { SQLiteDatabase } from 'expo-sqlite';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { addDays, dateKey, weekRange } from '@/domain/calculations';
+import { TestSQLiteDatabase } from '@/test/sqlite-adapter';
 import type { ItemInput } from '@/types/domain';
 
 import { migrateDatabase } from './migrations';
 import { AppRepository } from './repository';
 
 vi.mock('expo-crypto', () => ({ randomUUID: () => globalThis.crypto.randomUUID() }));
-
-class TestSQLiteDatabase {
-  private readonly database = new DatabaseSync(':memory:');
-
-  asExpoDatabase(): SQLiteDatabase {
-    return this as unknown as SQLiteDatabase;
-  }
-
-  async execAsync(source: string): Promise<void> {
-    this.database.exec(source);
-  }
-
-  async runAsync(source: string, ...params: SQLInputValue[]): Promise<{ lastInsertRowId: number; changes: number }> {
-    const result = this.database.prepare(source).run(...params);
-    return { lastInsertRowId: Number(result.lastInsertRowid), changes: Number(result.changes) };
-  }
-
-  async getFirstAsync<T>(source: string, ...params: SQLInputValue[]): Promise<T | null> {
-    return (this.database.prepare(source).get(...params) as T | undefined) ?? null;
-  }
-
-  async getAllAsync<T>(source: string, ...params: SQLInputValue[]): Promise<T[]> {
-    return this.database.prepare(source).all(...params) as T[];
-  }
-
-  async withExclusiveTransactionAsync(task: (database: SQLiteDatabase) => Promise<void>): Promise<void> {
-    this.database.exec('BEGIN IMMEDIATE');
-    try {
-      await task(this.asExpoDatabase());
-      this.database.exec('COMMIT');
-    } catch (error) {
-      this.database.exec('ROLLBACK');
-      throw error;
-    }
-  }
-
-  close(): void {
-    this.database.close();
-  }
-}
 
 describe('AppRepository with real SQLite', () => {
   let adapter: TestSQLiteDatabase;

@@ -15,7 +15,7 @@ import {
 
 type SyncRow = Record<string, SyncScalar>;
 
-export interface OutboxRecord {
+interface OutboxRecord {
   id: string;
   tableName: SyncTableName;
   recordId: string;

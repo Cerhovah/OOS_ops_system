@@ -1,6 +1,7 @@
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 
+import { APP_NAME } from '@/constants/app';
 import { fullJson, rowsToCsv, type ExportRow } from '@/domain/export';
 
 function createFile(name: string, contents: string): File {
@@ -15,7 +16,7 @@ export async function shareFullJson(tables: Record<string, ExportRow[]>): Promis
   const stamp = new Date().toISOString().replaceAll(':', '-');
   const file = createFile(`oos-ops-${stamp}.json`, fullJson(tables, new Date().toISOString()));
   if (!(await Sharing.isAvailableAsync())) throw new Error('이 기기에서 파일 공유를 사용할 수 없습니다.');
-  await Sharing.shareAsync(file.uri, { dialogTitle: 'OOS Ops 전체 JSON 내보내기', mimeType: 'application/json' });
+  await Sharing.shareAsync(file.uri, { dialogTitle: `${APP_NAME} 전체 JSON 내보내기`, mimeType: 'application/json' });
   return file.uri;
 }
 

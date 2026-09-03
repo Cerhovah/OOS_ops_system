@@ -9,7 +9,7 @@ export default function AnalysisScreen() {
       <Section title="Phase 4에서 활성화">
         <Card>
           <Text style={textStyles.body}>감사 · 패턴 · 프로젝트 · 최적화 · 장기 · 자유질문 모드는 Phase 4 범위입니다.</Text>
-          <Text style={textStyles.muted}>Phase 1에서는 로컬 기록과 계획·실제 숫자만 제공합니다.</Text>
+          <Text style={textStyles.muted}>현재는 로컬 기록과 계획·실제 숫자만 제공합니다.</Text>
         </Card>
       </Section>
     </Screen>
