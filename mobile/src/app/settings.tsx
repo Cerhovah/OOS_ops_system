@@ -1,5 +1,6 @@
 import { useLocalSearchParams } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useSQLiteContext } from 'expo-sqlite';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, StyleSheet, Text, View } from 'react-native';
 
 import {
@@ -19,7 +20,9 @@ import {
 import { APP_NAME } from '@/constants/app';
 import { useApp } from '@/context/app-context';
 import { useSync } from '@/context/sync-context';
+import { AnalysisRepository } from '@/data/analysis-repository';
 import { dateKey } from '@/domain/calculations';
+import { ANALYSIS_MODEL, ANALYSIS_PROVIDER, ANALYSIS_TOKEN_PRICE } from '@/analysis/provider-registry';
 import type { Account, Entry, Item, ItemInput, ItemType } from '@/types/domain';
 
 const itemTypes = [
@@ -34,7 +37,8 @@ const weekStartChoices = days.map((label, index) => ({ value: String(index), lab
 const exportTables = [
   'accounts', 'projects', 'items', 'item_schedules', 'project_kpis', 'project_kpi_records',
   'weekly_plans', 'weekly_plan_lines', 'entries', 'day_notes', 'day_closures',
-  'weekly_comments', 'today_item_additions', 'settings', 'sync_outbox', 'sync_conflicts', 'sync_state',
+  'weekly_comments', 'today_item_additions', 'analysis_sessions', 'ai_proposals',
+  'settings', 'sync_outbox', 'sync_conflicts', 'sync_state',
 ];
 
 function nullable(value: string): number | null {
@@ -48,6 +52,8 @@ function amountOf(entry: Entry): number | null {
 export default function SettingsScreen() {
   const app = useApp();
   const sync = useSync();
+  const database = useSQLiteContext();
+  const analysisRepository = useMemo(() => new AnalysisRepository(database), [database]);
   const params = useLocalSearchParams<{ itemId?: string | string[] }>();
   const routeItemId = Array.isArray(params.itemId) ? params.itemId[0] : params.itemId;
   const handledRouteItem = useRef<string | null>(null);
@@ -84,6 +90,9 @@ export default function SettingsScreen() {
   const [entryNote, setEntryNote] = useState('');
   const [authEmail, setAuthEmail] = useState('');
   const [magicLinkSent, setMagicLinkSent] = useState(false);
+  const [analysisRangeWeeks, setAnalysisRangeWeeks] = useState('4');
+  const [analysisIncludeNotes, setAnalysisIncludeNotes] = useState('1');
+  const [analysisUsage, setAnalysisUsage] = useState({ sessions: 0, inputTokens: 0, outputTokens: 0, estimatedCostUsd: 0 });
 
   useEffect(() => {
     setWeekStartDay(app.snapshot.settings.week_start_day ?? '0');
@@ -92,7 +101,13 @@ export default function SettingsScreen() {
     setNotificationEnabled(app.snapshot.settings.close_notification_enabled ?? '1');
     setNotificationAlways(app.snapshot.settings.notification_always ?? '0');
     setTimerNotifications(app.snapshot.settings.timer_limit_notifications_enabled ?? '0');
+    setAnalysisRangeWeeks(app.snapshot.settings.analysis_range_weeks ?? '4');
+    setAnalysisIncludeNotes(app.snapshot.settings.analysis_include_notes ?? '1');
   }, [app.snapshot.settings]);
+
+  useEffect(() => {
+    void analysisRepository.usageSummary().then(setAnalysisUsage);
+  }, [analysisRepository]);
 
   useEffect(() => {
     if (app.loading || !routeItemId || handledRouteItem.current === routeItemId) return;
@@ -199,6 +214,14 @@ export default function SettingsScreen() {
     await app.setSetting('notification_always', notificationAlways);
     await app.setSetting('timer_limit_notifications_enabled', timerNotifications);
     Alert.alert('설정 저장', '로컬 설정과 알림 예약을 갱신했습니다.');
+  }
+
+  async function saveAiSettings() {
+    await app.setSetting('analysis_range_weeks', analysisRangeWeeks);
+    await app.setSetting('analysis_include_notes', analysisIncludeNotes);
+    await app.setSetting('ai_provider', ANALYSIS_PROVIDER);
+    await app.setSetting('ai_model', ANALYSIS_MODEL);
+    Alert.alert('AI 설정 저장', '분석 범위 설정을 저장했습니다. OpenAI 키는 Supabase 서버 secret으로만 관리됩니다.');
   }
 
   async function updateEntry() {
@@ -350,6 +373,45 @@ export default function SettingsScreen() {
           )}
         </Section>
 
+        <Section title="AI 분석">
+          <Card>
+            <Text style={textStyles.body}>
+              제공자·모델은 동기화 가능한 일반 설정이고 OpenAI API 키는 Supabase 서버 secret으로만 관리됩니다.
+            </Text>
+            <Text style={textStyles.muted}>
+              API 키는 앱·SQLite·동기화 데이터·로그·JSON/CSV 내보내기에 포함하지 않습니다.
+            </Text>
+            <Text style={textStyles.body}>제공자 · {ANALYSIS_PROVIDER}</Text>
+            <Text style={textStyles.body}>모델 · {ANALYSIS_MODEL}</Text>
+            <Text style={textStyles.muted}>
+              현재 단가 · 입력 ${ANALYSIS_TOKEN_PRICE.inputPerMillionUsd}/백만 토큰 · 출력 ${ANALYSIS_TOKEN_PRICE.outputPerMillionUsd}/백만 토큰
+            </Text>
+            <Text style={textStyles.muted}>ChatGPT 구독과 API 사용 요금은 별도입니다.</Text>
+            <ChoiceRow
+              label="기본 분석 기간"
+              choices={[
+                { value: '4', label: '최근 4주' },
+                { value: '8', label: '최근 8주' },
+                { value: '12', label: '최근 12주' },
+              ]}
+              value={analysisRangeWeeks}
+              onChange={setAnalysisRangeWeeks}
+            />
+            <ChoiceRow
+              label="메모 첨부"
+              choices={[{ value: '1', label: '포함' }, { value: '0', label: '제외' }]}
+              value={analysisIncludeNotes}
+              onChange={setAnalysisIncludeNotes}
+            />
+            <Text style={textStyles.muted}>
+              누적 사용 · {analysisUsage.sessions}세션 · 입력 {analysisUsage.inputTokens}토큰 · 출력 {analysisUsage.outputTokens}토큰 · 추정 ${analysisUsage.estimatedCostUsd.toFixed(6)}
+            </Text>
+            <View style={styles.actions}>
+              <AppButton label="AI 설정 저장" onPress={() => void saveAiSettings()} />
+            </View>
+          </Card>
+        </Section>
+
         <Section title="항목 관리" action={<AppButton label="+ 항목" variant="plain" onPress={() => openItem('new')} />}>
           {activeItems.map((item) => (
             <Card key={item.id}>
@@ -445,7 +507,9 @@ export default function SettingsScreen() {
         <Section title="앱 정보와 초기화">
           <Card>
             <Text style={textStyles.body}>{APP_NAME} · 로컬 우선</Text>
-            <Text style={textStyles.muted}>AI 분석은 현재 비활성화되어 있습니다.</Text>
+            <Text style={textStyles.muted}>
+              AI 분석 · {sync.session ? `${ANALYSIS_PROVIDER} / ${ANALYSIS_MODEL} 서버 연결` : 'Supabase 로그인 필요'}
+            </Text>
             <AppButton label="전체 초기화" variant="danger" onPress={confirmReset} />
           </Card>
         </Section>

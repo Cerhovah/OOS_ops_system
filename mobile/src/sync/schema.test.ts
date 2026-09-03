@@ -2,12 +2,12 @@ import { describe, expect, it } from 'vitest';
 
 import { isSyncableSetting, syncTableDefinitions } from './schema';
 
-describe('Phase 2 sync schema', () => {
-  it('tracks every Phase 1 user-data table exactly once', () => {
+describe('local-first sync schema', () => {
+  it('tracks every Phase 1-4 user-data table exactly once', () => {
     expect(syncTableDefinitions.map((definition) => definition.name)).toEqual([
       'accounts', 'projects', 'items', 'item_schedules', 'project_kpis', 'project_kpi_records',
       'weekly_plans', 'weekly_plan_lines', 'entries', 'day_notes', 'day_closures', 'weekly_comments',
-      'today_item_additions', 'settings',
+      'today_item_additions', 'analysis_sessions', 'ai_proposals', 'settings',
     ]);
     expect(new Set(syncTableDefinitions.map((definition) => definition.name)).size).toBe(syncTableDefinitions.length);
   });
@@ -18,5 +18,8 @@ describe('Phase 2 sync schema', () => {
     expect(isSyncableSetting('close_notification_id')).toBe(false);
     expect(isSyncableSetting('notification_permission_requested')).toBe(false);
     expect(isSyncableSetting('timer_notification:entry-id')).toBe(false);
+    expect(isSyncableSetting('ai_provider')).toBe(true);
+    expect(isSyncableSetting('ai_model')).toBe(true);
+    expect(isSyncableSetting('analysis_range_weeks')).toBe(true);
   });
 });

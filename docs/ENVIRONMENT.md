@@ -104,7 +104,7 @@ set EAS_NO_VCS=
 
 현재 Windows 저장소 경로의 대괄호 때문에 기본 EAS 로컬 git archive가 실패하므로 이 경로에서만 `EAS_NO_VCS=1`을 사용한다. 대괄호 없는 경로에서는 먼저 기본 명령을 사용한다. PowerShell에서는 build 전 `$env:EAS_NO_VCS = '1'`, build 후 `Remove-Item Env:EAS_NO_VCS`로 같은 범위를 적용한다.
 
-현재 연결된 프로젝트는 `@ljh951206/oos-ops`, project ID는 `a0b6c215-c87a-40ff-b749-b715d1ed9352`다. SM-S721N에서 검증한 최신 네이티브 개발 클라이언트는 매직링크 callback 기준 `0.2.0(3)` build `154087e2-b93d-451a-b62c-ba6e988f4592`다. 현재 JavaScript 소스 `0.3.2(6)`은 이 클라이언트에 이미 포함된 네이티브 모듈 범위에서 Metro로 검증한다. 새 native dependency·권한·config plugin을 추가하면 새 development build가 필요하다. 비용·계정 플랜·자격증명 선택이 나타나면 임의로 진행하지 않는다.
+현재 연결된 프로젝트는 `@ljh951206/oos-ops`, project ID는 `a0b6c215-c87a-40ff-b749-b715d1ed9352`다. SM-S721N에서 검증한 최신 네이티브 개발 클라이언트는 매직링크 callback 기준 `0.2.0(3)` build `154087e2-b93d-451a-b62c-ba6e988f4592`다. 현재 JavaScript 소스 `0.4.0(7)`은 이 클라이언트에 이미 포함된 네이티브 모듈 범위에서 Metro로 검증했다. 새 native dependency·권한·config plugin을 추가하면 새 development build가 필요하다. 비용·계정 플랜·자격증명 선택이 나타나면 임의로 진행하지 않는다.
 
 ## Phase 2 Supabase 개발 환경
 
@@ -124,6 +124,15 @@ npx supabase@latest login
 Phase 2 인증은 Supabase Free 기본 메일의 매직링크를 사용한다. `supabase/config.toml`의 hosted Auth mirror를 유지한 채 `oosops://auth/callback`만 추가 리디렉션으로 배포한다. 커스텀 스킴이 네이티브 설정이므로 callback 변경 뒤에는 development build를 새로 생성한다.
 
 OTP 구현 build `1ead311c-9397-4f53-8893-36193025ab02`는 과거 이력이며, 매직링크 전환 뒤에는 `0.2.0(3)` build `154087e2-b93d-451a-b62c-ba6e988f4592`를 기준으로 한다. 로컬 APK 파일 경로는 기기별 정보이므로 재현 기준으로 사용하지 않고 EAS build ID와 `docs/evidence/phase-2-readiness-2026-09-02.md`의 해시를 사용한다.
+
+## Phase 4 AI 개발 환경
+
+- provider와 model은 `openai`와 `gpt-5.6-terra`로 Q-010에서 확정됐고 앱의 `설정 → AI 분석`에 표시된다. 일반 설정값은 기존 Supabase 동기화 대상이다.
+- 앱은 로그인 JWT로 `ai-analysis` Supabase Edge Function을 호출한다. 함수는 `verify_jwt=true`와 단일 `OOS_OWNER_USER_ID`를 확인한다.
+- API 키는 `OPENAI_API_KEY` Supabase Edge secret에만 저장하며 앱, `.env`, SQLite, 동기화 데이터, 로그, JSON/CSV export, 번들에는 넣지 않는다.
+- 기본 분석 기간은 4주이고 8주·12주를 선택할 수 있다. 메모 첨부는 같은 화면에서 끌 수 있다.
+- OpenAI Platform에서 키를 만든 뒤 저장소 루트에서 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\supabase\scripts\configure-openai.ps1`을 실행해 보안 프롬프트에 붙여넣는다. 스크립트는 Windows PowerShell 5.1에서도 깨지지 않는 ASCII 안내를 사용하고, 화면·명령 기록에 키를 표시하지 않으며 임시 파일을 덮어쓴 뒤 제거한다. 2026-09-04 원격 secret 등록과 실호출을 완료했다.
+- 서버 함수 코드는 `npx supabase@latest functions deploy ai-analysis --use-api`로 배포한다. secret 변경 뒤 함수 재배포는 필요하지 않다.
 
 ## 재현 및 검증
 

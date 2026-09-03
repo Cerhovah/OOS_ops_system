@@ -219,6 +219,32 @@
 - 관련 불변조건/AC: I-7, I-8, I-12, AC-19~AC-22
 - 대체 관계: ADR-006의 미사용 `expo-image` plugin 유지 결정을 대체하며, ADR-007~ADR-012의 활성 `oos_sync_records` 결정은 변경하지 않음
 
+### ADR-016 — 투명한 분석 snapshot과 명시적 계획 적용 경계
+
+- 날짜: 2026-09-04
+- 상태: 승인
+- 맥락: Phase 4는 저장 데이터를 외부 AI에 첨부하면서 실제 전송 범위와 비용을 확인할 수 있어야 하고, AI 제안이 사용자 확인 없이 기존 계획을 바꾸면 안 된다. 제공자·모델·과금은 Q-010의 사용자 결정 영역이다.
+- 결정: SQLite v4에 `analysis_sessions`와 `ai_proposals`를 상향 추가하고 두 테이블을 기존 outbox/RLS envelope에 포함한다. 선택 기간의 계정, 모든 계획 버전, 일·주 실제, 항목별 일정/기본 예상과 실제 차이, 프로젝트별 주간 투입·KPI, 선택적 메모를 provider-neutral JSON snapshot으로 만든다. 전송 JSON을 세션에 그대로 저장하며 토큰 예산을 넘으면 오래된 메모 제거 후 일 집계를 주 집계로 올린다. 응답 제안은 pending으로만 저장하고, 사용자 `적용` 확인 트랜잭션에서만 모든 활성 계정이 포함됐는지 검증한 뒤 `source='ai_applied'`인 새 계획 버전을 만든다. 모바일 transport는 인증된 Supabase Edge Function을 사용하고 API 키는 서버 secret에만 보관한다.
+- 대안: AI가 기존 계획을 직접 UPDATE, 전송 snapshot 미보관, API 키를 SQLite/동기화 설정 또는 모바일 SecureStore에 저장, 제공자 SDK를 UI에 직접 결합.
+- 근거: I-6·I-8의 사용자 결정권과 이력을 보존하고, §9.1의 투명성·토큰 예산·provider-neutral 요구를 repository와 순수 packager 경계로 검증할 수 있다.
+- 결과 및 위험: 제공자 adapter가 없어도 저장·검색·적용 전 불변성은 테스트할 수 있다. Q-010 확정 뒤 서버 adapter를 연결했으며 외부 전송에는 사용자가 선택한 기간의 메모가 포함될 수 있으므로 설정에서 포함/제외를 선택하고 snapshot을 세션에서 열람하게 한다.
+- 되돌림/재검토 조건: 승인된 제공자의 구조화 출력·사용량 형식이 현재 transport 계약을 충족하지 못하거나 운영 서버를 Supabase 밖으로 이전할 때 adapter와 가격표만 재검토한다.
+- 관련 불변조건/AC: I-2, I-6, I-7, I-8, I-13, AC-27~AC-30
+- 대체 관계: 없음
+
+### ADR-017 — OpenAI 키의 서버 격리와 단일 소유자 Edge Function
+
+- 날짜: 2026-09-04
+- 상태: 승인
+- 맥락: Q-010에서 OpenAI Responses API와 `gpt-5.6-terra` 과금을 승인했다. 기존 §9.1의 기기 SecureStore 방식은 키를 저장 시 암호화하지만 모바일 프로세스가 직접 Bearer 키를 사용하므로 공개 배포 시 추출·과금 악용 위험이 남는다. OpenAI 공식 보안 지침도 모바일 클라이언트에 API 키를 배포하지 말고 자체 백엔드를 통하도록 요구한다.
+- 결정: 모바일은 Supabase 로그인 JWT로 `ai-analysis` Edge Function만 호출한다. Edge Function은 `verify_jwt=true`와 `auth.getUser`를 모두 검사하고 `OOS_OWNER_USER_ID` secret과 일치하는 기존 단일 사용자만 허용한다. `OPENAI_API_KEY`는 Supabase Edge secret에만 저장한다. 서버는 모델·고정 프롬프트·JSON Schema·`store:false`·저추론·출력 한도 3,000을 강제하고 자동 재시도하지 않는다.
+- 대안: 모바일 SecureStore에서 OpenAI 직접 호출, 앱 번들 환경변수, 인증 없는 Edge Function, 별도 신규 서버 도입.
+- 근거: 기존 Supabase 스택을 재사용해 추가 서버 사업자 없이 키를 클라이언트와 Git에서 격리한다. 이 구조는 개인 앱뿐 아니라 향후 공개 배포에서도 서버측 사용량 제한·결제 검증을 추가할 수 있는 경계를 제공한다.
+- 결과 및 위험: ChatGPT 구독과 API 요금은 별도이며 OpenAI Platform 결제·한도가 필요하다. 현재는 단일 소유자만 허용하므로 다중 사용자 상용화 때 사용자별 할당량·구독 권한·rate limit를 별도 AC로 추가해야 한다. 분석 데이터는 요청 시 Supabase Edge와 OpenAI에 전송된다.
+- 되돌림/재검토 조건: OpenAI 키 없는 사용자별 OAuth/위임 방식이 공식 제공되거나, Q-005에서 별도 운영 백엔드를 확정하거나, 다중 사용자 과금 정책을 승인할 때.
+- 관련 불변조건/AC: I-2, I-6, I-7, I-8, I-12, I-13, AC-27~AC-30
+- 대체 관계: ADR-016의 모바일 SecureStore 키 보관 결정을 대체
+
 ## 기록 형식
 
 ### ADR-NNN — 제목

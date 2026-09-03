@@ -711,6 +711,8 @@ export class AppRepository {
       'day_closures',
       'weekly_comments',
       'today_item_additions',
+      'analysis_sessions',
+      'ai_proposals',
       'settings',
       'sync_outbox',
       'sync_conflicts',
@@ -729,6 +731,8 @@ export class AppRepository {
         DELETE FROM sync_outbox;
         DELETE FROM sync_conflicts;
         DELETE FROM sync_state;
+        DELETE FROM ai_proposals;
+        DELETE FROM analysis_sessions;
         DELETE FROM project_kpi_records;
         DELETE FROM project_kpis;
         DELETE FROM entries;

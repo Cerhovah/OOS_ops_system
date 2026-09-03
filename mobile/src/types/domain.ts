@@ -3,6 +3,9 @@ type EntrySource = 'app' | 'import' | 'ai_applied';
 export type PlanSource = 'app' | 'copy_last_week' | 'ai_applied';
 export type ProjectStatus = 'active' | 'paused' | 'closed';
 export type Aggregation = 'sum' | 'last' | 'max';
+export type AnalysisMode = 'audit' | 'pattern' | 'project' | 'optimize' | 'longterm' | 'free';
+export type AiProposalStatus = 'pending' | 'applied' | 'dismissed';
+export type AiProposalKind = 'plan_change';
 
 export interface Account {
   id: string;
@@ -125,6 +128,43 @@ export interface DayClosure {
   plannedMinutes: number;
   actualMinutes: number;
   snapshotJson: string;
+  note: string | null;
+}
+
+export interface AnalysisSession {
+  id: string;
+  mode: AnalysisMode;
+  question: string | null;
+  rangeStart: string;
+  rangeEnd: string;
+  dataSnapshotJson: string;
+  responseText: string | null;
+  provider: string | null;
+  model: string | null;
+  inputTokens: number | null;
+  outputTokens: number | null;
+  estimatedCostUsd: number | null;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt: string | null;
+}
+
+export interface AiProposal {
+  id: string;
+  sessionId: string;
+  kind: AiProposalKind;
+  payloadJson: string;
+  rationale: string;
+  status: AiProposalStatus;
+  appliedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt: string | null;
+}
+
+export interface PlanChangePayload {
+  weekStart: string;
+  minutesByAccount: Readonly<Record<string, number>>;
   note: string | null;
 }
 

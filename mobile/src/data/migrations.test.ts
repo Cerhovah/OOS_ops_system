@@ -71,11 +71,13 @@ describe('Phase 1 seed manifest', () => {
     expect(scheduleSeeds.find((seed) => seed[1] === 'seed-item-required')?.[2]).toBe(0b0111111);
   });
 
-  it('creates the additive v2 outbox schema and captures later mutations', async () => {
+  it('creates the additive v4 analysis schema, provider defaults, and captures later mutations', async () => {
     const db = new TestSQLiteDatabase();
     await migrateDatabase(db.asExpoDatabase());
 
-    expect(db.raw.prepare('PRAGMA user_version').get()).toMatchObject({ user_version: 2 });
+    expect(db.raw.prepare('PRAGMA user_version').get()).toMatchObject({ user_version: 4 });
+    expect(db.raw.prepare("SELECT value FROM settings WHERE key='ai_provider'").get()).toMatchObject({ value: 'openai' });
+    expect(db.raw.prepare("SELECT value FROM settings WHERE key='ai_model'").get()).toMatchObject({ value: 'gpt-5.6-terra' });
     const initial = db.raw.prepare('SELECT COUNT(*) AS count FROM sync_outbox').get() as { count: number };
     expect(initial.count).toBeGreaterThan(0);
 
@@ -85,6 +87,17 @@ describe('Phase 1 seed manifest', () => {
     ).get() as { payload_json: string; local_updated_at: string };
     expect(JSON.parse(captured.payload_json)).toMatchObject({ id: 'seed-account-sleep', name: '수면 수정' });
     expect(captured.local_updated_at).toBe('2026-09-02T01:00:00.000Z');
+
+    db.raw.prepare(
+      `INSERT INTO analysis_sessions
+        (id,mode,question,range_start,range_end,data_snapshot_json,response_text,provider,model,
+         input_tokens,output_tokens,estimated_cost_usd,created_at,updated_at)
+       VALUES ('session-1','audit',NULL,'2026-08-01','2026-09-01','{}',NULL,NULL,NULL,NULL,NULL,NULL,
+         '2026-09-04T00:00:00.000Z','2026-09-04T00:00:00.000Z')`,
+    ).run();
+    expect(db.raw.prepare(
+      "SELECT table_name FROM sync_outbox WHERE table_name='analysis_sessions' AND record_id='session-1'",
+    ).get()).toMatchObject({ table_name: 'analysis_sessions' });
     db.raw.close();
   });
 
@@ -121,6 +134,41 @@ describe('Phase 1 seed manifest', () => {
     expect(db.raw.prepare("SELECT COUNT(*) AS count FROM sync_conflicts WHERE record_id='seed-account-sleep'").get()).toMatchObject({ count: 2 });
     expect(db.raw.prepare("SELECT COUNT(*) AS count FROM sync_conflicts WHERE record_id='seed-account-sleep' AND winner='local'").get()).toMatchObject({ count: 1 });
     expect(db.raw.prepare("SELECT COUNT(*) AS count FROM sync_outbox WHERE record_id='seed-account-sleep'").get()).toMatchObject({ count: 1 });
+    db.raw.close();
+  });
+
+  it('restores a remote analysis session before its proposal regardless of response order', async () => {
+    const db = new TestSQLiteDatabase();
+    await migrateDatabase(db.asExpoDatabase());
+    const repository = new SyncRepository(db.asExpoDatabase());
+    const timestamp = '2026-09-04T01:00:00.000Z';
+    const remote = (tableName: 'analysis_sessions' | 'ai_proposals', localId: string, payload: Record<string, string | number | null>): RemoteSyncRecord => ({
+      user_id: 'user-a',
+      table_name: tableName,
+      local_id: localId,
+      payload,
+      client_updated_at: timestamp,
+      deleted_at: null,
+      server_updated_at: timestamp,
+    });
+
+    await repository.applyRemoteRecords([
+      remote('ai_proposals', 'proposal-remote', {
+        id: 'proposal-remote', session_id: 'session-remote', kind: 'plan_change',
+        payload_json: '{"weekStart":"2026-09-07","minutesByAccount":{"seed-account-sleep":2940},"note":null}',
+        rationale: '원격 제안', status: 'pending', applied_at: null,
+        created_at: timestamp, updated_at: timestamp, deleted_at: null,
+      }),
+      remote('analysis_sessions', 'session-remote', {
+        id: 'session-remote', mode: 'audit', question: '원격 질문', range_start: '2026-08-01', range_end: '2026-09-01',
+        data_snapshot_json: '{}', response_text: '원격 답변', provider: 'test', model: 'test',
+        input_tokens: 10, output_tokens: 5, estimated_cost_usd: 0.001,
+        created_at: timestamp, updated_at: timestamp, deleted_at: null,
+      }),
+    ]);
+
+    expect(db.raw.prepare("SELECT question FROM analysis_sessions WHERE id='session-remote'").get()).toMatchObject({ question: '원격 질문' });
+    expect(db.raw.prepare("SELECT session_id FROM ai_proposals WHERE id='proposal-remote'").get()).toMatchObject({ session_id: 'session-remote' });
     db.raw.close();
   });
 

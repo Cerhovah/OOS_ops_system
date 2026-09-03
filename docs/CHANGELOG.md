@@ -28,6 +28,11 @@
 - 2026-09-03: 단일 허용 대화 Telegram Edge Function, 8개 정확 명령, 자유 문장 확인 제안, 음성 전사·구조화 provider adapter, 21:30 오늘 요약과 종료 버튼 추가
 - 2026-09-03: Telegram connection/proposal/update/delivery schema와 RLS, Vault cron·webhook·명령 메뉴를 한 번에 연결하는 보안 PowerShell 스크립트 추가
 - 2026-09-03: 앱 설정에 Telegram 연결 상태, 발송 시각, 활성화 저장·새로고침 UI 추가
+- 2026-09-04: Phase 4 여섯 분석 모드, 4·8·12주 데이터 package, 세션 검색·전송 snapshot 열람, 구조화 계획 제안과 명시적 적용/무시 UI 추가
+- 2026-09-04: SQLite v4 분석 세션·제안 저장, 사용량·예상 비용, 확정 provider/model 기본값과 Phase 2 동기화 확장 추가
+- 2026-09-04: Q-010 승인으로 OpenAI Responses API `gpt-5.6-terra`와 현재 단가를 확정하고 `store:false`·strict JSON Schema 서버 adapter 추가
+- 2026-09-04: OpenAI 공식 모바일 키 보안 지침과 상용 서버 목표에 맞춰 기기 직접키 방식을 단일 소유자 인증 Supabase Edge Function·서버 secret 방식으로 대체
+- 2026-09-04: SM-S721N에서 6개 분석 모드와 §5.7 네 질문을 포함한 실세션 9건, 제안 적용·무시, 원격 동기화를 검증해 Phase 4 AC-27~AC-30 완료
 
 ### Changed
 
@@ -63,6 +68,10 @@
 - 2026-09-03: 앱 이름 문자열을 공통 상수로 통합하고 두 SQLite 통합테스트의 메모리 어댑터를 공용 테스트 유틸리티로 합침
 - 2026-09-03: TypeScript 미사용 local/parameter 검사를 상시 typecheck 게이트에 포함하고 README·SPEC·PLAN·TESTPLAN·ENVIRONMENT의 현재 단계·빌드 안내를 일치시킴
 - 2026-09-03: Phase 종료 시 에이전트가 검증·커밋·rebase·push를 자동 수행하도록 커밋 워크플로를 간소화
+- 2026-09-04: Phase 4 실제 AI 호출만 Q-010 제공자·모델·과금 결정으로 분리하고, 독립적인 앱·데이터·테스트·실기기 작업은 계속 진행하도록 단계 경계를 명시
+- 2026-09-04: 분석 첨부 데이터에 계정별 계획·실제뿐 아니라 항목별 일정/기본 예상시간 차이, 프로젝트별 주간 투입과 KPI 이력을 포함해 §5.7 예시 질문 네 종류를 지원
+- 2026-09-04: 기존 v3 기기에 확정 provider/model 기본값을 추가하는 SQLite v4 상향 migration과 모바일/서버 프롬프트 계약 드리프트 테스트 추가
+- 2026-09-04: Phase 4 완료 릴리스 기준 앱 소스 버전을 `0.4.0(7)`로 상향
 
 ### Removed
 
@@ -73,6 +82,8 @@
 - 2026-09-03: 활성 `oos_sync_records` 63행을 보존하고 0행인 초기 `sync_*` 원격 테이블 3개·legacy RPC·sequence를 guarded migration으로 제거
 
 ### Fixed
+
+- 2026-09-04: Windows PowerShell 5.1에서 UTF-8 no-BOM 스크립트의 한국어 안내가 깨지던 문제를 ASCII 프롬프트와 명시적인 실패 종료 코드로 수정했다.
 
 - 2026-08-20: 계획 합계가 168시간과 다르거나 음수여도 형식이 유효하면 저장할 수 있도록 I-1 비차단 동작 수정
 - 2026-08-20: 진행 중 타이머를 고정 일정 완료로 오인해 남은 가용시간에서 누락하던 계산 수정

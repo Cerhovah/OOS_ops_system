@@ -27,6 +27,15 @@
 
 ## 답변 완료
 
+### Q-010 — Phase 4 AI 제공자·모델과 API 과금 승인
+
+- 날짜: 2026-09-04
+- 상태: ANSWERED
+- 관련 명세: §5.7, §5.8, §9.1, §10.4, AC-27~AC-30
+- 결정: OpenAI Responses API의 `gpt-5.6-terra`, `store:false`, JSON Schema Structured Outputs를 사용하고 현재 공식 단가 입력 $2/백만 토큰·출력 $12/백만 토큰으로 비용을 계산한다. 사용자가 요청한 상용화 가능한 서버 구조와 OpenAI 공식 키 보안 지침을 반영해 모바일 직접 키 방식 대신 인증된 Supabase Edge Function이 OpenAI를 호출한다.
+- 영향: 키는 `OPENAI_API_KEY` Supabase Edge secret에만 존재한다. 앱·SQLite·동기화 데이터·로그·export·번들에는 키가 없고, 서버는 기존 단일 Supabase 소유자 ID만 허용한다. 2026-09-04 키 등록과 API 결제 뒤 실기기 과금 호출 9건을 완료했다.
+- 사용자 답변: 2026-09-04 — `가능하다. 연결은 내 아이디로 해주면 된다.`, `등록 완료`, `결제 완료 했어`.
+
 ### Q-009 — Phase 3 음성 전사와 자유 문장 AI fallback 제공자
 
 - 날짜: 2026-09-03
@@ -122,7 +131,7 @@
 - 초기 계정·예산: SPEC §4.4 그대로
 - 앱 이름: OOS Ops
 - Supabase/Auth: 연결된 Supabase 프로젝트 + 이메일 매직링크
-- AI provider/model/key: Phase 4 진입 때 결정
+- AI provider/model/key: OpenAI Responses API / `gpt-5.6-terra` / Supabase 서버 secret
 
 ## 기록 형식
 

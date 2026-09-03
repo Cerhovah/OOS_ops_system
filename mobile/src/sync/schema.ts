@@ -73,6 +73,23 @@ export const syncTableDefinitions = [
     columns: ['id', 'date', 'item_id', 'created_at', 'updated_at', 'deleted_at'],
   },
   {
+    name: 'analysis_sessions',
+    primaryKey: 'id',
+    columns: [
+      'id', 'mode', 'question', 'range_start', 'range_end', 'data_snapshot_json', 'response_text',
+      'provider', 'model', 'input_tokens', 'output_tokens', 'estimated_cost_usd',
+      'created_at', 'updated_at', 'deleted_at',
+    ],
+  },
+  {
+    name: 'ai_proposals',
+    primaryKey: 'id',
+    columns: [
+      'id', 'session_id', 'kind', 'payload_json', 'rationale', 'status', 'applied_at',
+      'created_at', 'updated_at', 'deleted_at',
+    ],
+  },
+  {
     name: 'settings',
     primaryKey: 'key',
     columns: ['key', 'value', 'updated_at'],
@@ -99,6 +116,10 @@ const syncableSettingKeys = new Set([
   'notification_always',
   'timer_limit_notifications_enabled',
   'time_zone',
+  'ai_provider',
+  'ai_model',
+  'analysis_range_weeks',
+  'analysis_include_notes',
 ]);
 
 export function getSyncTableDefinition(name: string): SyncTableDefinition | null {

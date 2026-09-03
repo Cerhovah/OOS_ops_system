@@ -33,7 +33,7 @@ Phase 종료를 사용자가 지시하면 에이전트가 검사·커밋·푸시
 | `build(phase-N)` | 패키지·앱·EAS 구성 | `build(phase-4): add analysis runtime dependencies` |
 | `chore(repo)` | Phase와 무관한 저장소 관리 | `chore(repo): align development workflow` |
 
-현재 Phase 3 철회·제거와 마감 정리는 `refactor(phase-3)`, 다음 Phase 4 기능은 `feat(phase-4)`를 기본으로 한다.
+현재 Phase 4 기능과 서버 adapter는 `feat(phase-4)`, 실제 응답 게이트 증빙만 별도 변경하면 `docs(phase-4)`를 기본으로 한다.
 
 ## 수동 복구용 최소 명령
 
@@ -44,7 +44,7 @@ cd mobile
 npm run verify
 cd ..
 git add -A
-git commit -m "refactor(phase-3): close repository cleanup gate"
+git commit -m "feat(phase-4): add grounded AI analysis"
 git pull --rebase origin main
 git push origin main
 ```

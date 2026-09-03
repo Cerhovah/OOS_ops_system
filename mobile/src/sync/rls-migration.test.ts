@@ -23,6 +23,12 @@ const legacyCleanupMigration = readFileSync(
   ),
   'utf8',
 );
+const phase4SyncMigration = readFileSync(
+  fileURLToPath(
+    new URL('../../../supabase/migrations/20260904010000_phase_4_sync_tables.sql', import.meta.url),
+  ),
+  'utf8',
+);
 
 describe('Phase 2 Supabase RLS migration', () => {
   it('enables RLS and restricts every operation to the authenticated owner', () => {
@@ -54,5 +60,11 @@ describe('Phase 2 Supabase RLS migration', () => {
     expect(legacyCleanupMigration).toContain("raise exception 'legacy sync schema contains data; cleanup stopped'");
     expect(legacyCleanupMigration).toContain('drop table if exists public.sync_records');
     expect(legacyCleanupMigration).not.toContain('drop table if exists public.oos_sync_records');
+  });
+
+  it('allows Phase 4 sessions and proposals in the existing owner-scoped record store', () => {
+    expect(phase4SyncMigration).toContain("'analysis_sessions','ai_proposals','settings'");
+    expect(phase4SyncMigration).toContain('oos_sync_records_table_name_check');
+    expect(phase4SyncMigration).not.toContain('disable row level security');
   });
 });

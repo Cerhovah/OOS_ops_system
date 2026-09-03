@@ -232,10 +232,12 @@ describe('AppRepository with real SQLite', () => {
     expect(snapshot.projects.find((candidate) => candidate.id === projectId)?.deletedAt).not.toBeNull();
 
     const exported = await repository.exportTables();
-    expect(Object.keys(exported)).toHaveLength(17);
+    expect(Object.keys(exported)).toHaveLength(19);
     expect(exported).toHaveProperty('sync_outbox');
     expect(exported).toHaveProperty('sync_conflicts');
     expect(exported).toHaveProperty('sync_state');
+    expect(exported).toHaveProperty('analysis_sessions');
+    expect(exported).toHaveProperty('ai_proposals');
     expect(exported.project_kpis.find((row) => row.id === kpi.id)?.deleted_at).not.toBeNull();
     expect(exported.projects.find((row) => row.id === projectId)?.deleted_at).not.toBeNull();
     expect(exported.weekly_plans.map((row) => row.version)).toEqual(expect.arrayContaining([1, 2]));

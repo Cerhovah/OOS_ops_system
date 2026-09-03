@@ -400,7 +400,7 @@ CREATE TABLE ai_proposals (
 - 계정·항목·프로젝트 관리
 - 데이터: 내보내기(JSON 전체 + CSV 테이블별), 삭제된 기록 보기/복구, 전체 초기화(2단계 확인)
 - 동기화(Phase 2): 로그인, 마지막 동기화 시각, `지금 동기화`, 충돌 로그
-- AI(Phase 4): 제공자 선택, API 키(보안 저장소), 모델, 데이터 첨부 범위 기본값, 비용 표시
+- AI(Phase 4): 확정 제공자·모델, 서버 연결 상태, 데이터 첨부 범위 기본값, 비용 표시. API 키는 모바일에 저장하지 않는다.
 - 앱 정보, 로그 내보내기
 
 ---
@@ -454,7 +454,7 @@ CREATE TABLE ai_proposals (
 ## 9. AI 분석(Phase 4)
 
 ### 9.1 AI 분석 서비스
-- 제공자 중립 클라이언트(OpenAI/Anthropic/기타 호환). 사용자 API 키는 기기 보안 저장소(expo-secure-store)에만 보관.
+- 제공자 중립 모바일 transport(OpenAI/Anthropic/기타 호환). 모바일은 Supabase 로그인 세션으로 인증된 Edge Function을 호출하고, 사용자 API 키는 서버 secret에만 보관한다. 키를 앱·SQLite·동기화 데이터·로그·export·번들에 포함하지 않는다.
 - 데이터 첨부기(packager): 선택 기간의 계정/계획 버전/기록 집계(일·주 단위)/항목별 실제/프로젝트 KPI/하루 메모/주간 코멘트를 JSON으로 구성. 토큰 예산을 넘으면 집계 수준을 올리고(일→주) 원문 메모는 최근 것부터 포함. 실제 전송 데이터는 `analysis_sessions.data_snapshot_json`에 저장(투명성).
 - 분석 시스템 프롬프트의 고정 규칙(코드에 상수로 두고 테스트로 보호):
   1. 첨부된 데이터와 계산에 근거해서만 답한다. 데이터가 부족하면 부족하다고 말한다.
@@ -596,7 +596,7 @@ CREATE TABLE ai_proposals (
 - Supabase Expo RN 퀵스타트: https://supabase.com/docs/guides/getting-started/quickstarts/expo-react-native
 - Supabase 오프라인 우선(WatermelonDB) 예시: https://supabase.com/blog/react-native-offline-first-watermelon-db
 - Supabase × Legend-State 로컬 우선: https://supabase.com/blog/local-first-expo-legend-state
-- expo-secure-store: https://docs.expo.dev/versions/latest/sdk/securestore/
+- Supabase Edge Function 인증·secrets: https://supabase.com/docs/guides/functions/auth, https://supabase.com/docs/guides/functions/secrets
 - EAS Build / 개발 빌드: https://docs.expo.dev/develop/development-builds/introduction/
 
 ---
@@ -612,7 +612,7 @@ CREATE TABLE ai_proposals (
 | 초기 계정·예산 | §4.4 표 | 언제든 수정 |
 | Supabase 프로젝트 | 연결 완료 | Phase 2 원격 migration·RLS 게이트 통과 |
 | 인증 방식 | 이메일 매직링크 | Q-007 사용자 확정 |
-| AI 제공자·모델·키 | 미정 | Phase 4 전 필요 |
+| AI 제공자·모델·키 | OpenAI Responses API / `gpt-5.6-terra` / Supabase 서버 secret | Q-010 사용자 확정. 앱에는 키를 배포하지 않음 |
 | 앱 이름·아이콘 | `OOS Ops` | Android 실기기 설치·아이콘 실행 확인 |
 
 ---

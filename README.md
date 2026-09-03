@@ -9,11 +9,12 @@
 - Phase 2 SQLite outbox/LWW/충돌 로그, Supabase 매직링크/RLS, 자동·수동 동기화 구현 및 자동 게이트 통과
 - Phase 2 원격 migration 적용, 0.2.0 development APK, SM-S721N 실기기 AC-19~AC-22 게이트 완료
 - Phase 3 철회 마감: Telegram 제거와 함께 레거시 동기화 스키마·템플릿 잔여물·중복 테스트 기반·문서 드리프트 정리
-- Phase 4 AI는 구현하지 않음
+- Phase 4 여섯 분석 모드, 기간별 데이터 package, SQLite 세션·제안, 명시적 계획 적용과 Supabase 동기화 구현 및 AC-27~AC-30 게이트 통과
+- Q-010에서 OpenAI Responses API·`gpt-5.6-terra`·API 과금을 확정했다. 단일 소유자 Supabase Edge Function에서 실응답 6건, 제안 적용·무시, 원격 동기화를 SM-S721N으로 검증했다.
 
-현재 소스 버전은 `0.3.2(6)`이며 다음 활성 단계는 Phase 4입니다. Phase 1·2 기능은 완료 상태이고 Phase 3은 제품 범위에서 철회·정리된 상태입니다.
+현재 소스 버전은 `0.4.0(7)`이며 Phase 1·2·4는 완료 상태이고 Phase 3은 제품 범위에서 철회·정리된 상태입니다.
 
-Phase 2의 실기기 결과와 철회된 Phase 3의 구현·제거 이력은 `docs/TESTPLAN.md`, `docs/evidence/phase-2-readiness-2026-09-02.md`, `docs/evidence/phase-3-readiness-2026-09-03.md`에 기록되어 있습니다.
+Phase 2·4의 실기기 결과와 철회된 Phase 3의 구현·제거 이력은 `docs/TESTPLAN.md`, `docs/evidence/phase-2-readiness-2026-09-02.md`, `docs/evidence/phase-3-readiness-2026-09-03.md`, `docs/evidence/phase-4-readiness-2026-09-04.md`에 기록되어 있습니다.
 
 ## 고정 환경
 
@@ -76,6 +77,7 @@ npx expo start --dev-client --tunnel
 - 설정: 계정·항목·프로젝트·KPI 관리, 소프트 삭제 복구, JSON/CSV 내보내기, 2단계 초기화
 - 알림: 오늘 종료, 선택형 항목 일정, 선택형 타이머 상한, Android HIGH 채널, 콜드 스타트 딥링크
 - 동기화: 이메일 매직링크와 앱 딥링크 복귀, SQLite outbox, online/foreground 자동 재시도, 수동 동기화, 마지막 동기화 시각, 충돌 로그, Supabase RLS
+- 분석: 감사·패턴·프로젝트·최적화·장기·자유질문, 4·8·12주 데이터 첨부, 세션 검색, 전송 snapshot 열람, 비용 기록, 사용자 확인 뒤에만 새 계획 버전 적용
 
 ## 환경변수와 비밀값
 
@@ -84,7 +86,7 @@ Phase 2는 EAS 프로젝트의 `EXPO_PUBLIC_SUPABASE_*` 변수 두 개를 사용
 | Phase | 값 | 정책 |
 |---|---|---|
 | 2 | Supabase URL/공개 클라이언트 키 | EAS environment + ignore된 `.env.local`, RLS 필수 |
-| 4 | AI provider/model/key | 기기 키는 SecureStore, 서버 키는 서버 환경변수 |
+| 4 | AI provider/model/key | `openai`/`gpt-5.6-terra` 일반 설정, API 키는 인증된 Supabase Edge Function의 서버 secret에만 저장 |
 
 토큰, 개인 키, 서비스 역할 키는 코드·문서·커밋·앱 번들에 넣지 않습니다.
 

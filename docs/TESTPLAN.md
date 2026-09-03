@@ -95,6 +95,32 @@ Phase 3 기준 `npm run verify` 종료 코드 0: TypeScript/ESLint 0건, 14 file
 
 Phase 4 진입 전 Phase 3 마감 정리에서는 깨끗한 `npm ci` 뒤 강화된 TypeScript 미사용 검사·ESLint 오류 0, 12 files/59 tests, 커버리지 99.07/93.33/100/100, Expo 의존성 검사, expo-doctor 21/21, Android Hermes 1,440 modules를 통과했다. 레거시 `sync_records/sync_mutations/sync_conflicts`가 모두 0행임을 먼저 확인한 뒤 guarded migration `20260903030000`을 적용했고, 활성 `oos_sync_records` 63행과 `apply_oos_sync_records(jsonb)`를 보존했다. 원격 DB lint 오류는 0이다.
 
+## Phase 4 자동·실기기 게이트 — 2026-09-04 통과
+
+| ID | 자동/코드 증빙 | development build 실기기 절차 | 현재 상태 |
+|---|---|---|---|
+| TP-AC-27 | 6개 모드 상수, 4·8·12주 선택, 기간 겹침 계획·일/주/항목/프로젝트/KPI/메모 packager, SQLite v4 세션 저장·검색·export·sync trigger, 인증 Edge Function 테스트 | 분석 탭에서 모드·기간·질문 변경 → 분석 저장 → 검색 → `첨부 데이터 보기` JSON 대조 | **통과 — 6개 모드별 실세션, 총 9세션 저장·원격 동기화** |
+| TP-AC-28 | 응답 저장 직후 계획 수·outbox 불변, 불완전 계정 제안 거부, 사용자의 적용 transaction에서만 새 `ai_applied` 계획과 전체 라인·outbox 생성 통합 테스트 | 제안 수신 전/후 계획 버전 대조 → `적용` 취소 시 불변 → 확인 시 새 버전 → `무시` 시 계획 불변 | **통과 — 적용 1·무시 1·대기 1, 계획 1→2·라인 14→28** |
+| TP-AC-29 | 시스템 프롬프트 7규칙 상수, JSON Schema, 모바일/서버 계약 일치, 구조화 파서, 파싱 실패 원문/제안 없음, 금지 사용자 서술 차단 테스트 | 아래 샘플 응답 점검표를 실행하고 앱 표시·제안 저장 여부 확인 | **통과 — 실응답 숫자 근거 86개, 금지 문구·secret marker 0** |
+| TP-AC-30 | §5.7 네 질문 상수와 account 주간 계획·실제, item 일정/기본 예상 차이, project 주간시간·KPI·상태를 포함하는 snapshot 테스트 | 네 예시 질문을 각각 실행해 답의 숫자를 `첨부 데이터 보기`와 대조 | **통과 — 네 질문 모두 실데이터 답변·세션 저장** |
+
+2026-09-04 `npm run verify` 종료 코드 0: TypeScript strict와 ESLint 오류·경고 0, 19 files/83 tests, 도메인 커버리지 statements 99.07%·branches 93.33%·functions 100%·lines 100%, Expo 의존성 검사 통과, expo-doctor 21/21, Android Hermes 1,447 modules bundle 성공. migration·repository 테스트는 Node 24 내장 SQLite에서 fresh v4와 v2→v4 상향을 실제 실행한다. transport 테스트는 앱 요청에 API 키가 포함되지 않으며 모바일/서버의 모델·프롬프트·JSON Schema 계약이 일치함을 확인한다.
+
+Supabase migration `20260904010000_phase_4_sync_tables.sql`을 linked 원격에 적용해 기존 63개 핵심 record와 RLS/RPC를 유지하면서 `analysis_sessions`, `ai_proposals` table name만 허용했다. 로컬·원격 migration 목록 일치와 `supabase db lint --linked --level warning` 오류 0을 확인했다.
+
+Q-010 승인 뒤 `ai-analysis` Edge Function v2를 `verify_jwt=true`로 배포했다. 기존 원격 데이터의 유일한 user ID를 `OOS_OWNER_USER_ID`, OpenAI 키를 `OPENAI_API_KEY` Edge secret으로 설정했고 무인증 HTTP POST가 401임을 확인했다. 로그인된 SM-S721N에서 9개 실세션을 호출·저장·동기화했으며 앱과 Git에는 키 입력·저장 경로가 없다.
+
+### TP-AC-29 실제 응답 샘플 점검
+
+각 모드에서 최소 1개, §5.7 예시 질문 4개를 포함해 아래를 확인했다. 하나라도 실패하면 응답은 저장된 원문과 숫자 근거를 검토하되 제안을 적용하지 않고 parser/prompt 회귀 항목으로 기록한다.
+
+1. 답에 사용한 기간·계정/항목·값·단위가 있고 `첨부 데이터 보기` JSON으로 재계산 가능하다.
+2. 데이터가 없으면 추측한 숫자 대신 부족한 필드를 구체적으로 밝힌다.
+3. 결론은 선택지이며 결정·변경을 이미 수행했다고 서술하지 않는다.
+4. “잘했어요”, “아쉬워요”, “연속!”, “무너지지 마세요”, “~하는 경향”, “조심하세요”와 사용자 성향·심리·동기·위험 서술이 없다.
+5. 구조화 파싱에 실패하면 원문만 표시되고 제안 카드는 생기지 않는다.
+6. 계획 제안은 모든 활성 시간계정과 대상 주를 포함하며 `적용` 확인 전 계획·항목·KPI 값이 바뀌지 않는다.
+
 ## 하루치 실기기 기록 시나리오
 
 1. OOS Ops 아이콘으로 실행하고 시드/오늘 자동 항목을 확인한다.
@@ -129,5 +155,6 @@ Phase 4 진입 전 Phase 3 마감 정리에서는 깨끗한 `npm ci` 뒤 강화�
 | 2026-09-03 | app 0.3.0(4), Edge Function `telegram-bot` v2 | 로컬/원격 자동 게이트 | TP-AC-23~26 서버 준비 | **검증 후 철회** | 74 tests, DB lint 0, 예약 발송 확인; 이후 사용자 지시로 제거 |
 | 2026-09-03 | app 0.3.1(5), removal migration | SM-S721N + 로컬/원격 제거 게이트 | Phase 3 철회 | **제거 완료** | 12 files/58 tests, Android 1,440 modules·error 0, 원격 Telegram resource 0, core record 보존 |
 | 2026-09-03 | app 0.3.2(6), repository closeout | SM-S721N(Galaxy S24 FE), Android 16/API 36 + 로컬·원격 정합성 게이트 | Phase 3 마감 | **통과** | 12 files/59 tests, strict unused·doctor 21/21·Android 1,440 modules, Metro 1,603 modules 재로드·앱 오류 0, legacy schema 제거·active 63행 보존 |
+| 2026-09-04 | app 0.4.0(7) source on 0.2.0(3) development client, `ai-analysis` v2 | SM-S721N(Galaxy S24 FE), Android 16/API 36 | TP-AC-27~30 | **Phase 4 통과** | 19 files/83 tests, doctor 21/21, Android export 1,447; 6개 모드·§5.7 네 질문을 포함한 실세션 9건, 입력 25,026·출력 7,271토큰·추정 $0.137304, 제안 적용/무시, outbox 0, 원격 계획 2·라인 28 확인 |
 
 EAS의 새 build URL은 2026-09-16 03:24 KST에 만료되지만 로컬 APK와 이미 설치된 앱이 그 시각 삭제되는 것은 아니다. Android 버전과 TP-AC-01~TP-AC-17 결과를 같은 표에 이어서 기록한다.

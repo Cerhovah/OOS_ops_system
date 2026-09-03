@@ -9,30 +9,39 @@ import {
 import { dateKey, weekRange } from '@/domain/calculations';
 import { syncTableDefinitions } from '@/sync/schema';
 
-const DATABASE_VERSION = 2;
+const DATABASE_VERSION = 4;
 export const SEED_TIME = '2026-08-20T00:00:00.000+09:00';
 
 const sqlNow = "strftime('%Y-%m-%dT%H:%M:%fZ','now')";
 const syncableSettingsSql = `(
   NEW.key IN (
     'week_start_day','day_end_time','close_notification_time','close_notification_enabled',
-    'notification_always','timer_limit_notifications_enabled','time_zone'
+    'notification_always','timer_limit_notifications_enabled','time_zone',
+    'ai_provider','ai_model','analysis_range_weeks','analysis_include_notes'
   ) OR NEW.key LIKE 'item_notification:%'
 )`;
+
+type SyncDefinition = (typeof syncTableDefinitions)[number];
+const phase2SyncDefinitions = syncTableDefinitions.filter(
+  (definition) => definition.name !== 'analysis_sessions' && definition.name !== 'ai_proposals',
+);
+const phase4SyncDefinitions = syncTableDefinitions.filter(
+  (definition) => definition.name === 'analysis_sessions' || definition.name === 'ai_proposals' || definition.name === 'settings',
+);
 
 function payloadSql(columns: readonly string[], prefix: 'NEW.' | ''): string {
   return `json_object(${columns.map((column) => `'${column}', ${prefix}${column}`).join(', ')})`;
 }
 
-async function createSyncCapture(db: SQLiteDatabase): Promise<void> {
-  for (const definition of syncTableDefinitions) {
+async function createSyncCapture(db: SQLiteDatabase, definitions: readonly SyncDefinition[]): Promise<void> {
+  for (const definition of definitions) {
     const condition = definition.name === 'settings' ? ` AND ${syncableSettingsSql}` : '';
     const payload = payloadSql(definition.columns, 'NEW.');
     const recordId = `NEW.${definition.primaryKey}`;
     const timestamp = `COALESCE(NEW.updated_at, ${sqlNow})`;
     for (const operation of ['insert', 'update'] as const) {
       await db.execAsync(`
-        CREATE TRIGGER sync_capture_${definition.name}_${operation}
+        CREATE TRIGGER IF NOT EXISTS sync_capture_${definition.name}_${operation}
         AFTER ${operation.toUpperCase()} ON ${definition.name}
         WHEN COALESCE((SELECT value FROM sync_state WHERE key='capture_suppressed'), '0') <> '1'${condition}
         BEGIN
@@ -49,12 +58,13 @@ async function createSyncCapture(db: SQLiteDatabase): Promise<void> {
   }
 }
 
-async function queueExistingData(db: SQLiteDatabase): Promise<void> {
-  for (const definition of syncTableDefinitions) {
+async function queueExistingData(db: SQLiteDatabase, definitions: readonly SyncDefinition[]): Promise<void> {
+  for (const definition of definitions) {
     const settingsFilter = definition.name === 'settings'
       ? `AND (key IN (
           'week_start_day','day_end_time','close_notification_time','close_notification_enabled',
-          'notification_always','timer_limit_notifications_enabled','time_zone'
+          'notification_always','timer_limit_notifications_enabled','time_zone',
+          'ai_provider','ai_model','analysis_range_weeks','analysis_include_notes'
         ) OR key LIKE 'item_notification:%')`
       : '';
     await db.execAsync(`
@@ -125,8 +135,68 @@ async function migrateToVersion2(db: SQLiteDatabase): Promise<void> {
     CREATE INDEX idx_sync_outbox_created ON sync_outbox(created_at);
     CREATE INDEX idx_sync_conflicts_created ON sync_conflicts(created_at DESC);
   `);
-  await createSyncCapture(db);
-  await queueExistingData(db);
+  await createSyncCapture(db, phase2SyncDefinitions);
+  await queueExistingData(db, phase2SyncDefinitions);
+}
+
+async function migrateToVersion3(db: SQLiteDatabase): Promise<void> {
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS analysis_sessions (
+      id TEXT PRIMARY KEY,
+      mode TEXT NOT NULL CHECK (mode IN ('audit','pattern','project','optimize','longterm','free')),
+      question TEXT,
+      range_start TEXT NOT NULL,
+      range_end TEXT NOT NULL,
+      data_snapshot_json TEXT NOT NULL,
+      response_text TEXT,
+      provider TEXT,
+      model TEXT,
+      input_tokens INTEGER,
+      output_tokens INTEGER,
+      estimated_cost_usd REAL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      deleted_at TEXT
+    );
+    CREATE TABLE IF NOT EXISTS ai_proposals (
+      id TEXT PRIMARY KEY,
+      session_id TEXT NOT NULL REFERENCES analysis_sessions(id),
+      kind TEXT NOT NULL CHECK (kind IN ('plan_change')),
+      payload_json TEXT NOT NULL,
+      rationale TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','applied','dismissed')),
+      applied_at TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      deleted_at TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_analysis_sessions_created ON analysis_sessions(created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_ai_proposals_session ON ai_proposals(session_id, created_at);
+
+    DROP TRIGGER IF EXISTS sync_capture_settings_insert;
+    DROP TRIGGER IF EXISTS sync_capture_settings_update;
+  `);
+  await createSyncCapture(db, phase4SyncDefinitions);
+  const now = new Date().toISOString();
+  await db.runAsync(
+    "INSERT OR IGNORE INTO settings (key,value,updated_at) VALUES ('analysis_range_weeks','4',?)",
+    now,
+  );
+  await db.runAsync(
+    "INSERT OR IGNORE INTO settings (key,value,updated_at) VALUES ('analysis_include_notes','1',?)",
+    now,
+  );
+}
+
+async function migrateToVersion4(db: SQLiteDatabase): Promise<void> {
+  await db.runAsync(
+    "INSERT OR IGNORE INTO settings (key,value,updated_at) VALUES ('ai_provider','openai',?)",
+    SEED_TIME,
+  );
+  await db.runAsync(
+    "INSERT OR IGNORE INTO settings (key,value,updated_at) VALUES ('ai_model','gpt-5.6-terra',?)",
+    SEED_TIME,
+  );
 }
 
 export const accountSeeds = [
@@ -275,6 +345,16 @@ export async function migrateDatabase(db: SQLiteDatabase): Promise<void> {
   if (currentVersion < 2) {
     await migrateToVersion2(db);
     await db.execAsync('PRAGMA user_version = 2');
+    currentVersion = 2;
+  }
+  if (currentVersion < 3) {
+    await migrateToVersion3(db);
+    await db.execAsync('PRAGMA user_version = 3');
+    currentVersion = 3;
+  }
+  if (currentVersion < 4) {
+    await migrateToVersion4(db);
+    await db.execAsync('PRAGMA user_version = 4');
   }
 }
 
@@ -387,6 +467,8 @@ export async function seedDatabase(db: SQLiteDatabase): Promise<void> {
       ['notification_always', '0'],
       ['notification_permission_requested', '0'],
       ['timer_limit_notifications_enabled', '0'],
+      ['analysis_range_weeks', '4'],
+      ['analysis_include_notes', '1'],
       ['app_name', APP_NAME],
       ['time_zone', 'Asia/Seoul'],
     ];
