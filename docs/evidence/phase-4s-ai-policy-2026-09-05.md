@@ -14,7 +14,12 @@
 - `npm.cmd run typecheck` — passed.
 - `npm.cmd run verify` components — passed: strict typecheck, lint, 35 files / 221 tests, 99.07% statements, 94.93% branches, 100% functions/lines, Supabase contracts, dependency check, Expo Doctor 21/21, and Android bundle (1,493 modules).
 
+## Server deployment
+
+- Saved the nine server-side `AI_MODEL_*` and `AI_PRICE_*` configuration values to Supabase project `majwsffhmbjwinvmxqzj`.
+- Deployed Edge Function `ai-analysis` with the model-policy shared module. Supabase CLI confirmed `Deployed Functions.`
+
 ## Not executed
 
-- No paid OpenAI request, Edge Function deployment, or device request was made by this change.
-- The production secret and model-policy configuration must be present before a live analysis request. This is intentionally separate from source verification.
+- No paid OpenAI request or device request was made by this change.
+- A live request remains the final AC-38 device/server evidence; it requires the separately configured `OPENAI_API_KEY` secret.
