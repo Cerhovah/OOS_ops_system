@@ -94,7 +94,7 @@
 | AC-32 | SQLite v5 상향, migration+`user_version` 원자성, 정확한 `item_notification:` prefix, 기존 v4 상향 회귀 | **자동 통과·기기 대기** | fresh/v4→v5·rollback·prefix 회귀 통과, 기존 SM-S721N 데이터 보존 확인 대기 |
 | AC-33 | PKCE code-only callback, `shouldCreateUser:false`, native SecureStore와 기존 SQLite 세션 선이관·후삭제 | **자동·native build 통과, 기기 대기** | auth storage/callback 회귀와 build `ce72a92f-6fe5-456f-9a48-d9863788abaf` 생성 통과. 설치·세션 이관 대기 |
 | AC-34 | AppRepository 도메인 분리, sync persistence/codec 분리, 분석 packager·UI section/selector 분리, 공통 table manifest, 조건부 outbox ACK·owner binding·unknown schema 실패 | **자동 통과·기기 대기** | repository/sync/draft/refresh와 SQLite schema/export/reset manifest exact-set 회귀 통과, 오프라인→온라인 실기기 동기화 대기 |
-| AC-35 | RPC 크기/개수/소유자·settings allowlist, Edge JSON·요청/snapshot 한도, 질문·snapshot secret redaction, client/server exact-set 계약, 고정 CLI·CI·환경 예시 | **자동·clean DB CI·linked 원격 통과, 인증 실호출 대기** | migration `20260904020000`, 계약 2 files/8 tests, RLS/lint, Edge v3·무인증 401. 직전 GitHub Actions run `33856353851` 통과, 현재 refactor push 대기 |
+| AC-35 | RPC 크기/개수/소유자·settings allowlist, Edge JSON·요청/snapshot 한도, 질문·snapshot secret redaction, client/server exact-set 계약, 고정 CLI·CI·환경 예시 | **자동·clean DB CI·linked 원격 통과, 인증 실호출 대기** | migration `20260904020000`, 계약 2 files/8 tests, RLS/lint, Edge v3·무인증 401. GitHub Actions [run 33864610433](https://github.com/Cerhovah/OOS_ops_system/actions/runs/33864610433) mobile/database 통과 |
 
 상세 범위와 대기/통과 기록은 `docs/evidence/phase-4-refactor-readiness-2026-09-04.md` 한 곳에서 갱신한다.
 

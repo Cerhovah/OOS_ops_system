@@ -122,6 +122,7 @@
 - 2026-09-04: 모든 알림 예약을 단일 queue·입력 fingerprint로 직렬화하고, 예약 ID 저장 실패 보상 취소·DB 초기화 transaction의 cleanup manifest·실패 재시도·종료 뒤 30일 rolling horizon을 추가. 기존 PUBLIC 채널 재사용을 피하도록 `daily-records-v3` PRIVATE 채널로 상향
 - 2026-09-04: AI 누적 사용량 조회 실패를 0건으로 위장하지 않고 오류로 표시하며, 공통 제목·선택·오류 UI의 TalkBack 의미를 보강
 - 2026-09-04: 호환 범위 안의 `@xmldom/xmldom`을 보안 패치하고, 남은 npm audit 경고를 Expo Router 런타임 가용성 경로와 실행 번들에 포함되지 않는 UUID 도구 경로로 분류. Expo SDK 하향이나 CJS/ESM 계약을 깨는 강제 override는 적용하지 않고 공식 호환판 갱신 조건을 기록
+- 2026-09-04: Phase 4R 수명주기·보안 리팩터 커밋 `686eb1e`를 원격 `main`에 반영하고 GitHub Actions run `33864610433`의 mobile·clean database 작업을 모두 통과
 
 - 2026-08-20: 계획 합계가 168시간과 다르거나 음수여도 형식이 유효하면 저장할 수 있도록 I-1 비차단 동작 수정
 - 2026-08-20: 진행 중 타이머를 고정 일정 완료로 오인해 남은 가용시간에서 누락하던 계산 수정

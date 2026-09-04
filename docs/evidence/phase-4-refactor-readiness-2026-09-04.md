@@ -87,7 +87,7 @@
 | Edge Function | 최신 `ai-analysis` 배포, 무인증 거부와 인증 1회 실호출 | **자동 통과·원격 부분 통과**: 계약 2 files/8 tests, v3 ACTIVE·`verify_jwt=true`·무인증 401. 인증 실호출 대기 |
 | hosted Auth | 기존 사용자 유지·신규 가입 차단 | **Q-013 사용자 확인 대기** |
 | Android native | 새 `0.4.1(8)` development build·SM-S721N 설치·SecureStore 이관·핵심 회귀·ADB error log | **native build 통과·실기기 대기**: `ce72a92f-6fe5-456f-9a48-d9863788abaf` `FINISHED`, fingerprint `0fd3776c2e02c5cfa31162fe208d1c9c59685526`; APK 255,973,313 bytes, SHA-256 `BE1B577B1212F9B6D4D051A602062BAA38034C29D5AB2472E87D7DE5308C39B7` |
-| GitHub Actions | commit/push 뒤 mobile/database job | **직전 기준 통과·현재 refactor push 대기**: run `33856353851`에서 mobile·database 모두 success |
+| GitHub Actions | commit/push 뒤 mobile/database job | **통과**: [run 33864610433](https://github.com/Cerhovah/OOS_ops_system/actions/runs/33864610433)에서 commit `686eb1e`의 mobile·database 모두 success |
 
 ## 남은 위험과 경계
 
