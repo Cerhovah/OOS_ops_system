@@ -62,13 +62,55 @@ describe('Phase 4 analysis prompt and response parser', () => {
     expect(result.warning).toContain('사용자 서술');
   });
 
+  it('checks every user-visible number label, unit, and period for prohibited descriptions', () => {
+    for (const field of ['label', 'unit', 'period'] as const) {
+      const number = { label: '실제', value: 120, unit: '분', period: '이번 주' };
+      number[field] = '사용자의 성향은 고정됨';
+      const result = parseAnalysisResponse(JSON.stringify({
+        answer: '실제 120분입니다.',
+        numbers_used: [number],
+        proposals: [],
+      }));
+      expect(result.numbersUsed).toEqual([]);
+      expect(result.warning).toContain('사용자 서술');
+    }
+  });
+
   it('detects prohibited descriptions after JSON escape decoding without blocking factual trend words', () => {
     const escaped = parseAnalysisResponse('{"answer":"\\uc0ac\\uc6a9\\uc790\\ub294 \\uacc4\\ud68d\\uc744 \\uc9c0\\ud0a4\\ub294 \\uacbd\\ud5a5\\uc774 \\uc788\\uc5b4\\uc694","numbers_used":[],"proposals":[]}');
     expect(escaped.proposals).toEqual([]);
     expect(escaped.warning).toContain('사용자 서술');
 
-    const factual = parseAnalysisResponse('{"answer":"매출의 주별 증가 경향이 데이터에 있습니다.","numbers_used":[],"proposals":[]}');
-    expect(factual.structured).toBe(true);
+    for (const answer of [
+      '매출의 주별 증가 경향이 데이터에 있습니다.',
+      '최근 4주 화요일 실제 시간이 높은 경향이 있어요.',
+    ]) {
+      expect(parseAnalysisResponse(JSON.stringify({ answer, numbers_used: [], proposals: [] })).structured).toBe(true);
+    }
+  });
+
+  it.each([
+    '사용자는 충동적입니다.',
+    '사용자는 참을성이 부족합니다.',
+    '사용자는 낙관적입니다.',
+    '분석 결과, 사용자는 융통성이 큽니다.',
+    '당신은 의욕이 없습니다.',
+    '계획적인 사람입니다.',
+    'You are an impulsive person.',
+    'The user is unusually resilient.',
+  ])('fails closed for a personal description outside the original phrase list: %s', (answer) => {
+    const result = parseAnalysisResponse(JSON.stringify({ answer, numbers_used: [], proposals: [] }));
+    expect(result.structured).toBe(false);
+    expect(result.warning).toContain('사용자 서술');
+  });
+
+  it('still allows factual customer metrics and project risk statements', () => {
+    const result = parseAnalysisResponse(JSON.stringify({
+      answer: '유료 사용자는 3명이고 프로젝트 위험 항목은 2건입니다.',
+      numbers_used: [],
+      proposals: [],
+    }));
+    expect(result.structured).toBe(true);
   });
 
   it('rejects malformed or duplicate plan lines', () => {

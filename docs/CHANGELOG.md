@@ -6,6 +6,13 @@
 
 ### Added
 
+- 2026-09-04: 사용자 지시에 따라 기존 Phase 1·2·4 의미를 보존하는 Phase 4R과 PC·Metro 없는 Android 개인용 Phase 4S를 SPEC v0.3.0의 AC-31~AC-39로 추가
+- 2026-09-04: PKCE code-only callback, 네이티브 SecureStore session adapter, 기존 Expo SQLite Auth key의 선이관·후삭제와 경합 회귀 테스트 추가
+- 2026-09-04: SQLite v5 상향 migration과 v4→v5 데이터 보존·정확한 settings prefix·migration rollback 회귀 테스트 추가
+- 2026-09-04: Supabase RPC의 owner/schema/settings allowlist·batch/record 크기 제한과 Edge Function의 JSON/body/snapshot/date/mode/question 검증, RLS 보안 회귀 테스트 추가
+- 2026-09-04: 요청 snapshot의 credential/JWT marker redaction, 완료된 4·8·12주 기간 계산, 숫자 근거까지 포함하는 사용자 서술 금지 검증 추가
+- 2026-09-04: 공개 변수 이름만 담은 `mobile/.env.example`, 고정 action/Node/npm/Supabase CLI 기반 GitHub Actions와 Dependabot 설정 추가
+- 2026-09-04: Phase 4R의 자동·원격·새 build 실기기 결과를 분리 기록하는 readiness 증빙과 Phase 4S standalone 검증 계획 추가
 - 제품 전체 명세와 Phase 1~5 개발 구조
 - 계획, 결정, 질문, 테스트, 미래 범위 관리 문서
 - 저장소 기본 README와 `.gitignore`
@@ -36,6 +43,13 @@
 
 ### Changed
 
+- 2026-09-04: 앱 소스 버전을 Phase 4R 기준 `0.4.1(8)`로 상향하고 `expo-secure-store` native plugin을 추가해 새 development binary를 필수 게이트로 지정
+- 2026-09-04: 큰 `AppRepository`를 도메인 repository와 공용 row mapper/writer로, sync repository를 local/remote persistence·codec으로, 분석 package를 계산·예산 경계로 분리
+- 2026-09-04: 설정·프로젝트·분석 화면을 orchestration과 section/draft/view-model로 나누고 snapshot·refresh·draft 저장의 비동기 경합을 명시적으로 제어
+- 2026-09-04: 분석 기간을 진행 중인 경계 주가 아닌 직전까지 완료된 최근 4·8·12주로 정의하고 UI 문구와 snapshot preview를 실제 첨부 범위에 맞춤
+- 2026-09-04: Supabase Auth client를 PKCE와 `shouldCreateUser:false`로 제한하고 local config의 신규 가입 기본값을 비활성화. hosted Auth 적용은 Q-013 확인 대기
+- 2026-09-04: `npm run verify`에 모바일↔Supabase Edge 요청·보안 계약 테스트를 포함하고 EAS CLI 23.2.0·Supabase CLI 2.116.0·npm 11.17.0을 재현 기준으로 고정
+- 2026-09-04: sync RPC hardening migration `20260904020000`과 `ai-analysis` v3를 원격 배포하고 migration up to date·DB lint 0·RLS 회귀·익명 direct DML/함수 호출 401을 확인
 - 2026-08-20: Phase 1을 사용자 구현 승인 대기 상태로 명시하고 승인 후 작업 순서를 고정
 - 2026-08-20: 후속 Phase의 수용 기준 범위를 SPEC에 맞게 Phase 2 AC-19~AC-22, Phase 3 AC-23~AC-26, Phase 4 AC-27~AC-30으로 수정
 - 2026-08-20: README에 현재 문서 전용 상태, 실행·개발 빌드 절차의 적용 시점, 환경변수·비밀값 정책을 명시
@@ -75,6 +89,8 @@
 
 ### Removed
 
+- 2026-09-04: 사용하지 않는 `expo-status-bar`와 source dead export 4개, 중복 화면/저장 로직, module 전역 AppState listener를 제거하고 provider 수명주기로 통합
+- 2026-09-04: 매직링크 URL fragment의 access/refresh token 수락과 인증 세션의 SQLite 평문 fallback 경로 제거
 - 2026-09-03: 사용자 지시에 따라 Telegram을 제품 범위에서 철회하고 모바일 설정 UI·서비스·파서/서버 코드와 테스트를 제거
 - 2026-09-03: Telegram webhook·봇 명령, 예약 cron, Vault secret, 전용 DB 테이블, Edge Functions와 Supabase Telegram secret 5개 제거
 - 2026-09-03: 제거 후 12 files/58 tests, Expo Doctor 21/21, Android bundle·SM-S721N 런타임 오류 0, 원격 Telegram resource 0을 재검증
@@ -83,6 +99,16 @@
 
 ### Fixed
 
+- 2026-09-04: 전송 도중 같은 record가 다시 수정되면 오래된 성공 응답이 최신 outbox를 지우던 경로를 `id + local_updated_at` 조건부 ACK로 수정
+- 2026-09-04: 로그아웃 뒤 다른 계정이 같은 로컬 DB와 cursor를 재사용할 수 있던 경계를 최초 owner binding과 legacy 단일 cursor 이관 검증으로 차단
+- 2026-09-04: unknown local/remote table·setting을 건너뛰고 cursor가 전진할 수 있던 경로를 명시적 실패로 변경
+- 2026-09-04: SQL `LIKE 'item_notification:%'`의 `_` wildcard 때문에 유사 settings key가 동기화될 수 있던 문제를 SQLite/Postgres 모두 정확한 prefix 비교로 수정
+- 2026-09-04: migration과 `user_version`, 설정 묶음 저장, 이전 주 계획 복사, export/snapshot 읽기 중 일부만 반영될 수 있던 경계를 transaction으로 수정
+- 2026-09-04: 오래 끝난 refresh가 최신 snapshot을 덮거나 저장 완료가 사용자의 새 draft를 덮는 화면 경합, 중첩 busy 상태 조기 해제를 sequence/ref-count로 수정
+- 2026-09-04: 분석 결과의 `numbers_used`와 한국어·영어 사용자 서술이 금지 검사를 우회할 수 있던 경계를 확장하고 server/mobile prompt를 정렬
+- 2026-09-04: 잘못된 Supabase URL이 로컬 우선 앱 시작까지 중단시키던 경로를 안전한 설정 파싱으로 수정
+- 2026-09-04: 보관 계정·항목의 기록과 계획이 AI snapshot·제안 적용에 다시 섞이던 범위를 활성 화면과 일치시킴
+- 2026-09-04: 주간 코멘트 조회 실패 뒤 빈 값을 저장하거나 오늘 종료 콜드 스타트에서 기존 메모를 덮을 수 있던 hydration·저장 경합을 차단
 - 2026-09-04: Windows PowerShell 5.1에서 UTF-8 no-BOM 스크립트의 한국어 안내가 깨지던 문제를 ASCII 프롬프트와 명시적인 실패 종료 코드로 수정했다.
 
 - 2026-08-20: 계획 합계가 168시간과 다르거나 음수여도 형식이 유효하면 저장할 수 있도록 I-1 비차단 동작 수정

@@ -105,6 +105,31 @@ describe('AnalysisRepository with real SQLite', () => {
     ).get()).toMatchObject({ count: queuedBefore.count + accounts.length + 1 });
   });
 
+  it('applies proposals against visible accounts without recreating archived plan lines', async () => {
+    adapter.raw.prepare("UPDATE accounts SET archived=1 WHERE id='seed-account-sleep'").run();
+    const accounts = adapter.raw.prepare(
+      'SELECT id FROM accounts WHERE deleted_at IS NULL AND archived=0 ORDER BY sort_order',
+    ).all() as { id: string }[];
+    const minutes = Object.fromEntries(accounts.map((account) => [account.id, 720]));
+    const sessionId = await repository.saveSession({
+      mode: 'optimize',
+      question: '보관 계정 제외 계획',
+      rangeStart: '2026-08-03',
+      rangeEnd: '2026-08-30',
+      dataSnapshotJson: '{}',
+      result: resultWithPlan(minutes),
+    });
+    const proposal = (await repository.listProposals(sessionId))[0];
+
+    await expect(repository.applyPlanProposal(proposal.id)).resolves.toBe(1);
+    expect(adapter.raw.prepare(
+      "SELECT COUNT(*) AS count FROM weekly_plan_lines WHERE weekly_plan_id=(SELECT id FROM weekly_plans WHERE week_start='2026-09-07')",
+    ).get()).toMatchObject({ count: accounts.length });
+    expect(adapter.raw.prepare(
+      "SELECT COUNT(*) AS count FROM weekly_plan_lines WHERE account_id='seed-account-sleep' AND weekly_plan_id=(SELECT id FROM weekly_plans WHERE week_start='2026-09-07')",
+    ).get()).toMatchObject({ count: 0 });
+  });
+
   it('rejects an incomplete proposal without changing plans and can dismiss it', async () => {
     const sessionId = await repository.saveSession({
       mode: 'optimize',

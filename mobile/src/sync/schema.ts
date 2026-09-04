@@ -108,7 +108,7 @@ const definitionMap = new Map<string, SyncTableDefinition>(
   syncTableDefinitions.map((definition) => [definition.name, definition]),
 );
 
-const syncableSettingKeys = new Set([
+export const SYNC_BOOTSTRAP_SETTING_KEYS = [
   'week_start_day',
   'day_end_time',
   'close_notification_time',
@@ -116,11 +116,19 @@ const syncableSettingKeys = new Set([
   'notification_always',
   'timer_limit_notifications_enabled',
   'time_zone',
+] as const;
+
+export const SYNCABLE_SETTING_KEYS = [
+  ...SYNC_BOOTSTRAP_SETTING_KEYS,
   'ai_provider',
   'ai_model',
   'analysis_range_weeks',
   'analysis_include_notes',
-]);
+] as const;
+
+export const SYNCABLE_SETTING_PREFIX = 'item_notification:';
+
+const syncableSettingKeys = new Set<string>(SYNCABLE_SETTING_KEYS);
 
 export function getSyncTableDefinition(name: string): SyncTableDefinition | null {
   return definitionMap.get(name) ?? null;
@@ -131,5 +139,5 @@ export function isSyncTableName(name: string): name is SyncTableName {
 }
 
 export function isSyncableSetting(key: string): boolean {
-  return syncableSettingKeys.has(key) || key.startsWith('item_notification:');
+  return syncableSettingKeys.has(key) || key.startsWith(SYNCABLE_SETTING_PREFIX);
 }

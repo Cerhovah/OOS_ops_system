@@ -4,8 +4,8 @@ export type PlanSource = 'app' | 'copy_last_week' | 'ai_applied';
 export type ProjectStatus = 'active' | 'paused' | 'closed';
 export type Aggregation = 'sum' | 'last' | 'max';
 export type AnalysisMode = 'audit' | 'pattern' | 'project' | 'optimize' | 'longterm' | 'free';
-export type AiProposalStatus = 'pending' | 'applied' | 'dismissed';
-export type AiProposalKind = 'plan_change';
+type AiProposalStatus = 'pending' | 'applied' | 'dismissed';
+type AiProposalKind = 'plan_change';
 
 export interface Account {
   id: string;
@@ -87,6 +87,8 @@ export interface WeeklyPlan {
   note: string | null;
   source: PlanSource;
   createdAt: string;
+  updatedAt: string;
+  deletedAt: string | null;
 }
 
 export interface WeeklyPlanLine {
@@ -94,6 +96,9 @@ export interface WeeklyPlanLine {
   weeklyPlanId: string;
   accountId: string;
   plannedMinutes: number;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt: string | null;
 }
 
 export interface ProjectKpi {

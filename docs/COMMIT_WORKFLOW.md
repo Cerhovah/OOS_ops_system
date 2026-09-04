@@ -33,7 +33,7 @@ Phase 종료를 사용자가 지시하면 에이전트가 검사·커밋·푸시
 | `build(phase-N)` | 패키지·앱·EAS 구성 | `build(phase-4): add analysis runtime dependencies` |
 | `chore(repo)` | Phase와 무관한 저장소 관리 | `chore(repo): align development workflow` |
 
-현재 Phase 4 기능과 서버 adapter는 `feat(phase-4)`, 실제 응답 게이트 증빙만 별도 변경하면 `docs(phase-4)`를 기본으로 한다.
+현재 Phase 4R은 사용자 동작을 보존하는 구조·보안 정리이므로 `refactor(phase-4)`를 기본으로 한다. Phase 4S standalone binary/profile은 `build(phase-4)`, 실제 게이트 증빙만 별도 변경하면 `docs(phase-4)`를 사용한다.
 
 ## 수동 복구용 최소 명령
 
@@ -44,7 +44,7 @@ cd mobile
 npm run verify
 cd ..
 git add -A
-git commit -m "feat(phase-4): add grounded AI analysis"
+git commit -m "refactor(phase-4): harden standalone-ready architecture"
 git pull --rebase origin main
 git push origin main
 ```
@@ -55,6 +55,6 @@ git push origin main
 
 - 현재 작업과 무관한 변경을 함께 stage
 - 게이트 실패 상태에서 완료 커밋
-- `.env*`, Supabase secret/service-role key, AI key 등 비밀값 stage
+- 실제 값이 든 `.env*`, Supabase secret/service-role key, AI key 등 비밀값 stage. 변수 이름만 둔 `mobile/.env.example`은 예외
 - 충돌을 무시한 force push
 - 검사 우회를 위한 `--no-verify`

@@ -79,10 +79,10 @@ export function latestPlanForWeek(
   weekStart: string,
 ): { plan: WeeklyPlan | null; lines: WeeklyPlanLine[] } {
   const plan = plans
-    .filter((candidate) => candidate.weekStart === weekStart)
+    .filter((candidate) => candidate.weekStart === weekStart && !candidate.deletedAt)
     .sort((left, right) => right.version - left.version)[0] ?? null;
   if (!plan) return { plan: null, lines: [] };
-  return { plan, lines: lines.filter((line) => line.weeklyPlanId === plan.id) };
+  return { plan, lines: lines.filter((line) => line.weeklyPlanId === plan.id && !line.deletedAt) };
 }
 
 export function actualMinutesByAccount(entries: readonly Entry[]): Record<string, number> {

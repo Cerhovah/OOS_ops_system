@@ -5,7 +5,7 @@ import type { AnalysisTransport } from './types';
 
 export { ANALYSIS_MODEL, ANALYSIS_PROVIDER, ANALYSIS_TOKEN_PRICE } from './provider-config';
 
-export interface ResolvedAnalysisTransport {
+interface ResolvedAnalysisTransport {
   transport: AnalysisTransport;
   price: TokenPrice | null;
 }

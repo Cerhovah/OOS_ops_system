@@ -1,21 +1,25 @@
 import { randomUUID } from 'expo-crypto';
 import type { SQLiteDatabase } from 'expo-sqlite';
 
-import type { AnalysisWeeklyComment, AnalysisTextNote } from '@/analysis/packager';
+import { parsePlanChangePayload } from '@/analysis/plan-proposal';
 import { serializeAnalysisOutput } from '@/analysis/prompt';
+import type { AnalysisTextNote, AnalysisWeeklyComment } from '@/analysis/snapshot-types';
 import type { AnalysisRunResult } from '@/analysis/types';
+import {
+  sqliteNullableNumber,
+  sqliteNullableText,
+  sqliteText,
+  type SqlRow,
+} from '@/data/sqlite-row';
+import { appendWeeklyPlanVersion } from '@/data/weekly-plan-writer';
 import { parseWeekStartDay, weekRange } from '@/domain/calculations';
 import type {
   AiProposal,
   AnalysisMode,
   AnalysisSession,
-  PlanChangePayload,
 } from '@/types/domain';
 
-type SqlValue = string | number | null;
-type Row = Record<string, SqlValue>;
-
-export interface SaveAnalysisSessionInput {
+interface SaveAnalysisSessionInput {
   mode: AnalysisMode;
   question: string;
   rangeStart: string;
@@ -24,73 +28,39 @@ export interface SaveAnalysisSessionInput {
   result: AnalysisRunResult;
 }
 
-function text(row: Row, key: string): string {
-  return String(row[key]);
-}
-
-function nullableText(row: Row, key: string): string | null {
-  return row[key] === null ? null : String(row[key]);
-}
-
-function nullableNumber(row: Row, key: string): number | null {
-  return row[key] === null ? null : Number(row[key]);
-}
-
-function sessionFromRow(row: Row): AnalysisSession {
+function sessionFromRow(row: SqlRow): AnalysisSession {
   return {
-    id: text(row, 'id'),
-    mode: text(row, 'mode') as AnalysisMode,
-    question: nullableText(row, 'question'),
-    rangeStart: text(row, 'range_start'),
-    rangeEnd: text(row, 'range_end'),
-    dataSnapshotJson: text(row, 'data_snapshot_json'),
-    responseText: nullableText(row, 'response_text'),
-    provider: nullableText(row, 'provider'),
-    model: nullableText(row, 'model'),
-    inputTokens: nullableNumber(row, 'input_tokens'),
-    outputTokens: nullableNumber(row, 'output_tokens'),
-    estimatedCostUsd: nullableNumber(row, 'estimated_cost_usd'),
-    createdAt: text(row, 'created_at'),
-    updatedAt: text(row, 'updated_at'),
-    deletedAt: nullableText(row, 'deleted_at'),
+    id: sqliteText(row, 'id'),
+    mode: sqliteText(row, 'mode') as AnalysisMode,
+    question: sqliteNullableText(row, 'question'),
+    rangeStart: sqliteText(row, 'range_start'),
+    rangeEnd: sqliteText(row, 'range_end'),
+    dataSnapshotJson: sqliteText(row, 'data_snapshot_json'),
+    responseText: sqliteNullableText(row, 'response_text'),
+    provider: sqliteNullableText(row, 'provider'),
+    model: sqliteNullableText(row, 'model'),
+    inputTokens: sqliteNullableNumber(row, 'input_tokens'),
+    outputTokens: sqliteNullableNumber(row, 'output_tokens'),
+    estimatedCostUsd: sqliteNullableNumber(row, 'estimated_cost_usd'),
+    createdAt: sqliteText(row, 'created_at'),
+    updatedAt: sqliteText(row, 'updated_at'),
+    deletedAt: sqliteNullableText(row, 'deleted_at'),
   };
 }
 
-function proposalFromRow(row: Row): AiProposal {
+function proposalFromRow(row: SqlRow): AiProposal {
   return {
-    id: text(row, 'id'),
-    sessionId: text(row, 'session_id'),
+    id: sqliteText(row, 'id'),
+    sessionId: sqliteText(row, 'session_id'),
     kind: 'plan_change',
-    payloadJson: text(row, 'payload_json'),
-    rationale: text(row, 'rationale'),
-    status: text(row, 'status') as AiProposal['status'],
-    appliedAt: nullableText(row, 'applied_at'),
-    createdAt: text(row, 'created_at'),
-    updatedAt: text(row, 'updated_at'),
-    deletedAt: nullableText(row, 'deleted_at'),
+    payloadJson: sqliteText(row, 'payload_json'),
+    rationale: sqliteText(row, 'rationale'),
+    status: sqliteText(row, 'status') as AiProposal['status'],
+    appliedAt: sqliteNullableText(row, 'applied_at'),
+    createdAt: sqliteText(row, 'created_at'),
+    updatedAt: sqliteText(row, 'updated_at'),
+    deletedAt: sqliteNullableText(row, 'deleted_at'),
   };
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function storedPlanChangePayload(payloadJson: string): PlanChangePayload {
-  const value: unknown = JSON.parse(payloadJson);
-  if (!isRecord(value) || typeof value.weekStart !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value.weekStart)) {
-    throw new Error('제안에 올바른 주 시작일이 없습니다.');
-  }
-  if (!isRecord(value.minutesByAccount)) throw new Error('제안에 계정별 계획값이 없습니다.');
-  const minutesByAccount: Record<string, number> = {};
-  for (const [accountId, minutes] of Object.entries(value.minutesByAccount)) {
-    if (typeof minutes !== 'number' || !Number.isFinite(minutes) || minutes < 0) {
-      throw new Error(`제안 계획값을 확인할 수 없습니다: ${accountId}`);
-    }
-    minutesByAccount[accountId] = Math.round(minutes);
-  }
-  if (Object.keys(minutesByAccount).length === 0) throw new Error('제안의 계획 행이 비어 있습니다.');
-  const note = value.note === null ? null : typeof value.note === 'string' ? value.note : null;
-  return { weekStart: value.weekStart, minutesByAccount, note };
 }
 
 export class AnalysisRepository {
@@ -163,7 +133,7 @@ export class AnalysisRepository {
   async listSessions(search = '', limit = 50): Promise<AnalysisSession[]> {
     const pattern = `%${search.trim()}%`;
     const rows = search.trim()
-      ? await this.db.getAllAsync<Row>(
+      ? await this.db.getAllAsync<SqlRow>(
         `SELECT * FROM analysis_sessions
          WHERE deleted_at IS NULL AND (question LIKE ? OR response_text LIKE ? OR mode LIKE ?)
          ORDER BY created_at DESC LIMIT ?`,
@@ -172,7 +142,7 @@ export class AnalysisRepository {
         pattern,
         limit,
       )
-      : await this.db.getAllAsync<Row>(
+      : await this.db.getAllAsync<SqlRow>(
         'SELECT * FROM analysis_sessions WHERE deleted_at IS NULL ORDER BY created_at DESC LIMIT ?',
         limit,
       );
@@ -181,11 +151,11 @@ export class AnalysisRepository {
 
   async listProposals(sessionId?: string): Promise<AiProposal[]> {
     const rows = sessionId
-      ? await this.db.getAllAsync<Row>(
+      ? await this.db.getAllAsync<SqlRow>(
         'SELECT * FROM ai_proposals WHERE deleted_at IS NULL AND session_id=? ORDER BY created_at',
         sessionId,
       )
-      : await this.db.getAllAsync<Row>(
+      : await this.db.getAllAsync<SqlRow>(
         'SELECT * FROM ai_proposals WHERE deleted_at IS NULL ORDER BY created_at DESC',
       );
     return rows.map(proposalFromRow);
@@ -203,12 +173,12 @@ export class AnalysisRepository {
   async applyPlanProposal(proposalId: string): Promise<number> {
     let version = 0;
     await this.db.withExclusiveTransactionAsync(async (transaction) => {
-      const row = await transaction.getFirstAsync<Row>(
+      const row = await transaction.getFirstAsync<SqlRow>(
         "SELECT * FROM ai_proposals WHERE id=? AND kind='plan_change' AND status='pending' AND deleted_at IS NULL",
         proposalId,
       );
       if (!row) throw new Error('적용할 수 있는 대기 제안을 찾지 못했습니다.');
-      const payload = storedPlanChangePayload(text(row, 'payload_json'));
+      const payload = parsePlanChangePayload(sqliteText(row, 'payload_json'));
       const weekStartSetting = await transaction.getFirstAsync<{ value: string }>(
         "SELECT value FROM settings WHERE key='week_start_day'",
       );
@@ -216,7 +186,7 @@ export class AnalysisRepository {
         throw new Error('제안 날짜가 현재 주 시작 요일과 일치하지 않아 적용하지 않았습니다.');
       }
       const accounts = await transaction.getAllAsync<{ id: string }>(
-        'SELECT id FROM accounts WHERE deleted_at IS NULL ORDER BY sort_order,created_at',
+        'SELECT id FROM accounts WHERE deleted_at IS NULL AND archived=0 ORDER BY sort_order,created_at',
       );
       const activeIds = new Set(accounts.map((account) => account.id));
       const proposedIds = Object.keys(payload.minutesByAccount);
@@ -224,36 +194,14 @@ export class AnalysisRepository {
         throw new Error('제안이 현재 사용 중인 모든 시간계정을 포함하지 않아 적용하지 않았습니다.');
       }
 
-      const current = await transaction.getFirstAsync<{ version: number | null }>(
-        'SELECT MAX(version) AS version FROM weekly_plans WHERE week_start=?',
-        payload.weekStart,
-      );
-      version = (current?.version ?? 0) + 1;
-      const planId = randomUUID();
       const now = new Date().toISOString();
-      await transaction.runAsync(
-        `INSERT INTO weekly_plans (id,week_start,version,note,source,created_at,updated_at)
-         VALUES (?,?,?,?, 'ai_applied',?,?)`,
-        planId,
-        payload.weekStart,
-        version,
-        payload.note || text(row, 'rationale'),
+      version = await appendWeeklyPlanVersion(transaction, {
+        weekStart: payload.weekStart,
+        minutesByAccount: payload.minutesByAccount,
+        source: 'ai_applied',
+        note: payload.note || sqliteText(row, 'rationale'),
         now,
-        now,
-      );
-      for (const account of accounts) {
-        await transaction.runAsync(
-          `INSERT INTO weekly_plan_lines
-            (id,weekly_plan_id,account_id,planned_minutes,created_at,updated_at)
-           VALUES (?,?,?,?,?,?)`,
-          randomUUID(),
-          planId,
-          account.id,
-          payload.minutesByAccount[account.id],
-          now,
-          now,
-        );
-      }
+      });
       await transaction.runAsync(
         "UPDATE ai_proposals SET status='applied',applied_at=?,updated_at=? WHERE id=? AND status='pending'",
         now,

@@ -36,7 +36,7 @@ try {
     $previousPreference = $ErrorActionPreference
     try {
       $ErrorActionPreference = 'Continue'
-      & npx.cmd supabase@latest secrets set --env-file $tempPath
+      & npx.cmd supabase@2.116.0 secrets set --env-file $tempPath
       $nativeExitCode = $LASTEXITCODE
     } finally {
       $ErrorActionPreference = $previousPreference

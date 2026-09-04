@@ -3,15 +3,14 @@ import { describe, expect, it } from 'vitest';
 import { parseAuthCallbackUrl } from '@/services/auth-callback';
 
 describe('magic-link auth callback', () => {
-  it('reads implicit-flow session tokens from the URL fragment', () => {
+  it('rejects implicit-flow session tokens from the URL fragment', () => {
     expect(
       parseAuthCallbackUrl(
         'oosops://auth/callback#access_token=header.payload.signature&refresh_token=refresh-token&type=magiclink',
       ),
     ).toEqual({
-      kind: 'session',
-      accessToken: 'header.payload.signature',
-      refreshToken: 'refresh-token',
+      kind: 'error',
+      message: 'PKCE 로그인 코드가 없습니다. 새 로그인 링크를 요청하십시오.',
     });
   });
 
@@ -19,6 +18,17 @@ describe('magic-link auth callback', () => {
     expect(parseAuthCallbackUrl('oosops://auth/callback?code=encoded%2Dcode')).toEqual({
       kind: 'code',
       code: 'encoded-code',
+    });
+  });
+
+  it('does not accept a PKCE-looking code from the URL fragment', () => {
+    expect(parseAuthCallbackUrl('oosops://auth/callback#code=intercepted-code')).toEqual({
+      kind: 'error',
+      message: 'PKCE 로그인 코드가 없습니다. 새 로그인 링크를 요청하십시오.',
+    });
+    expect(parseAuthCallbackUrl('oosops://auth/callback#state=value?code=fragment-query-code')).toEqual({
+      kind: 'error',
+      message: 'PKCE 로그인 코드가 없습니다. 새 로그인 링크를 요청하십시오.',
     });
   });
 

@@ -4,7 +4,7 @@
 
 - TP-AC-01~TP-AC-18은 AC-1~AC-18과 1:1로 대응한다.
 - 자동테스트·번들 성공만으로 알림, 공유 sheet, 오프라인, 탭 수, 아이콘 실행을 통과 처리하지 않는다.
-- 최종 대상은 EAS development build가 설치된 Android 실기기다. 기기 모델, Android 버전, 앱 build URL/ID, 실행 날짜를 결과에 남긴다.
+- 각 구현 단계의 회귀 대상은 EAS development build가 설치된 Android 실기기다. Phase 4S의 최종 개인용 대상은 development client가 아닌 standalone Android build이며, 기기 모델·Android 버전·앱 build URL/ID·실행 날짜를 결과에 남긴다.
 - 실패/권한 거부/앱 재시작/비행기 모드/소프트 삭제·복구 경로를 포함한다.
 
 ## 자동 게이트 결과 — 2026-08-20
@@ -61,7 +61,7 @@
 
 | ID | 자동/코드 증빙 | development build 수동 절차 | 현재 상태 |
 |---|---|---|---|
-| TP-AC-19 | SQLite v2 backfill/trigger 실제 실행, 매직링크 callback fragment/PKCE/error 파서, pull-before-push 및 pristine seed 교체 bootstrap | 이메일 링크를 같은 기기에서 열어 앱 복귀·로그인 → 대기 0 확인 → 앱 데이터 초기화 후 세션 유지 재실행 → 전체 데이터 대조 | **통과**: 원격 63행, 복구 로컬 계획 1/14·기록 4·outbox 0·충돌 0, SQLite `quick_check=ok` |
+| TP-AC-19 | SQLite v2 backfill/trigger 실제 실행, 매직링크 callback·pull-before-push·pristine seed 교체 bootstrap. 당시 build는 implicit/PKCE parser를 사용했으며 현재 `0.4.1(8)`은 PKCE code-only로 강화됨 | 이메일 링크를 같은 기기에서 열어 앱 복귀·로그인 → 대기 0 확인 → 앱 데이터 초기화 후 세션 유지 재실행 → 전체 데이터 대조 | **통과(역사적 Phase 2 결과)**: 원격 63행, 복구 로컬 계획 1/14·기록 4·outbox 0·충돌 0, SQLite `quick_check=ok`. 현재 PKCE/SecureStore 회귀는 TP-R-03에서 별도 대기 |
 | TP-AC-20 | outbox unique capture, LWW 순수 함수, local/remote 양측 승자·충돌 단위테스트 | 모바일 데이터 차단 상태에서 기록 → 온라인 복귀 → 자동 전송 확인 → 충돌 로그와 최종값 확인 | **통과**: 오프라인 outbox 0→1, 온라인 1→0·원격 63→64; 실제 병합 충돌 7건 UI 표시 확인 후 검증 데이터 정리 |
 | TP-AC-21 | 설정 UI에 로그인·마지막 시각·대기 건수·수동 버튼·충돌 목록 연결 | `지금 동기화` 탭 → 시각 갱신, 대기 0, 로컬 기록 보존 확인 | **통과**: 최종 복원 후 시각 23:03:46→23:05:38, 대기 0·충돌 없음 |
 | TP-AC-22 | 원격 migration 적용, DB lint 오류 0, 익명 REST SELECT·RPC HTTP 401, 모든 정책에 `to authenticated`와 `(select auth.uid()) = user_id`; `phase_2_rls.sql`로 실제 소유자/타 사용자 인증 역할 실행 | 계정 A/B와 동등한 원격 역할 시뮬레이션으로 소유자 SELECT 허용 및 타 사용자 SELECT/UPDATE/DELETE/INSERT 차단 확인 | **통과**: `phase_2_rls_passed`, 트랜잭션 전체 롤백으로 데이터 변경 없음 |
@@ -121,6 +121,32 @@ Q-010 승인 뒤 `ai-analysis` Edge Function v2를 `verify_jwt=true`로 배포�
 5. 구조화 파싱에 실패하면 원문만 표시되고 제안 카드는 생기지 않는다.
 6. 계획 제안은 모든 활성 시간계정과 대상 주를 포함하며 `적용` 확인 전 계획·항목·KPI 값이 바뀌지 않는다.
 
+## Phase 4R 동작 보존 리팩터 게이트 — 2026-09-04 대기
+
+아래 표는 기존 Phase 4 통과 기록을 덮어쓰지 않는 `0.4.1(8)` 전용 회귀 계획이다. 아직 실행하지 않은 결과는 모두 대기로 기록하며 실제 명령·원격·기기 결과가 생긴 뒤에만 통과로 바꾼다.
+
+| ID | 관련 AC | 검증 내용 | 현재 상태 |
+|---|---|---|---|
+| TP-R-01 | AC-31, AC-34 | `mobile/`에서 `npm ci`, `npm run verify`; TypeScript/ESLint, 전체 Vitest·커버리지, 모바일↔Edge 계약, Expo 호환·doctor, Android Hermes bundle | **통과**: 종료 코드 0, 33 files/166 tests, coverage 99.07/94.93/100/100, Supabase 계약 2 files/7 tests, dependency up to date, doctor 21/21, Android Hermes 1,488 modules |
+| TP-R-02 | AC-32 | fresh SQLite v5, v4→v5 상향, migration 실패 rollback, 기존 행·outbox 보존, `item_notification:` 정확 prefix와 유사키 제외, `PRAGMA quick_check` | **자동 통과·기기 대기**: 전체 migration/repository 회귀 포함 166 tests 통과. 기존 SM-S721N v4→v5 상향은 TP-R-08에서 확인 |
+| TP-R-03 | AC-33 | PKCE code-only/error callback, malformed 환경값 로컬 우선 시작, 기존 SQLite Auth key의 SecureStore 선이관·후삭제, 실패 시 평문 fallback 없음, 로그아웃 뒤 세션 비복원 | **자동 통과·새 build 실기기 대기**: auth storage/callback 회귀 포함 166 tests 통과 |
+| TP-R-04 | AC-34 | 전송 중 같은 ID 재수정 시 최신 outbox 보존, 다른 user 로그인 차단, unknown table/setting 중단, snapshot 원자성, 오래된 refresh·draft 저장 경합 방지 | **자동 통과·기기 대기**: repository/sync/draft/refresh 회귀 포함 166 tests 통과 |
+| TP-R-05 | AC-35 | clean Supabase DB에 전체 migration 적용·RLS SQL, linked dry-run/push/lint/RPC, 익명·타 사용자 DML/RPC 차단, 크기·개수·settings allowlist 오류 계약 | **linked 원격 통과·clean DB 대기**: migration `20260904020000` 적용, 재 dry-run up to date, DB lint 0, `phase_2_rls_passed`, 익명 direct DML 401 |
+| TP-R-06 | AC-35 | `ai-analysis` JSON content type·body/snapshot 한도·날짜/모드/질문 검증, owner JWT, secret marker redaction, 금지 서술과 `numbers_used` 검사, 함수 재배포·인증 실호출 | **자동 통과·원격 부분 통과**: 계약 2 files/7 tests 포함 전체 gate 통과, `ai-analysis` v3 ACTIVE·`verify_jwt=true`·무인증 401. 인증 실호출 대기 |
+| TP-R-07 | AC-31, AC-35 | `git diff --check`, 미사용 의존성/파일 검사, secret scan, `npm audit --omit=dev` 검토, 고정 action/CLI의 GitHub Actions 결과 | **로컬 통과·CI 대기**: diff/secret 0, source dead export 4개 제거, import 83 modules/0 cycle. knip 잔여는 CLI tunnel용 `@expo/ngrok`과 Expo config 경유 `expo-updates` false positive뿐. online audit timeout, offline cache `found 0 vulnerabilities` |
+| TP-R-08 | AC-31~AC-35 | 새 `0.4.1(8)` development build를 SM-S721N에 설치해 기존 데이터·로그인 이관, 앱 재시작, 핵심 5탭, 알림, 오프라인→온라인 동기화, AI 1회, 오류 로그 0 확인 | **EAS build 진행·실기기 대기**: build `ce72a92f-6fe5-456f-9a48-d9863788abaf` |
+
+원격에는 migration `20260904020000_harden_sync_rpc.sql`과 `ai-analysis` v3가 적용됐고 위 linked 결과를 확인했다. hosted Auth public settings의 `signupDisabled=false`는 저장소·앱의 단일 사용자 설정과 아직 다르며 Q-013 확인 대기다.
+
+## Phase 4S 개인용 standalone 게이트 — 미착수
+
+| ID | 관련 AC | 검증 내용 | 현재 상태 |
+|---|---|---|---|
+| TP-S-01 | AC-36 | developer tools가 없는 Android binary 생성·설치 후 PC·Metro 종료 상태에서 아이콘 콜드 스타트 | **미착수** |
+| TP-S-02 | AC-37 | 비행기 모드에서 기록·계획·프로젝트·알림·내보내기, 강제 종료·재실행 뒤 SQLite 보존 | **미착수** |
+| TP-S-03 | AC-38 | 온라인 복귀 뒤 세션·수동/자동 동기화와 AI 서버 호출, 서버 실패 중 로컬 기록 비차단 | **미착수** |
+| TP-S-04 | AC-39 | build ID·versionCode·SHA-256·서명/배포·embedded bundle rollback·native 변경 재빌드 문서 대조 | **미착수** |
+
 ## 하루치 실기기 기록 시나리오
 
 1. OOS Ops 아이콘으로 실행하고 시드/오늘 자동 항목을 확인한다.
@@ -156,5 +182,6 @@ Q-010 승인 뒤 `ai-analysis` Edge Function v2를 `verify_jwt=true`로 배포�
 | 2026-09-03 | app 0.3.1(5), removal migration | SM-S721N + 로컬/원격 제거 게이트 | Phase 3 철회 | **제거 완료** | 12 files/58 tests, Android 1,440 modules·error 0, 원격 Telegram resource 0, core record 보존 |
 | 2026-09-03 | app 0.3.2(6), repository closeout | SM-S721N(Galaxy S24 FE), Android 16/API 36 + 로컬·원격 정합성 게이트 | Phase 3 마감 | **통과** | 12 files/59 tests, strict unused·doctor 21/21·Android 1,440 modules, Metro 1,603 modules 재로드·앱 오류 0, legacy schema 제거·active 63행 보존 |
 | 2026-09-04 | app 0.4.0(7) source on 0.2.0(3) development client, `ai-analysis` v2 | SM-S721N(Galaxy S24 FE), Android 16/API 36 | TP-AC-27~30 | **Phase 4 통과** | 19 files/83 tests, doctor 21/21, Android export 1,447; 6개 모드·§5.7 네 질문을 포함한 실세션 9건, 입력 25,026·출력 7,271토큰·추정 $0.137304, 제안 적용/무시, outbox 0, 원격 계획 2·라인 28 확인 |
+| 2026-09-04 | app 0.4.1(8), build ID 미발급 | SM-S721N(Galaxy S24 FE), Android 16/API 36 예정 | TP-R-01~08 / AC-31~35 | **대기** | SecureStore native plugin 포함 새 development build, 전체·원격·실기기 결과는 `phase-4-refactor-readiness-2026-09-04.md`에 기록 |
 
 EAS의 새 build URL은 2026-09-16 03:24 KST에 만료되지만 로컬 APK와 이미 설치된 앱이 그 시각 삭제되는 것은 아니다. Android 버전과 TP-AC-01~TP-AC-17 결과를 같은 표에 이어서 기록한다.

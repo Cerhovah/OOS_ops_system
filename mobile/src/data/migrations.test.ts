@@ -71,11 +71,11 @@ describe('Phase 1 seed manifest', () => {
     expect(scheduleSeeds.find((seed) => seed[1] === 'seed-item-required')?.[2]).toBe(0b0111111);
   });
 
-  it('creates the additive v4 analysis schema, provider defaults, and captures later mutations', async () => {
+  it('creates the additive analysis schema, provider defaults, and captures later mutations', async () => {
     const db = new TestSQLiteDatabase();
     await migrateDatabase(db.asExpoDatabase());
 
-    expect(db.raw.prepare('PRAGMA user_version').get()).toMatchObject({ user_version: 4 });
+    expect(db.raw.prepare('PRAGMA user_version').get()).toMatchObject({ user_version: 5 });
     expect(db.raw.prepare("SELECT value FROM settings WHERE key='ai_provider'").get()).toMatchObject({ value: 'openai' });
     expect(db.raw.prepare("SELECT value FROM settings WHERE key='ai_model'").get()).toMatchObject({ value: 'gpt-5.6-terra' });
     const initial = db.raw.prepare('SELECT COUNT(*) AS count FROM sync_outbox').get() as { count: number };
@@ -98,6 +98,63 @@ describe('Phase 1 seed manifest', () => {
     expect(db.raw.prepare(
       "SELECT table_name FROM sync_outbox WHERE table_name='analysis_sessions' AND record_id='session-1'",
     ).get()).toMatchObject({ table_name: 'analysis_sessions' });
+    db.raw.close();
+  });
+
+  it('rolls back a partially executed migration together with its user_version', async () => {
+    const db = new TestSQLiteDatabase();
+    const originalExec = db.execAsync.bind(db);
+    let injected = false;
+    const failure = vi.spyOn(db, 'execAsync').mockImplementation(async (source) => {
+      if (!injected && source.includes('ALTER TABLE weekly_plans ADD COLUMN updated_at')) {
+        injected = true;
+        db.raw.exec('ALTER TABLE weekly_plans ADD COLUMN updated_at TEXT;');
+        throw new Error('injected migration interruption');
+      }
+      await originalExec(source);
+    });
+
+    await expect(migrateDatabase(db.asExpoDatabase())).rejects.toThrow('injected migration interruption');
+    expect(db.raw.prepare('PRAGMA user_version').get()).toMatchObject({ user_version: 1 });
+    expect(db.raw.prepare('PRAGMA table_info(weekly_plans)').all()).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'updated_at' })]),
+    );
+
+    failure.mockRestore();
+    await migrateDatabase(db.asExpoDatabase());
+    expect(db.raw.prepare('PRAGMA user_version').get()).toMatchObject({ user_version: 5 });
+    db.close();
+  });
+
+  it('replaces legacy settings triggers when upgrading an existing v4 database', async () => {
+    const db = new TestSQLiteDatabase();
+    await migrateDatabase(db.asExpoDatabase());
+    db.raw.exec(`
+      DROP TRIGGER sync_capture_settings_insert;
+      DROP TRIGGER sync_capture_settings_update;
+      CREATE TRIGGER sync_capture_settings_insert AFTER INSERT ON settings
+      WHEN NEW.key LIKE 'item_notification:%' BEGIN SELECT 1; END;
+      CREATE TRIGGER sync_capture_settings_update AFTER UPDATE ON settings
+      WHEN NEW.key LIKE 'item_notification:%' BEGIN SELECT 1; END;
+      PRAGMA user_version = 4;
+    `);
+
+    await migrateDatabase(db.asExpoDatabase());
+
+    expect(db.raw.prepare('PRAGMA user_version').get()).toMatchObject({ user_version: 5 });
+    const triggerSql = db.raw.prepare(
+      "SELECT group_concat(sql, '\n') AS sql FROM sqlite_master WHERE type='trigger' AND name LIKE 'sync_capture_settings_%'",
+    ).get() as { sql: string };
+    expect(triggerSql.sql).toContain("substr(NEW.key, 1, 18) = 'item_notification:'");
+    expect(triggerSql.sql).not.toContain("NEW.key LIKE 'item_notification:%'");
+
+    db.raw.exec('DELETE FROM sync_outbox;');
+    db.raw.prepare(
+      "INSERT INTO settings (key,value,updated_at) VALUES ('itemXnotification:not-a-prefix','keep',?)",
+    ).run('2026-09-04T02:00:00.000Z');
+    expect(db.raw.prepare(
+      "SELECT COUNT(*) AS count FROM sync_outbox WHERE record_id='itemXnotification:not-a-prefix'",
+    ).get()).toMatchObject({ count: 0 });
     db.raw.close();
   });
 
@@ -179,8 +236,10 @@ describe('Phase 1 seed manifest', () => {
     const remoteAccount = db.raw.prepare(
       "SELECT * FROM accounts WHERE id='seed-account-sleep'",
     ).get() as Record<string, string | number | null>;
-
     expect(await repository.shouldReplaceSeedBootstrap(true)).toBe(true);
+    db.raw.prepare(
+      "INSERT INTO settings (key,value,updated_at) VALUES ('item_notification:old-item','1',?),('itemXnotification:local-only','keep',?)",
+    ).run('2026-09-02T01:00:00.000Z', '2026-09-02T01:00:00.000Z');
     await repository.applyRemoteRecords([{
       user_id: 'user-a',
       table_name: 'accounts',
@@ -196,6 +255,8 @@ describe('Phase 1 seed manifest', () => {
     expect(db.raw.prepare('SELECT COUNT(*) AS count FROM weekly_plans').get()).toMatchObject({ count: 0 });
     expect(db.raw.prepare('SELECT COUNT(*) AS count FROM sync_outbox').get()).toMatchObject({ count: 0 });
     expect(db.raw.prepare('SELECT COUNT(*) AS count FROM sync_conflicts').get()).toMatchObject({ count: 0 });
+    expect(db.raw.prepare("SELECT value FROM settings WHERE key='item_notification:old-item'").get()).toBeUndefined();
+    expect(db.raw.prepare("SELECT value FROM settings WHERE key='itemXnotification:local-only'").get()).toMatchObject({ value: 'keep' });
     db.raw.close();
   });
 

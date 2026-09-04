@@ -1,7 +1,6 @@
 import { Stack } from 'expo-router';
 import { SQLiteProvider } from 'expo-sqlite';
 import { Suspense, useEffect } from 'react';
-import { Text } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { LoadingView } from '@/components/ui';
@@ -42,8 +41,4 @@ export default function RootLayout() {
       </Suspense>
     </SafeAreaProvider>
   );
-}
-
-export function UnmatchedError() {
-  return <Text>화면을 열 수 없습니다.</Text>;
 }

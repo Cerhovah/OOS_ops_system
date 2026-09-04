@@ -1,9 +1,11 @@
 import { useSQLiteContext } from 'expo-sqlite';
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { AppState } from 'react-native';
 
 import { dateKey, timerDurationMinutes } from '@/domain/calculations';
 import { AppRepository } from '@/data/repository';
 import { shareFullJson, shareTableCsv } from '@/services/export-service';
+import { publishLocalMutation } from '@/services/local-mutation-signal';
 import {
   cancelTimerLimitNotification,
   ensureNotificationSchedule,
@@ -83,8 +85,8 @@ interface AppContextValue {
     snapshotJson: string,
     note: string | null,
   ) => Promise<void>;
-  getSetting: (key: string) => Promise<string | null>;
   setSetting: (key: string, value: string) => Promise<void>;
+  setSettings: (values: Readonly<Record<string, string>>) => Promise<void>;
   getWeeklyComment: (weekStart: string) => Promise<string>;
   saveWeeklyComment: (weekStart: string, value: string) => Promise<void>;
   exportJson: () => Promise<void>;
@@ -101,23 +103,46 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const repository = useMemo(() => new AppRepository(db), [db]);
   const [snapshot, setSnapshot] = useState<AppSnapshot>(emptySnapshot);
   const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState(false);
+  const [activeOperations, setActiveOperations] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const loadedDate = useRef(dateKey(new Date()));
+  const refreshSequence = useRef(0);
+  const busy = activeOperations > 0;
 
   const refresh = useCallback(async () => {
+    const sequence = ++refreshSequence.current;
     try {
-      setSnapshot(await repository.loadSnapshot(dateKey(new Date())));
+      const today = dateKey(new Date());
+      const nextSnapshot = await repository.loadSnapshot(today);
+      if (sequence !== refreshSequence.current) return;
+      setSnapshot(nextSnapshot);
+      loadedDate.current = today;
       setError(null);
     } catch (caught) {
+      if (sequence !== refreshSequence.current) return;
       setError(caught instanceof Error ? caught.message : '데이터를 불러오지 못했습니다.');
       throw caught;
     } finally {
-      setLoading(false);
+      if (sequence === refreshSequence.current) setLoading(false);
     }
   }, [repository]);
 
   useEffect(() => {
-    void refresh();
+    void refresh().catch(() => undefined);
+  }, [refresh]);
+
+  useEffect(() => {
+    const refreshAfterDateChange = () => {
+      if (dateKey(new Date()) !== loadedDate.current) void refresh().catch(() => undefined);
+    };
+    const interval = setInterval(refreshAfterDateChange, 60_000);
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') void refresh().catch(() => undefined);
+    });
+    return () => {
+      clearInterval(interval);
+      subscription.remove();
+    };
   }, [refresh]);
 
   useEffect(() => {
@@ -134,10 +159,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [loading, repository, snapshot.closures, snapshot.items, snapshot.schedules, snapshot.settings]);
 
   const mutate = useCallback(
-    async <T,>(task: () => Promise<T>, shouldRefresh = true): Promise<T> => {
-      setBusy(true);
+    async <T,>(
+      task: () => Promise<T>,
+      options: { refresh?: boolean; signalSync?: boolean } = {},
+    ): Promise<T> => {
+      const shouldRefresh = options.refresh ?? true;
+      const shouldSignalSync = options.signalSync ?? true;
+      setActiveOperations((count) => count + 1);
       try {
         const result = await task();
+        if (shouldSignalSync) publishLocalMutation();
         if (shouldRefresh) await refresh();
         return result;
       } catch (caught) {
@@ -145,7 +176,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setError(message);
         throw caught;
       } finally {
-        setBusy(false);
+        setActiveOperations((count) => Math.max(0, count - 1));
       }
     },
     [refresh],
@@ -207,7 +238,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
           await repository.closeDay(day, planned, actual, snapshotJson, note);
           await ensureNotificationSchedule(repository, true, snapshot.items, snapshot.schedules);
         }),
-      getSetting: (key) => repository.getSetting(key),
       setSetting: (key, settingValue) =>
         mutate(async () => {
           await repository.setSetting(key, settingValue);
@@ -217,20 +247,37 @@ export function AppProvider({ children }: { children: ReactNode }) {
             await ensureNotificationSchedule(repository, todayClosed, snapshot.items, snapshot.schedules);
           }
         }),
+      setSettings: (settingValues) =>
+        mutate(async () => {
+          await repository.setSettings(settingValues);
+          const changesNotificationSchedule = Object.keys(settingValues).some(
+            (key) => key.startsWith('close_notification')
+              || key === 'notification_always'
+              || key.startsWith('item_notification:'),
+          );
+          if (changesNotificationSchedule) {
+            const today = dateKey(new Date());
+            const todayClosed = snapshot.closures.some((closure) => closure.date === today);
+            await ensureNotificationSchedule(repository, todayClosed, snapshot.items, snapshot.schedules);
+          }
+        }),
       getWeeklyComment: (weekStart) => repository.getWeeklyComment(weekStart),
-      saveWeeklyComment: (weekStart, comment) => mutate(() => repository.saveWeeklyComment(weekStart, comment), false),
+      saveWeeklyComment: (weekStart, comment) => mutate(
+        () => repository.saveWeeklyComment(weekStart, comment),
+        { refresh: false },
+      ),
       exportJson: () =>
         mutate(async () => {
           const tables = await repository.exportTables();
           await shareFullJson(tables);
-        }, false),
+        }, { refresh: false, signalSync: false }),
       exportCsv: (tableName) =>
         mutate(async () => {
           const tables = await repository.exportTables();
           const table = tables[tableName];
           if (!table) throw new Error(`내보낼 테이블을 찾을 수 없습니다: ${tableName}`);
           await shareTableCsv(tableName, table);
-        }, false),
+        }, { refresh: false, signalSync: false }),
       requestNotifications: () =>
         mutate(async () => {
           const granted = await requestNotificationPermission(repository);
@@ -240,8 +287,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
             await ensureNotificationSchedule(repository, todayClosed, snapshot.items, snapshot.schedules);
           }
           return granted;
-        }, false),
-      testNotification: () => mutate(() => scheduleTestNotification(repository), false),
+        }, { refresh: false, signalSync: false }),
+      testNotification: () => mutate(
+        () => scheduleTestNotification(repository),
+        { refresh: false, signalSync: false },
+      ),
       resetAllData: () => mutate(() => repository.resetAllData()),
     }),
     [busy, error, loading, mutate, refresh, repository, snapshot],

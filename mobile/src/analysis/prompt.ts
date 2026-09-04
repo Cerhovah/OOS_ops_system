@@ -7,7 +7,7 @@ export const ANALYSIS_SYSTEM_PROMPT = `당신은 개인 운영체제의 데이�
 1. 첨부된 데이터와 그 데이터로 계산할 수 있는 값에만 근거한다. 데이터가 부족하면 부족하다고 명시한다.
 2. 사용한 숫자는 기간, 계정 또는 항목, 값과 단위를 numbers_used에 구체적으로 밝힌다.
 3. 결론은 선택지로 제시하며 결정권이 사용자에게 있음을 유지한다.
-4. 사용자의 성향, 심리, 동기 또는 위험을 서술하거나 도덕적·격려적·질책적 표현을 쓰지 않는다.
+4. 사용자의 성향, 심리, 동기 또는 위험을 서술하거나 도덕적·격려적·질책적 표현을 쓰지 않는다. 사용자를 문법적 주어로 평가하지 말고 계정·항목·기간·프로젝트의 숫자를 주어로 쓴다.
 5. 변경을 이미 적용했다고 말하지 않는다. 변경안은 proposals에만 넣는다.
 6. 감정이나 과거 프로파일이 아니라 첨부된 누적 데이터만 사용한다.
 7. plan_change 제안은 week_start와 모든 대상 account_id의 planned_minutes를 포함한다.
@@ -95,8 +95,14 @@ export const ANALYSIS_EXAMPLE_QUESTIONS = [
 ] as const;
 
 const forbiddenOutputFragments = [
-  '잘했', '못했', '아쉬', '연속!', '무너지', '하는 경향이', '경향이 있어요', '조심하', '게으',
+  '잘했', '못했', '아쉬', '연속!', '무너지', '조심하', '게으',
   '의지가', '동기 부족', '심리적', '성향은', '당신의 성향', '사용자의 성향', '위험한 사람',
+] as const;
+
+const personDescriptionPatterns = [
+  /(?:^|[.!?\n,:;]\s*)(?:[-*•]\s*)?(?:사용자(?:는|은|가|의)|당신(?:은|이|의)?|귀하(?:는|가|의)?|너(?:는|가|의)?|본인(?:은|이|가|의))/i,
+  /(?:^|[.!?\n,:;]\s*)(?:[-*•]\s*)?[^.!?\n\d]{1,40}(?:사람|인간)(?:입니다|이다|이에요|예요)/i,
+  /(?:^|[.!?\n,:;]\s*)(?:[-*•]\s*)?(?:you|your|the user(?:'s)?)(?:\s|$)/i,
 ] as const;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -108,7 +114,9 @@ function safeText(value: unknown): string | null {
 }
 
 function containsForbiddenDescription(value: string): boolean {
-  return forbiddenOutputFragments.some((fragment) => value.includes(fragment));
+  const normalized = value.replace(/[^\S\r\n]+/g, ' ').replace(/\r\n?/g, '\n');
+  return forbiddenOutputFragments.some((fragment) => normalized.includes(fragment))
+    || personDescriptionPatterns.some((pattern) => pattern.test(normalized));
 }
 
 function blockedOutput(): ParsedAnalysisOutput {
@@ -171,15 +179,17 @@ export function parseAnalysisResponse(raw: string): ParsedAnalysisOutput {
     if (numbersUsed.some((value) => value === null) || proposals.some((value) => value === null)) {
       throw new Error('invalid array member');
     }
+    const checkedNumbers = numbersUsed.filter((value): value is AnalysisNumberUsed => value !== null);
     const checkedProposals = proposals.filter((value): value is AnalysisPlanChangeProposal => value !== null);
     const prose = [
       answer,
+      ...checkedNumbers.flatMap((value) => [value.label, value.unit ?? '', value.period]),
       ...checkedProposals.flatMap((value) => [value.rationale, value.payload.note ?? '']),
     ].join('\n');
     if (containsForbiddenDescription(prose)) return blockedOutput();
     return {
       answer,
-      numbersUsed: numbersUsed.filter((value): value is AnalysisNumberUsed => value !== null),
+      numbersUsed: checkedNumbers,
       proposals: checkedProposals,
       structured: true,
       warning: null,

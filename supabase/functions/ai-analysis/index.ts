@@ -3,28 +3,23 @@ import { createClient } from 'npm:@supabase/supabase-js@2.112.4';
 import {
   ANALYSIS_CONTRACT_VERSION,
   ANALYSIS_MODEL,
-  ANALYSIS_MODES,
   ANALYSIS_MODE_LABELS,
   ANALYSIS_OUTPUT_JSON_SCHEMA,
   ANALYSIS_PROVIDER,
   ANALYSIS_SYSTEM_PROMPT,
 } from '../_shared/analysis-contract.ts';
+import {
+  isJsonContentType,
+  MAX_ANALYSIS_REQUEST_BYTES,
+  parseAnalysisRequestBytes,
+  type AnalysisRequest,
+} from '../_shared/analysis-request.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
-
-type AnalysisMode = (typeof ANALYSIS_MODES)[number];
-
-interface AnalysisRequest {
-  mode: AnalysisMode;
-  question: string;
-  rangeStart: string;
-  rangeEnd: string;
-  dataSnapshotJson: string;
-}
 
 function json(status: number, body: Readonly<Record<string, unknown>>): Response {
   return Response.json(body, {
@@ -41,26 +36,6 @@ function requiredEnv(name: string): string {
   const value = Deno.env.get(name)?.trim();
   if (!value) throw new Error(`${name}_missing`);
   return value;
-}
-
-function parseRequest(value: unknown): AnalysisRequest | null {
-  if (!isRecord(value) || typeof value.mode !== 'string' || !ANALYSIS_MODES.includes(value.mode as AnalysisMode)) return null;
-  if (typeof value.question !== 'string' || !value.question.trim() || value.question.length > 2_000) return null;
-  if (typeof value.rangeStart !== 'string' || typeof value.rangeEnd !== 'string') return null;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value.rangeStart) || !/^\d{4}-\d{2}-\d{2}$/.test(value.rangeEnd)) return null;
-  if (typeof value.dataSnapshotJson !== 'string' || value.dataSnapshotJson.length > 750_000) return null;
-  try {
-    if (!isRecord(JSON.parse(value.dataSnapshotJson))) return null;
-  } catch {
-    return null;
-  }
-  return {
-    mode: value.mode as AnalysisMode,
-    question: value.question.trim(),
-    rangeStart: value.rangeStart,
-    rangeEnd: value.rangeEnd,
-    dataSnapshotJson: value.dataSnapshotJson,
-  };
 }
 
 function userInput(request: AnalysisRequest): string {
@@ -91,6 +66,40 @@ function token(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }
 
+async function readRawBody(req: Request): Promise<Uint8Array | null> {
+  const declaredLength = req.headers.get('Content-Length');
+  if (declaredLength && /^\d+$/.test(declaredLength.trim()) && Number(declaredLength) > MAX_ANALYSIS_REQUEST_BYTES) {
+    return null;
+  }
+  if (!req.body) return new Uint8Array();
+
+  const reader = req.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > MAX_ANALYSIS_REQUEST_BYTES) {
+        await reader.cancel().catch(() => undefined);
+        return null;
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  const body = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    body.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return body;
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST') return json(405, { error: 'method_not_allowed' });
@@ -98,6 +107,7 @@ Deno.serve(async (req: Request) => {
   const authorization = req.headers.get('Authorization');
   const bearer = authorization?.match(/^Bearer\s+(.+)$/i)?.[1];
   if (!authorization || !bearer) return json(401, { error: 'unauthorized' });
+  if (!isJsonContentType(req.headers.get('Content-Type'))) return json(415, { error: 'unsupported_media_type' });
 
   let supabaseUrl: string;
   let supabaseAnonKey: string;
@@ -120,14 +130,19 @@ Deno.serve(async (req: Request) => {
   const { data: userData, error: userError } = await supabase.auth.getUser(bearer);
   if (userError || !userData.user || userData.user.id !== ownerUserId) return json(403, { error: 'forbidden' });
 
-  let body: unknown;
+  let rawBody: Uint8Array | null;
   try {
-    body = await req.json();
+    rawBody = await readRawBody(req);
   } catch {
     return json(400, { error: 'invalid_request' });
   }
-  const analysis = parseRequest(body);
-  if (!analysis) return json(400, { error: 'invalid_request' });
+  if (!rawBody) return json(413, { error: 'request_too_large' });
+  const parsedRequest = parseAnalysisRequestBytes(rawBody);
+  if (!parsedRequest.ok) {
+    const status = parsedRequest.error === 'invalid_request' ? 400 : 413;
+    return json(status, { error: parsedRequest.error });
+  }
+  const analysis = parsedRequest.value;
 
   let openAiResponse: Response;
   try {

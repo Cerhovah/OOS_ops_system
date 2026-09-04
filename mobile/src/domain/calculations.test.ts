@@ -107,15 +107,39 @@ describe('plan and actual calculations', () => {
 
   it('selects the latest append-only plan version and its lines', () => {
     const plans: WeeklyPlan[] = [
-      { id: 'v1', weekStart: '2026-08-17', version: 1, note: null, source: 'app', createdAt: stamp },
-      { id: 'v2', weekStart: '2026-08-17', version: 2, note: null, source: 'app', createdAt: stamp },
+      {
+        id: 'v1', weekStart: '2026-08-17', version: 1, note: null, source: 'app',
+        createdAt: stamp, updatedAt: stamp, deletedAt: null,
+      },
+      {
+        id: 'v2', weekStart: '2026-08-17', version: 2, note: null, source: 'app',
+        createdAt: stamp, updatedAt: stamp, deletedAt: null,
+      },
     ];
     const lines: WeeklyPlanLine[] = [
-      { id: 'l1', weeklyPlanId: 'v1', accountId: 'a', plannedMinutes: 60 },
-      { id: 'l2', weeklyPlanId: 'v2', accountId: 'a', plannedMinutes: 90 },
+      {
+        id: 'l1', weeklyPlanId: 'v1', accountId: 'a', plannedMinutes: 60,
+        createdAt: stamp, updatedAt: stamp, deletedAt: null,
+      },
+      {
+        id: 'l2', weeklyPlanId: 'v2', accountId: 'a', plannedMinutes: 90,
+        createdAt: stamp, updatedAt: stamp, deletedAt: null,
+      },
     ];
     expect(latestPlanForWeek(plans, lines, '2026-08-17')).toEqual({ plan: plans[1], lines: [lines[1]] });
     expect(latestPlanForWeek(plans, lines, '2026-08-24')).toEqual({ plan: null, lines: [] });
+
+    const deletedAt = '2026-09-04T00:00:00.000Z';
+    expect(latestPlanForWeek(
+      plans,
+      [lines[0], { ...lines[1], deletedAt }],
+      '2026-08-17',
+    )).toEqual({ plan: plans[1], lines: [] });
+    expect(latestPlanForWeek(
+      [plans[0], { ...plans[1], deletedAt }],
+      [lines[0], { ...lines[1], deletedAt }],
+      '2026-08-17',
+    )).toEqual({ plan: plans[0], lines: [lines[0]] });
   });
 
   it('sums only active completed time entries by account', () => {

@@ -197,8 +197,12 @@ describe('AppRepository with real SQLite', () => {
     const currentVersions = snapshot.plans.filter((plan) => plan.weekStart === currentWeek);
     const copied = snapshot.plans.find((plan) => plan.weekStart === nextWeek);
     expect(currentVersions.map((plan) => plan.version).sort()).toEqual([1, 2, 3]);
+    expect(currentVersions.every((plan) => plan.updatedAt.length > 0 && plan.deletedAt === null)).toBe(true);
     expect(copied).toMatchObject({ version: 1, source: 'copy_last_week' });
-    expect(snapshot.planLines.filter((line) => line.weeklyPlanId === copied?.id)).toHaveLength(14);
+    const copiedLines = snapshot.planLines.filter((line) => line.weeklyPlanId === copied?.id);
+    expect(copiedLines).toHaveLength(14);
+    expect(copiedLines.every((line) => line.createdAt.length > 0 && line.updatedAt.length > 0 && line.deletedAt === null))
+      .toBe(true);
   });
 
   it('persists project/KPI, close-day, settings, comments, manual today items, and complete exports', async () => {
@@ -219,6 +223,7 @@ describe('AppRepository with real SQLite', () => {
     await repository.saveWeeklyComment(weekRange(today).start, '주간 코멘트');
     await repository.closeDay(today, 60, 30, JSON.stringify({ rows: [] }), '종료 메모');
     await repository.setSetting('test_setting', 'stored');
+    await repository.setSettings({ analysis_range_weeks: '8', analysis_include_notes: '0' });
     await repository.saveWeeklyPlan(weekRange(today).start, { 'seed-account-sleep': 49 * 60 }, 'app', '내보내기 버전');
     await repository.deleteKpi(kpi.id);
     await repository.deleteProject(projectId);
@@ -228,6 +233,8 @@ describe('AppRepository with real SQLite', () => {
     expect(snapshot.closures.find((closure) => closure.date === today)).toMatchObject({ note: '종료 메모' });
     expect(await repository.getWeeklyComment(weekRange(today).start)).toBe('주간 코멘트');
     expect(await repository.getSetting('test_setting')).toBe('stored');
+    expect(await repository.getSetting('analysis_range_weeks')).toBe('8');
+    expect(await repository.getSetting('analysis_include_notes')).toBe('0');
     expect(snapshot.kpis.find((candidate) => candidate.id === kpi.id)?.deletedAt).not.toBeNull();
     expect(snapshot.projects.find((candidate) => candidate.id === projectId)?.deletedAt).not.toBeNull();
 
@@ -247,5 +254,38 @@ describe('AppRepository with real SQLite', () => {
     snapshot = await repository.loadSnapshot(today);
     expect(snapshot.kpis.find((candidate) => candidate.id === kpi.id)?.deletedAt).toBeNull();
     expect(snapshot.projects.find((candidate) => candidate.id === projectId)?.deletedAt).toBeNull();
+  });
+
+  it('writes a settings batch atomically', async () => {
+    const originalRun = adapter.runAsync.bind(adapter);
+    let settingWrites = 0;
+    const failure = vi.spyOn(adapter, 'runAsync').mockImplementation(async (source, ...params) => {
+      if (source.includes('INSERT INTO settings') && ++settingWrites === 2) {
+        throw new Error('injected settings write failure');
+      }
+      return originalRun(source, ...params);
+    });
+
+    await expect(repository.setSettings({ atomic_first: '1', atomic_second: '2' }))
+      .rejects.toThrow('injected settings write failure');
+    failure.mockRestore();
+
+    expect(await repository.getSetting('atomic_first')).toBeNull();
+    expect(await repository.getSetting('atomic_second')).toBeNull();
+  });
+
+  it('restores every runtime default and clears owner state during an explicit full reset', async () => {
+    await repository.setSetting('ai_provider', 'changed');
+    await repository.setSetting('ai_model', 'changed');
+    adapter.raw.prepare(
+      "INSERT INTO sync_state (key,value,updated_at) VALUES ('sync_owner_user_id','user-a','2026-09-04T00:00:00.000Z')",
+    ).run();
+
+    await repository.resetAllData();
+
+    expect(await repository.getSetting('ai_provider')).toBe('openai');
+    expect(await repository.getSetting('ai_model')).toBe('gpt-5.6-terra');
+    expect(adapter.raw.prepare("SELECT value FROM sync_state WHERE key='sync_owner_user_id'").get()).toBeUndefined();
+    expect((await repository.loadSnapshot(dateKey(new Date()))).accounts).toHaveLength(14);
   });
 });

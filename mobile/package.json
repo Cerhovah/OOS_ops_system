@@ -1,7 +1,7 @@
 {
   "name": "oos-ops",
   "main": "expo-router/entry",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "dependencies": {
     "@react-native-community/netinfo": "12.0.1",
     "@supabase/supabase-js": "^2.112.4",
@@ -13,10 +13,10 @@
     "expo-linking": "~57.0.9",
     "expo-notifications": "~57.0.16",
     "expo-router": "~57.0.18",
+    "expo-secure-store": "~57.0.3",
     "expo-sharing": "~57.0.17",
     "expo-splash-screen": "~57.0.8",
     "expo-sqlite": "~57.0.2",
-    "expo-status-bar": "~57.0.1",
     "expo-system-ui": "~57.0.3",
     "react": "19.2.3",
     "react-dom": "19.2.3",
@@ -47,14 +47,16 @@
     "lint": "expo lint --max-warnings=0",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
+    "test:supabase-contracts": "vitest run --root .. --config mobile/vitest.config.mts supabase/functions/_shared/analysis-request.test.ts supabase/tests/security-hardening.test.ts",
     "deps:check": "expo install --check",
     "doctor": "expo-doctor .",
     "bundle:android": "expo export --platform android --output-dir dist",
-    "verify": "npm run typecheck && npm run lint && npm run test:coverage && npm run deps:check && npm run doctor && npm run bundle:android"
+    "verify": "npm run typecheck && npm run lint && npm run test:coverage && npm run test:supabase-contracts && npm run deps:check && npm run doctor && npm run bundle:android"
   },
   "engines": {
     "node": "24.19.x",
     "npm": "11.17.x"
   },
+  "packageManager": "npm@11.17.0",
   "private": true
 }

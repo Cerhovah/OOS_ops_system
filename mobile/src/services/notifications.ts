@@ -232,11 +232,11 @@ export function observeNotificationNavigation(): () => void {
   const response = Notifications.getLastNotificationResponse();
   if (response?.notification) {
     redirect(response.notification);
-    void Notifications.clearLastNotificationResponseAsync();
+    void Notifications.clearLastNotificationResponseAsync().catch(() => undefined);
   }
   const subscription = Notifications.addNotificationResponseReceivedListener((next) => {
     redirect(next.notification);
-    void Notifications.clearLastNotificationResponseAsync();
+    void Notifications.clearLastNotificationResponseAsync().catch(() => undefined);
   });
   return () => subscription.remove();
 }

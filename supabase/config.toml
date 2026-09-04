@@ -1,10 +1,11 @@
 project_id = "oos_ops_system"
 
-# Hosted project values are mirrored here so `config push` changes only the
-# explicitly approved mobile callback URL.
+# Repository defaults for local/clean-database verification. Review hosted
+# values individually; do not push this whole block over a production project.
 [auth]
 site_url = "http://localhost:3000"
 additional_redirect_urls = ["oosops://auth/callback"]
+enable_signup = false
 
 [auth.mfa.totp]
 enroll_enabled = true

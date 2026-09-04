@@ -133,7 +133,7 @@
 - 결과 및 위험: Supabase Auth 이메일 템플릿에 `{{ .Token }}` 설정이 필요하다. 향후 소셜 로그인을 추가해도 동기화 엔진은 session user ID만 사용하므로 교체 범위가 인증 UI로 제한된다.
 - 되돌림/재검토 조건: 사용자가 매직링크/소셜 로그인을 선택하거나 OTP 메일 전달 신뢰성이 수용 기준을 못 통과할 때 인증 UI만 교체한다.
 - 관련 불변조건/AC: I-7, I-8, AC-19, AC-22
-- 대체 관계: 없음
+- 대체 관계: 인증 방식은 ADR-011, 세션 저장 경계는 ADR-020이 대체. 기기 로컬 초기화 결정은 유지
 
 #### 2026-09-02 배포 제약 재검토
 
@@ -144,7 +144,7 @@
 ### ADR-011 — 무료 이메일 매직링크와 전용 앱 callback
 
 - 날짜: 2026-09-02
-- 상태: 승인
+- 상태: 부분 대체
 - 맥락: Supabase Free 기본 메일 제공자는 6자리 OTP 템플릿 수정을 거부하지만 기본 `ConfirmationURL` 매직링크는 제공한다. 재설치 복구와 RLS 사용자 ID는 계속 필요하다.
 - 결정: `signInWithOtp`에 `emailRedirectTo: oosops://auth/callback`을 전달해 기본 매직링크를 보내고, Expo Linking으로 콜드 스타트와 실행 중 callback을 처리한다. callback은 전용 경로만 허용하며 implicit access/refresh token 또는 향후 PKCE code를 세션 API로 전달하고 URL·토큰을 로그에 남기지 않는다.
 - 대안: 커스텀 SMTP OTP, Supabase 유료 플랜 OTP, 이메일·비밀번호, 익명 인증.
@@ -152,7 +152,7 @@
 - 결과 및 위험: 사용자는 이메일 앱에서 링크를 한 번 눌러야 하고 custom scheme가 포함된 native build가 필요하다. 앱 미설치 상태에서는 custom scheme callback이 열리지 않으므로 설치 후 로그인한다.
 - 되돌림/재검토 조건: 공개 배포에서 Universal/App Links를 갖춘 도메인이 준비되거나 custom SMTP/유료 Auth를 승인하면 callback을 상향한다.
 - 관련 불변조건/AC: I-7, I-8, I-12, AC-19, AC-22
-- 대체 관계: ADR-009의 OTP 인증 부분을 대체하며 기기 로컬 초기화 결정은 유지
+- 대체 관계: ADR-009의 OTP 인증 부분을 대체하며 기기 로컬 초기화 결정은 유지. ADR-020이 implicit token callback과 SQLite 세션 저장 부분만 대체
 
 ### ADR-010 — 원격 migration 이력 보존과 lint 후속 수정
 
@@ -244,6 +244,45 @@
 - 되돌림/재검토 조건: OpenAI 키 없는 사용자별 OAuth/위임 방식이 공식 제공되거나, Q-005에서 별도 운영 백엔드를 확정하거나, 다중 사용자 과금 정책을 승인할 때.
 - 관련 불변조건/AC: I-2, I-6, I-7, I-8, I-12, I-13, AC-27~AC-30
 - 대체 관계: ADR-016의 모바일 SecureStore 키 보관 결정을 대체
+
+### ADR-018 — Phase 4 이후 동작 보존 리팩터와 동기화 안전 경계
+
+- 날짜: 2026-09-04
+- 상태: 승인
+- 맥락: Phase 4 기능 게이트는 통과했지만 큰 화면·repository에 표시와 저장 책임이 모였고, 비동기 저장 중 draft 덮어쓰기, 전송 중 재수정된 outbox 삭제, 로그아웃 뒤 다른 계정과의 로컬 데이터 혼합 가능성이 후속 개발 위험으로 남았다.
+- 결정: 화면은 orchestration과 순수 view-model/editor section으로 나누고, SQLite 행 변환·주간 계획 writer·도메인 repository를 분리한다. 분석 package도 계산·snapshot 예산·proposal 검증 경계로 나눈다. 여러 설정과 일관 snapshot은 한 트랜잭션으로 처리한다. outbox ACK는 전송 당시 `local_updated_at`까지 일치할 때만 삭제하며, 기기 데이터는 최초 Supabase user ID에 고정한다. migration과 `user_version`은 같은 트랜잭션에서 올린다. 미지원 로컬/원격 sync schema는 조용히 건너뛰지 않고 오류로 중단한다.
+- 대안: Phase 4 화면·repository를 유지한 채 기능을 계속 추가, outbox 전체 ID 삭제와 계정별 cursor만으로 사용자 구분.
+- 근거: 순수 selector와 draft state는 기존 의미를 characterization test로 고정할 수 있고, 조건부 ACK·owner binding은 데이터 손실과 계정 간 혼합을 직접 차단한다.
+- 결과 및 위험: 현재 단일 기기 동작과 AC-1~AC-30의 의미는 유지하면서 변경 범위가 작아졌다. 자연키가 다른 UUID와 충돌하는 다중 기기 생성 정책은 데이터 의미 결정이 필요해 Q-011로 분리한다.
+- 되돌림/재검토 조건: 성능 계측에서 전체 snapshot facade가 실제 병목으로 확인되면 화면별 query/read model을 추가하되 공개 `AppRepository` 계약은 단계적으로 축소한다.
+- 관련 불변조건/AC: I-1~I-14, AC-1~AC-35
+- 대체 관계: ADR-007·ADR-008·ADR-012를 유지하며 안전 경계를 강화
+
+### ADR-019 — 재현 가능한 도구 버전과 자동 회귀 게이트
+
+- 날짜: 2026-09-04
+- 상태: 승인
+- 맥락: 문서와 보안 설정 스크립트의 `@latest` 명령, 로컬에만 의존한 Supabase 계약 검증, 예제 환경파일 부재가 깨끗한 체크아웃과 후속 유지보수의 재현성을 낮췄다.
+- 결정: Node/npm, EAS CLI, Supabase CLI와 GitHub Action commit을 고정한다. `mobile/.env.example`에는 공개 변수 이름만 둔다. GitHub Actions에서 잠금 설치·전체 모바일 gate·Supabase 계약 테스트와 깨끗한 PostgreSQL migration/RLS 테스트를 실행하고 Dependabot은 별도 검토 PR만 만든다.
+- 대안: 매 실행 최신 CLI 사용, 로컬 수동 gate만 유지, 자동 의존성 강제 업데이트.
+- 근거: 고정 버전은 같은 입력의 차이를 줄이고, clean database test는 SQLite 단위테스트가 찾을 수 없는 PostgreSQL 문법·권한 회귀를 잡는다.
+- 결과 및 위험: 공식 호환 업데이트는 자동 반영되지 않고 검토 PR을 거친다. npm advisory endpoint 장애는 별도 기록하며 `audit fix --force`는 ADR-004에 따라 실행하지 않는다.
+- 되돌림/재검토 조건: Expo SDK 상향 또는 고정 CLI 지원 종료 시 공식 호환표와 전체 gate를 통과한 버전으로 함께 갱신한다.
+- 관련 불변조건/AC: I-7, I-8, I-10, I-12, §10.3, §10.5
+- 대체 관계: ADR-001·ADR-004·ADR-005의 도구 원칙을 구체화
+
+### ADR-020 — 네이티브 PKCE-only 인증과 SecureStore 세션 이관
+
+- 날짜: 2026-09-04
+- 상태: 승인
+- 맥락: 기존 매직링크 callback은 URL fragment의 access/refresh token도 수락했고 Expo SQLite KV에 인증 세션을 평문으로 저장했다. 앱 데이터의 local-first SQLite와 인증 비밀의 저장 경계를 분리하고, 기존 설치의 세션을 데이터 손실 없이 상향해야 한다.
+- 결정: 매직링크 방식과 `oosops://auth/callback`은 유지하되 callback은 PKCE authorization code만 교환한다. 네이티브 세션은 `expo-secure-store`의 앱 전용 service와 `WHEN_UNLOCKED_THIS_DEVICE_ONLY`로 저장한다. Supabase URL에서 storage key를 안전하게 파생하고, 잘못된 공개 환경값은 앱의 로컬 기능을 crash시키지 않는다. 기존 Supabase Auth SQLite KV key는 SecureStore 쓰기 성공 뒤에만 삭제하며, 보안 저장 실패 시 SQLite로 fallback하지 않는다. key별 비동기 작업을 직렬화하고 로그아웃은 legacy key까지 지워 세션 재생성을 막는다. 웹은 플랫폼 제약상 browser localStorage를 유지한다.
+- 대안: implicit fragment token 유지, AsyncStorage/SQLite 평문 유지, migration 실패 시 평문 fallback, 기존 세션 일괄 폐기.
+- 근거: PKCE는 URL에 장기 세션 token을 싣지 않고, OS 보안 저장소는 로컬 업무 데이터와 인증 비밀을 분리한다. 선이관·후삭제와 직렬화는 기존 사용자 재로그인 비용과 refresh/logout 경합을 함께 줄인다.
+- 결과 및 위험: `expo-secure-store`는 native module이므로 `0.4.1(8)` 새 binary가 필요하다. Android 실기기 이관은 Phase 4R 게이트에서 확인 전이며, 웹 localStorage와 iOS keychain payload 한도는 별도 플랫폼 검증 대상이다. custom scheme는 공개 배포에서 Universal/App Links보다 callback 가로채기 방어가 약하므로 Q-005에서 재검토한다.
+- 되돌림/재검토 조건: SecureStore가 실제 Supabase session 크기를 저장하지 못하거나 공개 배포 도메인·Universal/App Links를 준비할 때 인증 storage/callback adapter만 교체한다.
+- 관련 불변조건/AC: I-7, I-8, I-12, AC-19, AC-22, AC-33
+- 대체 관계: ADR-009의 SQLite 세션 저장과 ADR-011의 implicit fragment callback 부분을 대체. 이메일 매직링크와 기기 로컬 초기화 결정은 유지
 
 ## 기록 형식
 

@@ -10,9 +10,10 @@
 - Phase 2 원격 migration 적용, 0.2.0 development APK, SM-S721N 실기기 AC-19~AC-22 게이트 완료
 - Phase 3 철회 마감: Telegram 제거와 함께 레거시 동기화 스키마·템플릿 잔여물·중복 테스트 기반·문서 드리프트 정리
 - Phase 4 여섯 분석 모드, 기간별 데이터 package, SQLite 세션·제안, 명시적 계획 적용과 Supabase 동기화 구현 및 AC-27~AC-30 게이트 통과
-- Q-010에서 OpenAI Responses API·`gpt-5.6-terra`·API 과금을 확정했다. 단일 소유자 Supabase Edge Function에서 실응답 6건, 제안 적용·무시, 원격 동기화를 SM-S721N으로 검증했다.
+- Q-010에서 OpenAI Responses API·`gpt-5.6-terra`·API 과금을 확정했다. 단일 소유자 Supabase Edge Function에서 6개 모드를 포함한 실세션 9건, 제안 적용·무시, 원격 동기화를 SM-S721N으로 검증했다.
+- Phase 4R 동작 보존 리팩터 코드 반영: SQLite v5, PKCE-only callback·네이티브 SecureStore 세션, repository/sync/UI/분석 모듈 분리, 동기화·RPC·AI 요청 보안 경계, 고정 버전 CI를 추가했다. 전체 자동 게이트와 원격 hardening migration·RLS/lint·Edge v3 무인증 거부는 통과했고, 인증 실호출·새 build 실기기·CI 게이트는 아직 대기 중이다.
 
-현재 소스 버전은 `0.4.0(7)`이며 Phase 1·2·4는 완료 상태이고 Phase 3은 제품 범위에서 철회·정리된 상태입니다.
+현재 소스 버전은 `0.4.1(8)`입니다. Phase 1·2·4의 완료 기록은 보존되지만, 이 리팩터 버전 자체의 최종 판정은 `docs/evidence/phase-4-refactor-readiness-2026-09-04.md`의 대기 항목을 모두 끝낸 뒤 내립니다. SecureStore 포함 EAS development build `ce72a92f-6fe5-456f-9a48-d9863788abaf`는 진행 중입니다. 다음 단계인 Phase 4S는 PC·Metro 없이 실행되는 개인용 standalone 빌드이며 아직 구현·발급되지 않았습니다.
 
 Phase 2·4의 실기기 결과와 철회된 Phase 3의 구현·제거 이력은 `docs/TESTPLAN.md`, `docs/evidence/phase-2-readiness-2026-09-02.md`, `docs/evidence/phase-3-readiness-2026-09-03.md`, `docs/evidence/phase-4-readiness-2026-09-04.md`에 기록되어 있습니다.
 
@@ -42,15 +43,18 @@ npm run verify
 1. `tsc --noEmit`
 2. ESLint(경고 포함 0건)
 3. Vitest와 도메인 커버리지 90% 게이트
-4. 현재 Expo SDK 의존성 호환성 검사
-5. `expo-doctor`
-6. Android Hermes 번들 생성
+4. 모바일과 Supabase Edge Function의 요청·보안 계약 테스트
+5. 현재 Expo SDK 의존성 호환성 검사
+6. `expo-doctor`
+7. Android Hermes 번들 생성
+
+깨끗한 체크아웃은 `mobile/.env.example`의 변수 이름만 참고하고 실제 공개 Supabase 값은 ignore된 `.env.local` 또는 EAS environment에서 공급합니다. GitHub Actions도 잠금 파일 설치·전체 모바일 게이트와 깨끗한 Supabase DB migration/RLS 테스트를 실행합니다.
 
 ## 개발 빌드 실행
 
 Android Studio/JDK 로컬 환경은 현재 개발 흐름에 요구하지 않습니다. `mobile/eas.json`의 `development` 프로필은 EAS Cloud에서 SDK 57 이미지로 설치 가능한 development-client APK를 생성합니다.
 
-EAS 프로젝트는 `@ljh951206/oos-ops`에 연결됐습니다. 현재 실기기에서 검증한 최신 네이티브 개발 클라이언트는 매직링크 callback을 포함한 `0.2.0(3)` build `154087e2-b93d-451a-b62c-ba6e988f4592`입니다. 이후 변경은 이 클라이언트에 이미 포함된 네이티브 모듈 범위 안에서 최신 JavaScript bundle로 검증했습니다. 빌드 ID·해시·과거 APK 경로는 `docs/TESTPLAN.md`와 `docs/evidence/`의 이력만 기준으로 합니다.
+EAS 프로젝트는 `@ljh951206/oos-ops`에 연결됐습니다. 실기기에서 마지막으로 검증한 네이티브 개발 클라이언트는 매직링크 callback을 포함한 `0.2.0(3)` build `154087e2-b93d-451a-b62c-ba6e988f4592`입니다. 현재 `0.4.1(8)`은 `expo-secure-store` native plugin을 새로 포함하므로 그 과거 클라이언트로 최종 검증할 수 없습니다. 새 development build 생성·설치·기존 세션 이관 확인은 Phase 4R 대기 항목입니다. 빌드 ID·해시·과거 APK 경로는 `docs/TESTPLAN.md`와 `docs/evidence/`의 이력만 기준으로 합니다.
 
 개발 클라이언트가 기기에 설치된 뒤 PC에서 다음 명령으로 개발 서버를 시작합니다.
 
@@ -68,6 +72,8 @@ cd mobile
 npx expo start --dev-client --tunnel
 ```
 
+이 절차는 개발 클라이언트용이므로 평상시 실행에 Metro가 필요합니다. PC 없이 여는 비개발용 Android binary는 Phase 4R 게이트 뒤 Phase 4S에서 별도로 생성·검증합니다. standalone 이후에도 로그인·동기화에는 Supabase 인터넷 연결, AI 분석에는 Supabase Edge Function과 OpenAI 연결이 필요하지만 기록·계획·프로젝트·로컬 알림은 SQLite 기반으로 오프라인 동작해야 합니다.
+
 ## 구현 기능
 
 - 오늘: 일정/수동/진행 중 항목, 타이머, 5개 기록 유형, 남은 가용시간, 오늘 종료
@@ -76,12 +82,12 @@ npx expo start --dev-client --tunnel
 - 프로젝트: 프로젝트 상태·실험·판정일, KPI 선택/기록, 연결 항목의 파생 투입시간
 - 설정: 계정·항목·프로젝트·KPI 관리, 소프트 삭제 복구, JSON/CSV 내보내기, 2단계 초기화
 - 알림: 오늘 종료, 선택형 항목 일정, 선택형 타이머 상한, Android HIGH 채널, 콜드 스타트 딥링크
-- 동기화: 이메일 매직링크와 앱 딥링크 복귀, SQLite outbox, online/foreground 자동 재시도, 수동 동기화, 마지막 동기화 시각, 충돌 로그, Supabase RLS
-- 분석: 감사·패턴·프로젝트·최적화·장기·자유질문, 4·8·12주 데이터 첨부, 세션 검색, 전송 snapshot 열람, 비용 기록, 사용자 확인 뒤에만 새 계획 버전 적용
+- 동기화: 이메일 매직링크의 PKCE code callback과 네이티브 SecureStore 세션, SQLite outbox, online/foreground 자동 재시도, 수동 동기화, 마지막 동기화 시각, 충돌 로그, Supabase RLS
+- 분석: 감사·패턴·프로젝트·최적화·장기·자유질문, 완료된 최근 4·8·12주 데이터 첨부, 세션 검색, 전송 snapshot 열람, 비용 기록, 사용자 확인 뒤에만 새 계획 버전 적용
 
 ## 환경변수와 비밀값
 
-Phase 2는 EAS 프로젝트의 `EXPO_PUBLIC_SUPABASE_*` 변수 두 개를 사용합니다. 로컬 개발값은 `npx eas-cli@latest env:pull development --non-interactive --path .env.local`로 받고 `.env.local`은 커밋하지 않습니다. 공개 URL/publishable key는 앱 배포용 값이며 데이터 보호는 RLS가 담당합니다. database password, service-role key, secret key는 앱이나 저장소에 넣지 않습니다.
+Phase 2는 EAS 프로젝트의 `EXPO_PUBLIC_SUPABASE_*` 변수 두 개를 사용합니다. 로컬 개발값은 `npx eas-cli@23.2.0 env:pull development --non-interactive --path .env.local`로 받고 `.env.local`은 커밋하지 않습니다. 공개 URL/publishable key는 앱 배포용 값이며 데이터 보호는 RLS가 담당합니다. database password, service-role key, secret key는 앱이나 저장소에 넣지 않습니다.
 
 | Phase | 값 | 정책 |
 |---|---|---|

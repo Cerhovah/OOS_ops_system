@@ -25,6 +25,7 @@ import {
   getSupabaseClient,
   isSupabaseConfigured,
 } from '@/services/supabase';
+import { subscribeToLocalMutations } from '@/services/local-mutation-signal';
 import { synchronize, type SyncRunResult } from '@/services/sync-service';
 
 interface SyncContextValue {
@@ -52,8 +53,6 @@ export function SyncProvider({ children }: { children: ReactNode }) {
   const db = useSQLiteContext();
   const linkingUrl = Linking.useLinkingURL();
   const app = useApp();
-  const appLoading = app.loading;
-  const appSnapshot = app.snapshot;
   const refreshApp = app.refresh;
   const repository = useMemo(() => new SyncRepository(db), [db]);
   const [session, setSession] = useState<Session | null>(null);
@@ -87,13 +86,30 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       return;
     }
     const client = getSupabaseClient();
-    void client.auth.getSession().then(({ data, error: authError }) => {
-      if (authError) setError(authError.message);
-      if (data.session) setSession(data.session);
-      setLoading(false);
-    });
+    void client.auth.getSession()
+      .then(({ data, error: authError }) => {
+        if (authError) setError(authError.message);
+        if (data.session) setSession(data.session);
+      })
+      .catch((caught: unknown) => setError(errorMessage(caught)))
+      .finally(() => setLoading(false));
     const { data } = client.auth.onAuthStateChange((_event, nextSession) => setSession(nextSession));
     return () => data.subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured) return;
+    const client = getSupabaseClient();
+    const updateAutoRefresh = (state: AppStateStatus) => {
+      if (state === 'active') client.auth.startAutoRefresh();
+      else client.auth.stopAutoRefresh();
+    };
+    updateAutoRefresh(AppState.currentState);
+    const subscription = AppState.addEventListener('change', updateAutoRefresh);
+    return () => {
+      subscription.remove();
+      client.auth.stopAutoRefresh();
+    };
   }, []);
 
   useEffect(() => {
@@ -151,15 +167,33 @@ export function SyncProvider({ children }: { children: ReactNode }) {
   }, [session, syncNow]);
 
   useEffect(() => {
-    if (!session || appLoading) return;
+    let timeout: ReturnType<typeof setTimeout> | null = null;
+    const unsubscribe = subscribeToLocalMutations(() => {
+      if (timeout) clearTimeout(timeout);
+      timeout = setTimeout(() => {
+        timeout = null;
+        void repository.pendingCount().then((count) => {
+          setPendingCount(count);
+          if (session && count > 0) void syncNow();
+        }).catch((caught: unknown) => setError(errorMessage(caught)));
+      }, 750);
+    });
+    return () => {
+      unsubscribe();
+      if (timeout) clearTimeout(timeout);
+    };
+  }, [repository, session, syncNow]);
+
+  useEffect(() => {
+    if (!session) return;
     const timeout = setTimeout(() => {
       void repository.pendingCount().then((count) => {
         setPendingCount(count);
         if (count > 0) void syncNow();
-      });
+      }).catch((caught: unknown) => setError(errorMessage(caught)));
     }, 1500);
     return () => clearTimeout(timeout);
-  }, [appLoading, appSnapshot, repository, session, syncNow]);
+  }, [repository, session, syncNow]);
 
   const value = useMemo<SyncContextValue>(() => ({
     configured: isSupabaseConfigured,
@@ -176,7 +210,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       const { error: authError } = await getSupabaseClient().auth.signInWithOtp({
         email: email.trim(),
         options: {
-          shouldCreateUser: true,
+          shouldCreateUser: false,
           emailRedirectTo: AUTH_CALLBACK_URL,
         },
       });

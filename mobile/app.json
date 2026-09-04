@@ -2,7 +2,7 @@
   "expo": {
     "name": "OOS Ops",
     "slug": "oos-ops",
-    "version": "0.4.0",
+    "version": "0.4.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "oosops",
@@ -10,12 +10,12 @@
     "ios": {
       "icon": "./assets/expo.icon",
       "bundleIdentifier": "com.oosops.app",
-      "buildNumber": "7",
+      "buildNumber": "8",
       "supportsTablet": true
     },
     "android": {
       "package": "com.oosops.app",
-      "versionCode": 7,
+      "versionCode": 8,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -41,6 +41,7 @@
       "expo-sqlite",
       "expo-notifications",
       "expo-sharing",
+      "expo-secure-store",
       "expo-dev-client"
     ],
     "experiments": {

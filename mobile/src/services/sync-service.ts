@@ -121,18 +121,19 @@ async function pushPending(repository: SyncRepository): Promise<number> {
       throw error;
     }
     const appliedKeys = parseAppliedKeys(data as unknown);
-    const appliedIds = outbox
+    const appliedRecords = outbox
       .filter((record) => appliedKeys.has(`${record.tableName}\u0000${record.recordId}`))
-      .map((record) => record.id);
-    await repository.removeOutbox(appliedIds);
-    pushed += appliedIds.length;
-    if (appliedIds.length < outbox.length) break;
+      .map((record) => ({ id: record.id, localUpdatedAt: record.localUpdatedAt }));
+    await repository.removeOutbox(appliedRecords);
+    pushed += appliedRecords.length;
+    if (appliedRecords.length < outbox.length) break;
   }
   return pushed;
 }
 
 export async function synchronize(db: SQLiteDatabase, userId: string): Promise<SyncRunResult> {
   const repository = new SyncRepository(db);
+  await repository.bindOwner(userId);
   const pulledRecords = await pullAll(userId, repository);
   const pushed = await pushPending(repository);
   const lastSyncedAt = new Date().toISOString();
