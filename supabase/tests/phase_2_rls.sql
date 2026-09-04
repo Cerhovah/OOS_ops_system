@@ -6,7 +6,9 @@ declare
 begin
   select id into v_user_id from auth.users order by created_at limit 1;
   if v_user_id is null then
-    raise exception 'phase_2_rls_requires_an_authenticated_fixture_user';
+    v_user_id := '00000000-0000-4000-8000-000000000022'::uuid;
+    insert into auth.users (id, aud, role, created_at, updated_at)
+    values (v_user_id, 'authenticated', 'authenticated', clock_timestamp(), clock_timestamp());
   end if;
 
   perform set_config('app.phase_2_rls_user_id', v_user_id::text, true);

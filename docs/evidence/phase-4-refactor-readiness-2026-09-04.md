@@ -66,7 +66,7 @@
 | SQLite v5와 migration rollback | migration/repository 집중 Vitest + `PRAGMA quick_check` | **자동 통과·기기 대기**: 전체 166 tests에 fresh/v4→v5·rollback·정확 prefix 회귀 포함. SM-S721N 상향은 대기 |
 | 정적 품질 | `git diff --check`, dead code/의존성, 금지 문구, secret scan | **통과**: diff/secret 0, source dead export 4개 제거, import 83 modules/0 cycle. knip 잔여는 의도적 `@expo/ngrok`과 `expo-updates` false positive |
 | 공급망 검토 | `npm audit --omit=dev` 결과 검토. endpoint 실패도 그대로 기록 | **검토 완료**: online advisory endpoint timeout, offline cache `found 0 vulnerabilities`; 강제 수정 없음 |
-| clean Supabase DB | `npx supabase@2.116.0 db start`, `test db`, `stop --no-backup` | **대기** |
+| clean Supabase DB | `npx supabase@2.116.0 db start`, local RLS assertion SQL, `stop --no-backup` | **재검증 중**: 첫 CI에서 migration 적용은 통과했으나 기존 Auth 사용자를 전제한 fixture가 실패. 자체 임시 사용자+rollback fixture로 수정 후 재실행 대기 |
 | linked 원격 DB | migration dry-run/push, lint, `phase_2_rls.sql`, RPC 제한 확인 | **통과**: `20260904020000` 적용, 재 dry-run up to date, DB lint 0, `phase_2_rls_passed`, 익명 direct DML 401 |
 | Edge Function | 최신 `ai-analysis` 배포, 무인증 거부와 인증 1회 실호출 | **자동 통과·원격 부분 통과**: 계약 2 files/7 tests, v3 ACTIVE·`verify_jwt=true`·무인증 401. 인증 실호출 대기 |
 | hosted Auth | 기존 사용자 유지·신규 가입 차단 | **Q-013 사용자 확인 대기** |

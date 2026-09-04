@@ -167,11 +167,11 @@ npm run verify
 
 `verify`는 TypeScript, ESLint, 단위테스트·커버리지, 모바일↔Supabase Edge 요청·보안 계약, Expo 의존성 검사, 잠금 파일에 고정한 `expo-doctor`, Android Hermes 번들을 실행한다. Expo 의존성 메타데이터 확인에는 네트워크가 필요하다. 결과는 `docs/TESTPLAN.md`에 기록한다.
 
-Docker가 있는 환경에서는 저장소 루트에서 깨끗한 Supabase DB에 전체 migration과 pgTAP/RLS 검사를 실행한다. 원격 검증과 달리 로컬 컨테이너 데이터만 사용한다.
+Docker가 있는 환경에서는 저장소 루트에서 깨끗한 Supabase DB에 전체 migration을 적용하고, 트랜잭션 안에서 임시 Auth 사용자를 만드는 RLS assertion SQL을 실행한다. 원격 검증과 달리 로컬 컨테이너 데이터만 사용한다.
 
 ```bat
 npx supabase@2.116.0 db start
-npx supabase@2.116.0 test db
+npx supabase@2.116.0 db query --local --file supabase/tests/phase_2_rls.sql
 npx supabase@2.116.0 stop --no-backup
 ```
 
