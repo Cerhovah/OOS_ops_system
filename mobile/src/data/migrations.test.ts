@@ -75,7 +75,7 @@ describe('Phase 1 seed manifest', () => {
     const db = new TestSQLiteDatabase();
     await migrateDatabase(db.asExpoDatabase());
 
-    expect(db.raw.prepare('PRAGMA user_version').get()).toMatchObject({ user_version: 5 });
+    expect(db.raw.prepare('PRAGMA user_version').get()).toMatchObject({ user_version: 6 });
     expect(db.raw.prepare("SELECT value FROM settings WHERE key='ai_provider'").get()).toMatchObject({ value: 'openai' });
     expect(db.raw.prepare("SELECT value FROM settings WHERE key='ai_model'").get()).toMatchObject({ value: 'gpt-5.6-terra' });
     const initial = db.raw.prepare('SELECT COUNT(*) AS count FROM sync_outbox').get() as { count: number };
@@ -122,7 +122,7 @@ describe('Phase 1 seed manifest', () => {
 
     failure.mockRestore();
     await migrateDatabase(db.asExpoDatabase());
-    expect(db.raw.prepare('PRAGMA user_version').get()).toMatchObject({ user_version: 5 });
+    expect(db.raw.prepare('PRAGMA user_version').get()).toMatchObject({ user_version: 6 });
     db.close();
   });
 
@@ -141,7 +141,7 @@ describe('Phase 1 seed manifest', () => {
 
     await migrateDatabase(db.asExpoDatabase());
 
-    expect(db.raw.prepare('PRAGMA user_version').get()).toMatchObject({ user_version: 5 });
+    expect(db.raw.prepare('PRAGMA user_version').get()).toMatchObject({ user_version: 6 });
     const triggerSql = db.raw.prepare(
       "SELECT group_concat(sql, '\n') AS sql FROM sqlite_master WHERE type='trigger' AND name LIKE 'sync_capture_settings_%'",
     ).get() as { sql: string };
@@ -219,7 +219,8 @@ describe('Phase 1 seed manifest', () => {
       remote('analysis_sessions', 'session-remote', {
         id: 'session-remote', mode: 'audit', question: '원격 질문', range_start: '2026-08-01', range_end: '2026-09-01',
         data_snapshot_json: '{}', response_text: '원격 답변', provider: 'test', model: 'test',
-        input_tokens: 10, output_tokens: 5, estimated_cost_usd: 0.001,
+        reasoning_effort: 'medium', input_tokens: 10, output_tokens: 5, total_tokens: 15, estimated_cost_usd: 0.001,
+        provider_response_id: 'resp_remote', started_at: timestamp, finished_at: timestamp,
         created_at: timestamp, updated_at: timestamp, deleted_at: null,
       }),
     ]);

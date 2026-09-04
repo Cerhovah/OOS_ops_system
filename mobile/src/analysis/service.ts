@@ -2,24 +2,9 @@ import type { AnalysisRequest, AnalysisRunResult, AnalysisTransport } from './ty
 import { parseAnalysisResponse } from './prompt';
 import { redactSensitiveText } from './redaction';
 
-export interface TokenPrice {
-  inputPerMillionUsd: number;
-  outputPerMillionUsd: number;
-}
-
-export function estimateAnalysisCost(
-  inputTokens: number | null,
-  outputTokens: number | null,
-  price: TokenPrice | null,
-): number | null {
-  if (inputTokens === null || outputTokens === null || price === null) return null;
-  return (inputTokens * price.inputPerMillionUsd + outputTokens * price.outputPerMillionUsd) / 1_000_000;
-}
-
 export async function runAnalysis(
   request: AnalysisRequest,
   transport: AnalysisTransport,
-  price: TokenPrice | null,
 ): Promise<AnalysisRunResult> {
   const response = await transport.generate({
     ...request,
@@ -28,10 +13,15 @@ export async function runAnalysis(
   const parsed = parseAnalysisResponse(response.text);
   return {
     ...parsed,
-    provider: transport.provider,
-    model: transport.model,
+    provider: response.provider,
+    model: response.model,
     inputTokens: response.inputTokens,
     outputTokens: response.outputTokens,
-    estimatedCostUsd: estimateAnalysisCost(response.inputTokens, response.outputTokens, price),
+    totalTokens: response.totalTokens,
+    estimatedCostUsd: response.estimatedCostUsd,
+    reasoningEffort: response.reasoningEffort,
+    providerResponseId: response.providerResponseId,
+    startedAt: response.startedAt,
+    finishedAt: response.finishedAt,
   };
 }

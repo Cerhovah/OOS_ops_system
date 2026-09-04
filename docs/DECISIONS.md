@@ -331,6 +331,13 @@
 - 관련 불변조건/AC: I-7, I-8, I-12, AC-15, AC-19~AC-22, AC-31, AC-34, AC-35
 - 대체 관계: ADR-008·ADR-018·ADR-019의 schema/repository/재현성 결정을 구체화
 
+### ADR-024 Server-owned AI model policy
+
+- Date: 2026-09-05
+- Status: accepted
+- Decision: Use OpenAI initially. Resolve `standard` and `deep` only in the Edge Function from server configuration; use Terra/medium and Sol/high as the initial policy. Reserve Luna for preprocessing, never final analysis.
+- Consequence: The app persists server-resolved provider/model/effort/usage/cost/response ID/timing per analysis session, without embedding a production key or routing on model IDs. Provider adapters retain a common result contract for later evaluation of a secondary provider.
+
 ## 기록 형식
 
 ### ADR-NNN — 제목

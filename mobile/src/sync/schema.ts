@@ -79,7 +79,8 @@ export const syncTableDefinitions = [
     primaryKey: 'id',
     columns: [
       'id', 'mode', 'question', 'range_start', 'range_end', 'data_snapshot_json', 'response_text',
-      'provider', 'model', 'input_tokens', 'output_tokens', 'estimated_cost_usd',
+      'provider', 'model', 'reasoning_effort', 'input_tokens', 'output_tokens', 'total_tokens', 'estimated_cost_usd',
+      'provider_response_id', 'started_at', 'finished_at',
       'created_at', 'updated_at', 'deleted_at',
     ],
   },

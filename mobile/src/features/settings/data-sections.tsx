@@ -8,7 +8,6 @@ import { APP_DATA_TABLE_NAMES } from '@/data/app-data-tables';
 import { dateKey } from '@/domain/calculations';
 import type { Entry } from '@/types/domain';
 
-import { ANALYSIS_MODEL, ANALYSIS_PROVIDER } from '@/analysis/provider-registry';
 
 export function entryAmount(entry: Entry): number | null {
   return entry.durationMin ?? entry.value ?? entry.count;
@@ -159,7 +158,7 @@ export function AppInfoSection({ onReset }: { onReset: () => void }) {
       <Card>
         <Text style={textStyles.body}>{APP_NAME} · 로컬 우선</Text>
         <Text style={textStyles.muted}>
-          AI 분석 · {sync.session ? `${ANALYSIS_PROVIDER} / ${ANALYSIS_MODEL} 서버 연결` : 'Supabase 로그인 필요'}
+          AI 분석 · {sync.session ? '서버 정책 연결' : 'Supabase 로그인 필요'}
         </Text>
         <AppButton label="전체 초기화" variant="danger" onPress={onReset} disabled={app.busy} />
       </Card>

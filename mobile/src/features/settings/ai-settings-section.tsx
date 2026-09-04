@@ -2,7 +2,6 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useMemo, useState } from 'react';
 import { Alert, StyleSheet, Text, View } from 'react-native';
 
-import { ANALYSIS_MODEL, ANALYSIS_PROVIDER, ANALYSIS_TOKEN_PRICE } from '@/analysis/provider-registry';
 import { AppButton, Card, ChoiceRow, Section, StatusBanner, textStyles } from '@/components/ui';
 import { useApp } from '@/context/app-context';
 import { AnalysisRepository } from '@/data/analysis-repository';
@@ -79,8 +78,6 @@ export function AiSettingsSection() {
     await app.setSettings({
       analysis_range_weeks: submitted.rangeWeeks,
       analysis_include_notes: submitted.includeNotes,
-      ai_provider: ANALYSIS_PROVIDER,
-      ai_model: ANALYSIS_MODEL,
     });
     setState((current) => markEditableDraftSaved(current, submitted));
     Alert.alert('AI 설정 저장', '분석 범위 설정을 저장했습니다. OpenAI 키는 Supabase 서버 secret으로만 관리됩니다.');
@@ -101,11 +98,8 @@ export function AiSettingsSection() {
         <Text style={textStyles.muted}>
           API 키는 앱·SQLite·동기화 데이터·로그·JSON/CSV 내보내기에 포함하지 않습니다.
         </Text>
-        <Text style={textStyles.body}>제공자 · {ANALYSIS_PROVIDER}</Text>
-        <Text style={textStyles.body}>모델 · {ANALYSIS_MODEL}</Text>
-        <Text style={textStyles.muted}>
-          현재 단가 · 입력 ${ANALYSIS_TOKEN_PRICE.inputPerMillionUsd}/백만 토큰 · 출력 ${ANALYSIS_TOKEN_PRICE.outputPerMillionUsd}/백만 토큰
-        </Text>
+        <Text style={textStyles.body}>제공자·모델 정책 · 서버 구성</Text>
+        <Text style={textStyles.muted}>실제 제공자, 모델, 추론 수준, 토큰과 비용은 분석 기록마다 보존됩니다.</Text>
         <Text style={textStyles.muted}>ChatGPT 구독과 API 사용 요금은 별도입니다.</Text>
         <ChoiceRow
           label="기본 분석 기간"

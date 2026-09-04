@@ -1,4 +1,5 @@
 import { ANALYSIS_MODES } from './analysis-contract.ts';
+import { ANALYSIS_TIERS, type AnalysisTier } from './model-policy.ts';
 
 export const MAX_ANALYSIS_REQUEST_BYTES = 100 * 1024;
 export const MAX_ANALYSIS_SNAPSHOT_BYTES = 80 * 1024;
@@ -11,6 +12,7 @@ export interface AnalysisRequest {
   rangeStart: string;
   rangeEnd: string;
   dataSnapshotJson: string;
+  analysisTier: AnalysisTier;
 }
 
 export type AnalysisRequestError = 'invalid_request' | 'request_too_large' | 'snapshot_too_large';
@@ -66,6 +68,9 @@ export function parseAnalysisRequestBytes(rawBody: Uint8Array): AnalysisRequestR
     return { ok: false, error: 'invalid_request' };
   }
   if (typeof body.dataSnapshotJson !== 'string') return { ok: false, error: 'invalid_request' };
+  if (body.analysisTier !== undefined && (typeof body.analysisTier !== 'string' || !ANALYSIS_TIERS.includes(body.analysisTier as AnalysisTier))) {
+    return { ok: false, error: 'invalid_request' };
+  }
   if (byteLength(body.dataSnapshotJson) > MAX_ANALYSIS_SNAPSHOT_BYTES) {
     return { ok: false, error: 'snapshot_too_large' };
   }
@@ -83,6 +88,7 @@ export function parseAnalysisRequestBytes(rawBody: Uint8Array): AnalysisRequestR
       rangeStart: body.rangeStart,
       rangeEnd: body.rangeEnd,
       dataSnapshotJson: body.dataSnapshotJson,
+      analysisTier: (body.analysisTier as AnalysisTier | undefined) ?? 'standard',
     },
   };
 }

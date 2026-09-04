@@ -18,7 +18,7 @@ export {
 } from '@/data/migration/seed-manifest';
 export { seedDatabase } from '@/data/migration/seed-writer';
 
-const DATABASE_VERSION = 5;
+const DATABASE_VERSION = 6;
 
 const sqlNow = "strftime('%Y-%m-%dT%H:%M:%fZ','now')";
 
@@ -147,6 +147,22 @@ async function migrateToVersion5(db: SQLiteDatabase): Promise<void> {
   await installSettingsSync(db);
 }
 
+async function migrateToVersion6(db: SQLiteDatabase): Promise<void> {
+  const existing = new Set((await db.getAllAsync<{ name: string }>('PRAGMA table_info(analysis_sessions)')).map((row) => row.name));
+  const additions = [
+    ['reasoning_effort', 'TEXT'], ['total_tokens', 'INTEGER'], ['provider_response_id', 'TEXT'],
+    ['started_at', 'TEXT'], ['finished_at', 'TEXT'],
+  ].filter(([name]) => !existing.has(name));
+  await db.execAsync(`
+    ${additions.map(([name, type]) => `ALTER TABLE analysis_sessions ADD COLUMN ${name} ${type};`).join('\n')}
+    UPDATE analysis_sessions SET total_tokens=input_tokens + output_tokens
+      WHERE total_tokens IS NULL AND input_tokens IS NOT NULL AND output_tokens IS NOT NULL;
+    DROP TRIGGER IF EXISTS sync_capture_analysis_sessions_insert;
+    DROP TRIGGER IF EXISTS sync_capture_analysis_sessions_update;
+  `);
+  await installPhase4Sync(db);
+}
+
 export async function migrateDatabase(db: SQLiteDatabase): Promise<void> {
   await db.execAsync('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');
   const versionRow = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
@@ -267,6 +283,13 @@ export async function migrateDatabase(db: SQLiteDatabase): Promise<void> {
     await db.withExclusiveTransactionAsync(async (transaction) => {
       await migrateToVersion5(transaction);
       await transaction.execAsync('PRAGMA user_version = 5');
+    });
+    currentVersion = 5;
+  }
+  if (currentVersion < 6) {
+    await db.withExclusiveTransactionAsync(async (transaction) => {
+      await migrateToVersion6(transaction);
+      await transaction.execAsync('PRAGMA user_version = 6');
     });
   }
 }

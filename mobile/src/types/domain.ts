@@ -148,7 +148,12 @@ export interface AnalysisSession {
   model: string | null;
   inputTokens: number | null;
   outputTokens: number | null;
+  totalTokens: number | null;
   estimatedCostUsd: number | null;
+  reasoningEffort: string | null;
+  providerResponseId: string | null;
+  startedAt: string | null;
+  finishedAt: string | null;
   createdAt: string;
   updatedAt: string;
   deletedAt: string | null;

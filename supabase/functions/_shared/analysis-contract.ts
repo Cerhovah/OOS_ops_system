@@ -1,5 +1,4 @@
 export const ANALYSIS_PROVIDER = 'openai';
-export const ANALYSIS_MODEL = 'gpt-5.6-terra';
 export const ANALYSIS_CONTRACT_VERSION = 'phase4-v1';
 
 export const ANALYSIS_MODES = ['audit', 'pattern', 'project', 'optimize', 'longterm', 'free'] as const;

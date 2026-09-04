@@ -27,17 +27,24 @@ export interface AnalysisRequest {
   rangeStart: string;
   rangeEnd: string;
   dataSnapshotJson: string;
+  analysisTier?: 'standard' | 'deep';
 }
 
 export interface AnalysisTransportResult {
   text: string;
   inputTokens: number | null;
   outputTokens: number | null;
+  totalTokens: number | null;
+  estimatedCostUsd: number | null;
+  provider: string;
+  model: string;
+  reasoningEffort: string | null;
+  providerResponseId: string | null;
+  startedAt: string | null;
+  finishedAt: string | null;
 }
 
 export interface AnalysisTransport {
-  readonly provider: string;
-  readonly model: string;
   generate(request: AnalysisRequest): Promise<AnalysisTransportResult>;
 }
 
@@ -46,5 +53,10 @@ export interface AnalysisRunResult extends ParsedAnalysisOutput {
   model: string;
   inputTokens: number | null;
   outputTokens: number | null;
+  totalTokens: number | null;
   estimatedCostUsd: number | null;
+  reasoningEffort: string | null;
+  providerResponseId: string | null;
+  startedAt: string | null;
+  finishedAt: string | null;
 }

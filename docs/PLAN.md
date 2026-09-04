@@ -107,6 +107,14 @@ Phase 4R 게이트 통과 뒤 시작한다. 현재 `eas.json`에는 development 
 - [ ] AC-38 — 온라인 복귀 후 인증·동기화 복구, AI의 서버 의존성과 로컬 기록 비차단 확인.
 - [ ] AC-39 — build ID·버전·SHA-256·서명/배포·rollback·native 재빌드 조건 기록.
 
+## Phase 4S AI model policy (2026-09-05)
+
+- [x] OpenAI server policy: standard Terra/medium and deep Sol/high; lightweight Luna is limited to non-final preprocessing.
+- [x] Provider/model routing, price calculation, and response metadata are server-owned; the mobile binary has no production key or model-routing logic.
+- [x] SQLite v6 and sync payloads preserve provider, model, reasoning effort, token totals, estimated cost, provider response ID, and request timing.
+- [x] Standard/deep choice and strict structured-output handling pass the full automated gate.
+- [ ] Live Edge Function deployment and device request remain AC-38 evidence; no paid request was made during source verification.
+
 ## 다음 작업
 
 1. 완료: `0.4.1(8)` 전체 자동 게이트, clean Supabase DB 보안 테스트, GitHub Actions와 native build 결과를 기록했다.

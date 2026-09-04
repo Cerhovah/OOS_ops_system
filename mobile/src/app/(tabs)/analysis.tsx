@@ -28,6 +28,7 @@ export default function AnalysisScreen() {
   const { snapshot, refresh, error, clearError } = useApp();
   const sync = useSync();
   const [mode, setMode] = useState<AnalysisMode>('audit');
+  const [analysisTier, setAnalysisTier] = useState<'standard' | 'deep'>('standard');
   const [rangeWeeks, setRangeWeeks] = useState('4');
   const [question, setQuestion] = useState(ANALYSIS_MODE_QUESTIONS.audit);
   const [search, setSearch] = useState('');
@@ -38,8 +39,6 @@ export default function AnalysisScreen() {
   const [message, setMessage] = useState<string | null>(null);
   const historyRequest = useRef(0);
 
-  const provider = snapshot.settings.ai_provider?.trim() ?? '';
-  const model = snapshot.settings.ai_model?.trim() ?? '';
   const includeNotes = snapshot.settings.analysis_include_notes !== '0';
   const weekStartDay = parseWeekStartDay(snapshot.settings.week_start_day);
   const today = dateKey(new Date());
@@ -47,7 +46,7 @@ export default function AnalysisScreen() {
   const analysisRange = completedAnalysisRange(today, weekStartDay, selectedWeeks);
   const rangeStart = analysisRange.start;
   const rangeEnd = analysisRange.end;
-  const configured = Boolean(provider && model && sync.session);
+  const configured = Boolean(sync.session);
   const preview = useMemo(
     () => buildAnalysisSnapshot(snapshot, [], [], {
       rangeStart,
@@ -124,14 +123,15 @@ export default function AnalysisScreen() {
         includeNotes,
       });
       const dataSnapshotJson = serializeAnalysisSnapshot(dataSnapshot);
-      const resolved = await resolveAnalysisTransport(snapshot.settings);
+      const transport = resolveAnalysisTransport();
       const result = await runAnalysis({
         mode,
         question: effectiveQuestion,
         rangeStart,
         rangeEnd,
         dataSnapshotJson,
-      }, resolved.transport, resolved.price);
+        analysisTier,
+      }, transport);
       await repository.saveSession({
         mode,
         question: effectiveQuestion,
@@ -227,6 +227,7 @@ export default function AnalysisScreen() {
       <AnalysisComposer
         mode={mode}
         rangeWeeks={rangeWeeks}
+        analysisTier={analysisTier}
         question={question}
         rangeStart={rangeStart}
         rangeEnd={rangeEnd}
@@ -242,6 +243,7 @@ export default function AnalysisScreen() {
         busy={busy}
         onModeChange={changeMode}
         onRangeChange={setRangeWeeks}
+        onTierChange={setAnalysisTier}
         onQuestionChange={setQuestion}
         onExample={selectExample}
         onExecute={() => void execute().catch((caught: unknown) => {

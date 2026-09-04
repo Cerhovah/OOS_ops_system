@@ -42,7 +42,12 @@ function sessionFromRow(row: SqlRow): AnalysisSession {
     model: sqliteNullableText(row, 'model'),
     inputTokens: sqliteNullableNumber(row, 'input_tokens'),
     outputTokens: sqliteNullableNumber(row, 'output_tokens'),
+    totalTokens: sqliteNullableNumber(row, 'total_tokens'),
     estimatedCostUsd: sqliteNullableNumber(row, 'estimated_cost_usd'),
+    reasoningEffort: sqliteNullableText(row, 'reasoning_effort'),
+    providerResponseId: sqliteNullableText(row, 'provider_response_id'),
+    startedAt: sqliteNullableText(row, 'started_at'),
+    finishedAt: sqliteNullableText(row, 'finished_at'),
     createdAt: sqliteText(row, 'created_at'),
     updatedAt: sqliteText(row, 'updated_at'),
     deletedAt: sqliteNullableText(row, 'deleted_at'),
@@ -95,9 +100,9 @@ export class AnalysisRepository {
     await this.db.withExclusiveTransactionAsync(async (transaction) => {
       await transaction.runAsync(
         `INSERT INTO analysis_sessions
-          (id,mode,question,range_start,range_end,data_snapshot_json,response_text,provider,model,
-           input_tokens,output_tokens,estimated_cost_usd,created_at,updated_at)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+          (id,mode,question,range_start,range_end,data_snapshot_json,response_text,provider,model,reasoning_effort,
+           input_tokens,output_tokens,total_tokens,estimated_cost_usd,provider_response_id,started_at,finished_at,created_at,updated_at)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
         sessionId,
         input.mode,
         redactSensitiveText(input.question) || null,
@@ -107,9 +112,14 @@ export class AnalysisRepository {
         serializeAnalysisOutput(input.result),
         input.result.provider,
         input.result.model,
+        input.result.reasoningEffort,
         input.result.inputTokens,
         input.result.outputTokens,
+        input.result.totalTokens,
         input.result.estimatedCostUsd,
+        input.result.providerResponseId,
+        input.result.startedAt,
+        input.result.finishedAt,
         now,
         now,
       );

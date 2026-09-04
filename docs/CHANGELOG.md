@@ -104,6 +104,8 @@
 
 ### Fixed
 
+- 2026-09-05: AI model selection and cost calculation moved from mobile constants to a server-owned OpenAI policy. Analysis records now retain resolved model, reasoning effort, total tokens, estimated cost, provider response ID, and request timing without changing proposal-application authority.
+
 - 2026-09-04: 전송 도중 같은 record가 다시 수정되면 오래된 성공 응답이 최신 outbox를 지우던 경로를 `id + local_updated_at` 조건부 ACK로 수정
 - 2026-09-04: 로그아웃 뒤 다른 계정이 같은 로컬 DB와 cursor를 재사용할 수 있던 경계를 최초 owner binding과 legacy 단일 cursor 이관 검증으로 차단
 - 2026-09-04: unknown local/remote table·setting을 건너뛰고 cursor가 전진할 수 있던 경로를 명시적 실패로 변경

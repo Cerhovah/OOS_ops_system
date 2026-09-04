@@ -33,7 +33,7 @@ describe('Supabase AI analysis transport', () => {
       },
       error: null,
     });
-    const transport = new SupabaseAnalysisTransport('gpt-5.6-terra');
+    const transport = new SupabaseAnalysisTransport();
     await expect(transport.generate(request)).resolves.toMatchObject({ inputTokens: 123, outputTokens: 45 });
     expect(getSupabaseClient).toHaveBeenCalled();
     expect(mocks.invoke).toHaveBeenCalledWith('ai-analysis', { body: request });
@@ -41,7 +41,7 @@ describe('Supabase AI analysis transport', () => {
   });
 
   it('maps server configuration and quota errors without exposing provider bodies', async () => {
-    const transport = new SupabaseAnalysisTransport('gpt-5.6-terra');
+    const transport = new SupabaseAnalysisTransport();
     mocks.invoke.mockResolvedValueOnce({ data: { error: 'openai_not_configured' }, error: null });
     await expect(transport.generate(request)).rejects.toThrow('아직 설정되지 않았습니다');
     mocks.invoke.mockResolvedValueOnce({ data: { error: 'openai_limit' }, error: null });
@@ -57,6 +57,6 @@ describe('Supabase AI analysis transport', () => {
 
   it('rejects a mismatched or malformed server response', async () => {
     mocks.invoke.mockResolvedValue({ data: { contract_version: 'other', provider: 'other', model: 'other', text: '' }, error: null });
-    await expect(new SupabaseAnalysisTransport('gpt-5.6-terra').generate(request)).rejects.toThrow('응답 형식');
+    await expect(new SupabaseAnalysisTransport().generate(request)).rejects.toThrow('응답 형식');
   });
 });

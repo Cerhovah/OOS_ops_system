@@ -2,12 +2,11 @@ import { createClient } from 'npm:@supabase/supabase-js@2.112.4';
 
 import {
   ANALYSIS_CONTRACT_VERSION,
-  ANALYSIS_MODEL,
   ANALYSIS_MODE_LABELS,
   ANALYSIS_OUTPUT_JSON_SCHEMA,
-  ANALYSIS_PROVIDER,
   ANALYSIS_SYSTEM_PROMPT,
 } from '../_shared/analysis-contract.ts';
+import { estimateCostUsd, resolveModelPolicy } from '../_shared/model-policy.ts';
 import {
   isJsonContentType,
   MAX_ANALYSIS_REQUEST_BYTES,
@@ -64,6 +63,10 @@ function outputText(payload: unknown): string | null {
 
 function token(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+function responseId(value: unknown): string | null {
+  return isRecord(value) && typeof value.id === 'string' && value.id.trim() ? value.id : null;
 }
 
 async function readRawBody(req: Request): Promise<Uint8Array | null> {
@@ -143,6 +146,13 @@ Deno.serve(async (req: Request) => {
     return json(status, { error: parsedRequest.error });
   }
   const analysis = parsedRequest.value;
+  let policy;
+  try {
+    policy = resolveModelPolicy(analysis.analysisTier);
+  } catch {
+    return json(503, { error: 'model_policy_not_configured' });
+  }
+  const startedAt = new Date().toISOString();
 
   let openAiResponse: Response;
   try {
@@ -153,10 +163,10 @@ Deno.serve(async (req: Request) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: ANALYSIS_MODEL,
+        model: policy.model,
         instructions: ANALYSIS_SYSTEM_PROMPT,
         input: [{ role: 'user', content: [{ type: 'input_text', text: userInput(analysis) }] }],
-        reasoning: { effort: 'low' },
+        reasoning: { effort: policy.reasoningEffort },
         text: {
           format: {
             type: 'json_schema',
@@ -192,12 +202,21 @@ Deno.serve(async (req: Request) => {
   const text = outputText(openAiPayload);
   if (!text) return json(502, { error: 'openai_empty_response' });
   const usage = isRecord(openAiPayload) && isRecord(openAiPayload.usage) ? openAiPayload.usage : {};
+  const inputTokens = token(usage.input_tokens);
+  const outputTokens = token(usage.output_tokens);
+  const totalTokens = token(usage.total_tokens) ?? (inputTokens !== null && outputTokens !== null ? inputTokens + outputTokens : null);
   return json(200, {
     contract_version: ANALYSIS_CONTRACT_VERSION,
-    provider: ANALYSIS_PROVIDER,
-    model: ANALYSIS_MODEL,
+    provider: policy.provider,
+    model: policy.model,
+    reasoning_effort: policy.reasoningEffort,
     text,
-    input_tokens: token(usage.input_tokens),
-    output_tokens: token(usage.output_tokens),
+    input_tokens: inputTokens,
+    output_tokens: outputTokens,
+    total_tokens: totalTokens,
+    estimated_cost_usd: estimateCostUsd(inputTokens, outputTokens, policy),
+    provider_response_id: responseId(openAiPayload),
+    started_at: startedAt,
+    finished_at: new Date().toISOString(),
   });
 });

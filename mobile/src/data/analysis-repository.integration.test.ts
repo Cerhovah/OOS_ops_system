@@ -38,7 +38,12 @@ describe('AnalysisRepository with real SQLite', () => {
       model: 'test-model',
       inputTokens: 100,
       outputTokens: 50,
+      totalTokens: 150,
       estimatedCostUsd: 0.001,
+      reasoningEffort: 'medium',
+      providerResponseId: 'resp_test',
+      startedAt: '2026-09-05T00:00:00.000Z',
+      finishedAt: '2026-09-05T00:00:01.000Z',
     };
   }
 

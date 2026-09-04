@@ -24,6 +24,11 @@ const MODE_CHOICES = (Object.keys(ANALYSIS_MODE_LABELS) as AnalysisMode[]).map((
   label: ANALYSIS_MODE_LABELS[value],
 }));
 
+const ANALYSIS_TIER_CHOICES = [
+  { value: 'standard', label: '기본 분석' },
+  { value: 'deep', label: '정밀 분석' },
+] as const;
+
 export const ANALYSIS_RANGE_CHOICES = [4, 8, 12].map((weeks) => ({
   value: String(weeks),
   label: `완료된 ${weeks}주`,
@@ -37,6 +42,7 @@ const PROPOSAL_STATUS_LABELS = {
 
 interface AnalysisComposerProps {
   mode: AnalysisMode;
+  analysisTier: 'standard' | 'deep';
   rangeWeeks: string;
   question: string;
   rangeStart: string;
@@ -47,6 +53,7 @@ interface AnalysisComposerProps {
   configured: boolean;
   busy: boolean;
   onModeChange: (value: string) => void;
+  onTierChange: (value: 'standard' | 'deep') => void;
   onRangeChange: (value: string) => void;
   onQuestionChange: (value: string) => void;
   onExample: (value: string) => void;
@@ -56,6 +63,7 @@ interface AnalysisComposerProps {
 
 export function AnalysisComposer({
   mode,
+  analysisTier,
   rangeWeeks,
   question,
   rangeStart,
@@ -66,6 +74,7 @@ export function AnalysisComposer({
   configured,
   busy,
   onModeChange,
+  onTierChange,
   onRangeChange,
   onQuestionChange,
   onExample,
@@ -76,6 +85,7 @@ export function AnalysisComposer({
     <Section title="새 분석">
       <Card>
         <ChoiceRow label="분석 모드" choices={MODE_CHOICES} value={mode} onChange={onModeChange} />
+        <ChoiceRow label="분석 수준" choices={ANALYSIS_TIER_CHOICES} value={analysisTier} onChange={(value) => onTierChange(value as 'standard' | 'deep')} />
         <ChoiceRow label="분석 기간" choices={ANALYSIS_RANGE_CHOICES} value={rangeWeeks} onChange={onRangeChange} />
         <Field
           label={mode === 'free' ? '자유질문' : '질문 · 필요하면 수정 가능'}
