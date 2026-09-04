@@ -171,9 +171,11 @@ Docker가 있는 환경에서는 저장소 루트에서 깨끗한 Supabase DB에
 
 ```bat
 npx supabase@2.116.0 db start
-npx supabase@2.116.0 db query --local --file supabase/tests/phase_2_rls.sql
+docker exec -i supabase_db_oos_ops_system psql --username postgres --dbname postgres --set ON_ERROR_STOP=on < supabase/tests/phase_2_rls.sql
 npx supabase@2.116.0 stop --no-backup
 ```
+
+`db query --local --file`은 여러 SQL 문장을 하나의 prepared statement로 보내므로 이 트랜잭션형 assertion 파일에는 사용하지 않는다. CI는 Supabase가 시작한 격리 Postgres 컨테이너 안의 `psql`을 사용하고 `ON_ERROR_STOP`으로 첫 assertion 실패에서 종료한다.
 
 GitHub Actions의 `Verify` workflow도 고정된 Node/npm·Supabase CLI와 잠금 파일로 모바일 전체 게이트와 clean database 검사를 재현한다. 실행 전용 secret은 CI에 추가하지 않았으며 Edge의 실제 과금 호출은 자동 CI 범위가 아니다.
 

@@ -109,7 +109,7 @@
 - 2026-09-04: 잘못된 Supabase URL이 로컬 우선 앱 시작까지 중단시키던 경로를 안전한 설정 파싱으로 수정
 - 2026-09-04: 보관 계정·항목의 기록과 계획이 AI snapshot·제안 적용에 다시 섞이던 범위를 활성 화면과 일치시킴
 - 2026-09-04: 주간 코멘트 조회 실패 뒤 빈 값을 저장하거나 오늘 종료 콜드 스타트에서 기존 메모를 덮을 수 있던 hydration·저장 경합을 차단
-- 2026-09-04: clean Supabase CI가 기존 Auth 사용자를 요구하던 테스트 결합을 자체 임시 사용자·전체 rollback fixture와 로컬 SQL assertion 실행으로 수정
+- 2026-09-04: clean Supabase CI가 기존 Auth 사용자를 요구하던 테스트 결합을 자체 임시 사용자·전체 rollback fixture로 수정하고, multi-statement assertion은 격리 DB 컨테이너의 `psql`·`ON_ERROR_STOP`으로 실행
 - 2026-09-04: Windows PowerShell 5.1에서 UTF-8 no-BOM 스크립트의 한국어 안내가 깨지던 문제를 ASCII 프롬프트와 명시적인 실패 종료 코드로 수정했다.
 
 - 2026-08-20: 계획 합계가 168시간과 다르거나 음수여도 형식이 유효하면 저장할 수 있도록 I-1 비차단 동작 수정

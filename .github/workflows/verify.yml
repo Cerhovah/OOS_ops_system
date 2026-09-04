@@ -53,7 +53,10 @@ jobs:
         run: supabase db start
 
       - name: Run database security tests
-        run: supabase db query --local --file supabase/tests/phase_2_rls.sql
+        run: >-
+          docker exec -i supabase_db_oos_ops_system
+          psql --username postgres --dbname postgres --set ON_ERROR_STOP=on
+          < supabase/tests/phase_2_rls.sql
 
       - name: Stop the local Supabase services
         if: always()
