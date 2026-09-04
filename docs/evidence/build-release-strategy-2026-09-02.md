@@ -6,13 +6,13 @@
 
 그러나 Phase 4 기능 완료만으로 **유지보수 없는 개인용 독립 앱 또는 상용 배포·결제 준비 완료 상태가 되지는 않는다.** 2026-09-04 사용자 지시에 따라 SPEC v0.3.0에 Phase 4R 동작 보존 리팩터와 Phase 4S 개인용 standalone 게이트를 추가했지만, 현재 `eas.json`은 여전히 development profile만 갖는다. production AAB, 운영 환경 분리, 결제·공개 출시 게이트는 Q-005 승인 뒤 별도로 명세화해야 한다.
 
-2026-09-04 현재 `0.4.1(8)`에는 repository/sync persistence/UI/분석 package 분리와 PKCE/SecureStore·SQLite v5·RPC/Edge 보안 경계가 코드로 반영됐고 전체 자동 게이트와 linked 원격 hardening 검증을 통과했다. 인증 실호출·새 native build 실기기·CI 게이트는 아직 대기 중이므로 리팩터 완료로 단정하지 않는다.
+2026-09-04 현재 `0.4.1(8)`에는 repository/sync persistence/UI/분석 package 분리와 PKCE/SecureStore·SQLite v5·RPC/Edge 보안 경계가 코드로 반영됐고 전체 자동·clean DB CI·linked 원격 hardening·native build 검증을 통과했다. 인증 실호출과 새 native build 실기기 게이트는 아직 대기 중이므로 리팩터 완료로 단정하지 않는다.
 
 ## 세 빌드의 역할
 
 | 빌드 | 목적 | Metro 필요 | 설치·갱신 방식 | 현재 상태 |
 |---|---|---:|---|---|
-| Development | 개발·디버깅·실기기 검증 | 필요 | 내부 APK, 개발 서버 연결 | 과거 build 설치됨. `0.4.1(8)` SecureStore 포함 새 build는 대기 |
+| Development | 개발·디버깅·실기기 검증 | 필요 | 내부 APK, 개발 서버 연결 | `0.4.1(8)` SecureStore 포함 build 생성·로컬 보존 완료, 실기기 설치·회귀 대기 |
 | Preview/Personal release | 개인이 일상에서 production과 유사하게 사용 | 불필요 | standalone APK 직접 설치; 새 native binary는 재설치 | 미구현 |
 | Production | Google Play/App Store 공개·테스트 트랙 | 불필요 | Android AAB를 스토어가 설치·자동 업데이트 | 미구현 |
 

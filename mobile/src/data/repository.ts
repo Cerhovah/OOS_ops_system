@@ -185,7 +185,7 @@ export class AppRepository {
     return this.maintenance.exportTables();
   }
 
-  resetAllData(): Promise<void> {
-    return this.maintenance.resetAllData();
+  resetAllData(notificationCleanupIdentifiers: readonly string[] = []): Promise<void> {
+    return this.maintenance.resetAllData(notificationCleanupIdentifiers);
   }
 }

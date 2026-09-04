@@ -30,7 +30,10 @@ export function parsePlanChangePayload(payloadJson: string): PlanChangePayload {
     throw new Error('제안의 계획 행이 비어 있습니다.');
   }
 
-  const note = value.note === null ? null : typeof value.note === 'string' ? value.note : null;
+  if (value.note !== null && typeof value.note !== 'string') {
+    throw new Error('제안 메모 형식을 확인할 수 없습니다.');
+  }
+  const note = value.note;
   return { weekStart: value.weekStart, minutesByAccount, note };
 }
 

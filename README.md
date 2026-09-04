@@ -11,9 +11,9 @@
 - Phase 3 철회 마감: Telegram 제거와 함께 레거시 동기화 스키마·템플릿 잔여물·중복 테스트 기반·문서 드리프트 정리
 - Phase 4 여섯 분석 모드, 기간별 데이터 package, SQLite 세션·제안, 명시적 계획 적용과 Supabase 동기화 구현 및 AC-27~AC-30 게이트 통과
 - Q-010에서 OpenAI Responses API·`gpt-5.6-terra`·API 과금을 확정했다. 단일 소유자 Supabase Edge Function에서 6개 모드를 포함한 실세션 9건, 제안 적용·무시, 원격 동기화를 SM-S721N으로 검증했다.
-- Phase 4R 동작 보존 리팩터 코드 반영: SQLite v5, PKCE-only callback·네이티브 SecureStore 세션, repository/sync/UI/분석 모듈 분리, 동기화·RPC·AI 요청 보안 경계, 고정 버전 CI를 추가했다. 전체 자동 게이트와 원격 hardening migration·RLS/lint·Edge v3 무인증 거부는 통과했고, 인증 실호출·새 build 실기기·CI 게이트는 아직 대기 중이다.
+- Phase 4R 동작 보존 리팩터 코드 반영: SQLite v5, PKCE-only callback·네이티브 SecureStore 세션, repository/sync/UI/분석 모듈 분리, 동기화·RPC·AI 요청 보안 경계, 고정 버전 CI를 추가했다. 전체 자동 게이트, clean DB CI, 원격 hardening migration·RLS/lint·Edge v3 무인증 거부와 새 native build 생성은 통과했고, 인증 실호출과 새 build 실기기 회귀만 대기 중이다.
 
-현재 소스 버전은 `0.4.1(8)`입니다. Phase 1·2·4의 완료 기록은 보존되지만, 이 리팩터 버전 자체의 최종 판정은 `docs/evidence/phase-4-refactor-readiness-2026-09-04.md`의 대기 항목을 모두 끝낸 뒤 내립니다. SecureStore 포함 EAS development build `ce72a92f-6fe5-456f-9a48-d9863788abaf`는 진행 중입니다. 다음 단계인 Phase 4S는 PC·Metro 없이 실행되는 개인용 standalone 빌드이며 아직 구현·발급되지 않았습니다.
+현재 소스 버전은 `0.4.1(8)`입니다. Phase 1·2·4의 완료 기록은 보존되지만, 이 리팩터 버전 자체의 최종 판정은 `docs/evidence/phase-4-refactor-readiness-2026-09-04.md`의 실기기 대기 항목을 끝낸 뒤 내립니다. SecureStore 포함 EAS development build `ce72a92f-6fe5-456f-9a48-d9863788abaf`는 `FINISHED`이며 APK를 로컬에 보존했습니다. 다음 단계인 Phase 4S는 PC·Metro 없이 실행되는 개인용 standalone 빌드이며 아직 구현·발급되지 않았습니다.
 
 Phase 2·4의 실기기 결과와 철회된 Phase 3의 구현·제거 이력은 `docs/TESTPLAN.md`, `docs/evidence/phase-2-readiness-2026-09-02.md`, `docs/evidence/phase-3-readiness-2026-09-03.md`, `docs/evidence/phase-4-readiness-2026-09-04.md`에 기록되어 있습니다.
 
@@ -54,7 +54,7 @@ npm run verify
 
 Android Studio/JDK 로컬 환경은 현재 개발 흐름에 요구하지 않습니다. `mobile/eas.json`의 `development` 프로필은 EAS Cloud에서 SDK 57 이미지로 설치 가능한 development-client APK를 생성합니다.
 
-EAS 프로젝트는 `@ljh951206/oos-ops`에 연결됐습니다. 실기기에서 마지막으로 검증한 네이티브 개발 클라이언트는 매직링크 callback을 포함한 `0.2.0(3)` build `154087e2-b93d-451a-b62c-ba6e988f4592`입니다. 현재 `0.4.1(8)`은 `expo-secure-store` native plugin을 새로 포함하므로 그 과거 클라이언트로 최종 검증할 수 없습니다. 새 development build 생성·설치·기존 세션 이관 확인은 Phase 4R 대기 항목입니다. 빌드 ID·해시·과거 APK 경로는 `docs/TESTPLAN.md`와 `docs/evidence/`의 이력만 기준으로 합니다.
+EAS 프로젝트는 `@ljh951206/oos-ops`에 연결됐습니다. 실기기에서 마지막으로 검증한 네이티브 개발 클라이언트는 매직링크 callback을 포함한 `0.2.0(3)` build `154087e2-b93d-451a-b62c-ba6e988f4592`입니다. `expo-secure-store`를 포함한 현재 `0.4.1(8)` build `ce72a92f-6fe5-456f-9a48-d9863788abaf` 생성은 끝났지만 아직 기기에 설치하지 않았으므로, 기존 세션 이관과 핵심 회귀는 Phase 4R 대기 항목입니다. 빌드 ID·해시·APK 경로는 `docs/TESTPLAN.md`와 `docs/evidence/`의 이력만 기준으로 합니다.
 
 개발 클라이언트가 기기에 설치된 뒤 PC에서 다음 명령으로 개발 서버를 시작합니다.
 
@@ -81,9 +81,9 @@ npx expo start --dev-client --tunnel
 - 계획: 168시간 실시간 계산, 비차단 저장, append-only 버전·복원·지난주 복사
 - 프로젝트: 프로젝트 상태·실험·판정일, KPI 선택/기록, 연결 항목의 파생 투입시간
 - 설정: 계정·항목·프로젝트·KPI 관리, 소프트 삭제 복구, JSON/CSV 내보내기, 2단계 초기화
-- 알림: 오늘 종료, 선택형 항목 일정, 선택형 타이머 상한, Android HIGH 채널, 콜드 스타트 딥링크
+- 알림: 오늘 종료, 선택형 항목 일정, 선택형 타이머 상한, Android HIGH·PRIVATE v3 채널, 콜드 스타트 딥링크, 단일 예약 큐와 초기화 중단에도 재시도되는 고아 예약 정리
 - 동기화: 이메일 매직링크의 PKCE code callback과 네이티브 SecureStore 세션, SQLite outbox, online/foreground 자동 재시도, 수동 동기화, 마지막 동기화 시각, 충돌 로그, Supabase RLS
-- 분석: 감사·패턴·프로젝트·최적화·장기·자유질문, 완료된 최근 4·8·12주 데이터 첨부, 세션 검색, 전송 snapshot 열람, 비용 기록, 사용자 확인 뒤에만 새 계획 버전 적용
+- 분석: 감사·패턴·프로젝트·최적화·장기·자유질문, 완료된 최근 4·8·12주 데이터 첨부, 세션 검색·소프트삭제·설정 복구, 전송 snapshot 열람, 비용 기록, 사용자 확인 뒤에만 새 계획 버전 적용
 
 ## 환경변수와 비밀값
 

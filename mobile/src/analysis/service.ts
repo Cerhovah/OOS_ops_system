@@ -1,5 +1,6 @@
 import type { AnalysisRequest, AnalysisRunResult, AnalysisTransport } from './types';
 import { parseAnalysisResponse } from './prompt';
+import { redactSensitiveText } from './redaction';
 
 export interface TokenPrice {
   inputPerMillionUsd: number;
@@ -20,7 +21,10 @@ export async function runAnalysis(
   transport: AnalysisTransport,
   price: TokenPrice | null,
 ): Promise<AnalysisRunResult> {
-  const response = await transport.generate(request);
+  const response = await transport.generate({
+    ...request,
+    question: redactSensitiveText(request.question),
+  });
   const parsed = parseAnalysisResponse(response.text);
   return {
     ...parsed,

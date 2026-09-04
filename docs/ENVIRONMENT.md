@@ -106,7 +106,7 @@ set EAS_NO_VCS=
 
 현재 Windows 저장소 경로의 대괄호 때문에 기본 EAS 로컬 git archive가 실패하므로 이 경로에서만 `EAS_NO_VCS=1`을 사용한다. 대괄호 없는 경로에서는 먼저 기본 명령을 사용한다. PowerShell에서는 build 전 `$env:EAS_NO_VCS = '1'`, build 후 `Remove-Item Env:EAS_NO_VCS`로 같은 범위를 적용한다.
 
-현재 연결된 프로젝트는 `@ljh951206/oos-ops`, project ID는 `a0b6c215-c87a-40ff-b749-b715d1ed9352`다. SM-S721N에서 검증한 마지막 네이티브 개발 클라이언트는 매직링크 callback 기준 `0.2.0(3)` build `154087e2-b93d-451a-b62c-ba6e988f4592`다. 현재 소스는 `0.4.1(8)`이며 새 `expo-secure-store` native module/config plugin을 포함하므로 과거 클라이언트에서 최종 검증할 수 없다. `0.4.1(8)` development build 생성·설치와 세션 이관 검증은 Phase 4R 게이트에서 아직 대기 중이다. 이후에도 native dependency·권한·config plugin을 바꾸면 새 binary가 필요하다. 비용·계정 플랜·자격증명 선택이 나타나면 임의로 진행하지 않는다.
+현재 연결된 프로젝트는 `@ljh951206/oos-ops`, project ID는 `a0b6c215-c87a-40ff-b749-b715d1ed9352`다. SM-S721N에서 검증한 마지막 네이티브 개발 클라이언트는 매직링크 callback 기준 `0.2.0(3)` build `154087e2-b93d-451a-b62c-ba6e988f4592`다. 현재 소스는 `0.4.1(8)`이며 새 `expo-secure-store` native module/config plugin을 포함하므로 과거 클라이언트에서 최종 검증할 수 없다. `0.4.1(8)` development build `ce72a92f-6fe5-456f-9a48-d9863788abaf` 생성과 APK 로컬 보존은 완료됐고, 실기기 설치·세션 이관·핵심 회귀가 Phase 4R 게이트의 대기 항목이다. 이후에도 native dependency·권한·config plugin을 바꾸면 새 binary가 필요하다. 비용·계정 플랜·자격증명 선택이 나타나면 임의로 진행하지 않는다.
 
 development client는 JavaScript를 받기 위해 Metro가 필요하다. PC 없이 평상시 실행할 비개발용 Android binary는 Phase 4R 통과 뒤 Phase 4S에서 profile·embedded bundle·rollback을 추가하고 검증한다. 현재 `eas.json`에는 development profile만 있으므로 standalone이 준비됐다고 간주하지 않는다.
 
@@ -139,7 +139,7 @@ OTP 구현 build `1ead311c-9397-4f53-8893-36193025ab02`는 과거 이력이며, 
 - 앱은 로그인 JWT로 `ai-analysis` Supabase Edge Function을 호출한다. 함수는 `verify_jwt=true`와 단일 `OOS_OWNER_USER_ID`를 확인한다.
 - API 키는 `OPENAI_API_KEY` Supabase Edge secret에만 저장하며 앱, `.env`, SQLite, 동기화 데이터, 로그, JSON/CSV export, 번들에는 넣지 않는다.
 - 기본 분석 기간은 4주이고 8주·12주를 선택할 수 있다. 메모 첨부는 같은 화면에서 끌 수 있다.
-- OpenAI Platform에서 키를 만든 뒤 저장소 루트에서 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\supabase\scripts\configure-openai.ps1`을 실행해 보안 프롬프트에 붙여넣는다. 스크립트는 Windows PowerShell 5.1에서도 깨지지 않는 ASCII 안내를 사용하고, 화면·명령 기록에 키를 표시하지 않으며 임시 파일을 덮어쓴 뒤 제거한다. 2026-09-04 원격 secret 등록과 실호출을 완료했다.
+- OpenAI Platform에서 키를 만든 뒤 저장소 루트에서 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\supabase\scripts\configure-openai.ps1`을 실행해 보안 프롬프트에 붙여넣는다. 스크립트는 Windows PowerShell 5.1에서도 깨지지 않는 ASCII 안내를 사용하고, 화면·명령 기록에 키를 표시하지 않으며 임시 파일을 덮어쓴 뒤 제거한다. 2026-09-04 Phase 4의 `ai-analysis` v2에서 원격 secret 등록과 인증 실호출을 완료했지만, 현재 v3 보안 변경 뒤 인증 회귀 호출은 아래와 같이 별도 대기다.
 - 서버 함수 코드는 `npx supabase@2.116.0 functions deploy ai-analysis --use-api`로 배포한다. secret 변경 뒤 함수 재배포는 필요하지 않다.
 - 2026-09-04 Phase 4R 원격 기준은 migration `20260904020000` 적용·재 dry-run up to date·DB lint 0·`phase_2_rls_passed`, `ai-analysis` v3 ACTIVE와 무인증 401이다. 인증된 최신 함수 실호출은 아직 대기다.
 
@@ -193,4 +193,4 @@ PowerShell에서 `npm.ps1`이 실행 정책으로 차단될 때는 정책을 바
 
 Windows 긴 경로는 OS에서 `LongPathsEnabled=1`, 이 저장소의 로컬 Git 설정에서 `core.longpaths=true`로 확인했다. 현재 의존성·Metro·자동 게이트의 복구 결과는 `docs/evidence/phase-1-recovery-2026-09-02.md`를 참조한다.
 
-2026-09-04 Phase 4R 소스에서는 `npm run verify` 종료 코드 0, 33 files/166 tests, coverage 99.07/94.93/100/100, Supabase 계약 2 files/7 tests, dependency up to date, doctor 21/21, Android Hermes 1,488 modules를 확인했다. SecureStore 포함 development build `ce72a92f-6fe5-456f-9a48-d9863788abaf`는 진행 중이며 완료·설치·세션 이관 결과는 아직 확정하지 않는다.
+2026-09-04 Phase 4R 소스에서는 `npm run verify` 종료 코드 0, 34 files/222 tests, coverage 99.07/94.93/100/100, Supabase 계약 2 files/8 tests, dependency up to date, doctor 21/21, Android Hermes 1,493 modules를 확인했다. SecureStore 포함 development build `ce72a92f-6fe5-456f-9a48-d9863788abaf`는 `FINISHED`이며 APK를 로컬 보존했다. 설치·기존 세션 이관·핵심 실기기 회귀는 아직 확정하지 않는다.

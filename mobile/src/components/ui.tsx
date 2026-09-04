@@ -8,6 +8,7 @@ import {
   Text,
   TextInput,
   View,
+  type AccessibilityState,
   type KeyboardTypeOptions,
   type RefreshControlProps,
   type StyleProp,
@@ -41,7 +42,7 @@ export function Screen({
 export function Heading({ children, subtitle }: { children: ReactNode; subtitle?: string }) {
   return (
     <View style={styles.headingWrap}>
-      <Text style={styles.heading}>{children}</Text>
+      <Text accessibilityRole="header" style={styles.heading}>{children}</Text>
       {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
     </View>
   );
@@ -51,7 +52,7 @@ export function Section({ title, children, action }: { title: string; children: 
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>{title}</Text>
+        <Text accessibilityRole="header" style={styles.sectionTitle}>{title}</Text>
         {action}
       </View>
       {children}
@@ -71,17 +72,20 @@ export function AppButton({
   variant = 'primary',
   disabled = false,
   accessibilityLabel,
+  accessibilityState,
 }: {
   label: string;
   onPress: () => void;
   variant?: ButtonVariant;
   disabled?: boolean;
   accessibilityLabel?: string;
+  accessibilityState?: AccessibilityState;
 }) {
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
+      accessibilityState={accessibilityState}
       disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => [
@@ -155,6 +159,7 @@ export function TimeField({
               key={hour}
               label={`${String(hour).padStart(2, '0')}시`}
               variant={current.hour === hour ? 'primary' : 'secondary'}
+              accessibilityState={{ selected: current.hour === hour }}
               onPress={() => onChange(setTimeHour(value, hour))}
             />
           ))}
@@ -166,6 +171,7 @@ export function TimeField({
               key={minute}
               label={`${String(minute).padStart(2, '0')}분`}
               variant={current.minute === minute ? 'primary' : 'secondary'}
+              accessibilityState={{ selected: current.minute === minute }}
               onPress={() => {
                 onChange(setTimeMinute(value, minute));
                 setVisible(false);
@@ -197,10 +203,11 @@ export function ChoiceRow({
   return (
     <View style={styles.fieldWrap}>
       <Text style={styles.label}>{label}</Text>
-      <View style={styles.choiceRow}>
+      <View accessibilityRole="radiogroup" accessibilityLabel={label} style={styles.choiceRow}>
         {choices.map((choice) => (
           <Pressable
-            accessibilityRole="button"
+            accessibilityRole="radio"
+            accessibilityLabel={`${label}: ${choice.label}`}
             accessibilityState={{ selected: value === choice.value }}
             key={choice.value}
             onPress={() => onChange(choice.value)}
@@ -244,7 +251,7 @@ export function Sheet({
 export function StatusBanner({ message, onClose }: { message: string; onClose?: () => void }) {
   return (
     <View style={styles.banner}>
-      <Text style={styles.bannerText}>{message}</Text>
+      <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.bannerText}>{message}</Text>
       {onClose ? <AppButton label="확인" variant="plain" onPress={onClose} /> : null}
     </View>
   );

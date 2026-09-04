@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { isSyncableSetting, syncTableDefinitions } from './schema';
+import {
+  isSyncableSetting,
+  SYNC_BOOTSTRAP_RESET_ORDER,
+  SYNC_BOOTSTRAP_TABLE_NAMES,
+  syncTableDefinitions,
+} from './schema';
 
 describe('local-first sync schema', () => {
   it('tracks every Phase 1-4 user-data table exactly once', () => {
@@ -21,5 +26,12 @@ describe('local-first sync schema', () => {
     expect(isSyncableSetting('ai_provider')).toBe(true);
     expect(isSyncableSetting('ai_model')).toBe(true);
     expect(isSyncableSetting('analysis_range_weeks')).toBe(true);
+  });
+
+  it('keeps seed replacement scoped to pre-analysis bootstrap tables in child-first reset order', () => {
+    expect(SYNC_BOOTSTRAP_TABLE_NAMES).not.toContain('analysis_sessions');
+    expect(SYNC_BOOTSTRAP_TABLE_NAMES).not.toContain('ai_proposals');
+    expect(SYNC_BOOTSTRAP_RESET_ORDER).toEqual([...SYNC_BOOTSTRAP_TABLE_NAMES].reverse());
+    expect(new Set(SYNC_BOOTSTRAP_TABLE_NAMES).size).toBe(SYNC_BOOTSTRAP_TABLE_NAMES.length);
   });
 });

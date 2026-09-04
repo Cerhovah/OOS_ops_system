@@ -5,6 +5,7 @@ import { tryParsePlanChangePayload } from '@/analysis/plan-proposal';
 import {
   ANALYSIS_EXAMPLE_QUESTIONS,
   ANALYSIS_MODE_LABELS,
+  isAnalysisProseAllowed,
   parseAnalysisResponse,
 } from '@/analysis/prompt';
 import {
@@ -131,6 +132,7 @@ interface AnalysisHistoryProps {
   onSearchChange: (value: string) => void;
   onReload: () => void;
   onShowSnapshot: (session: AnalysisSession) => void;
+  onDeleteSession: (session: AnalysisSession) => void;
   onApplyProposal: (proposal: AiProposal) => void;
   onDismissProposal: (proposal: AiProposal) => void;
 }
@@ -144,6 +146,7 @@ export function AnalysisHistory({
   onSearchChange,
   onReload,
   onShowSnapshot,
+  onDeleteSession,
   onApplyProposal,
   onDismissProposal,
 }: AnalysisHistoryProps) {
@@ -182,6 +185,7 @@ export function AnalysisHistory({
           accountNames={accountNames}
           busy={busy}
           onShowSnapshot={onShowSnapshot}
+          onDeleteSession={onDeleteSession}
           onApplyProposal={onApplyProposal}
           onDismissProposal={onDismissProposal}
         />
@@ -196,6 +200,7 @@ interface AnalysisSessionCardProps {
   accountNames: ReadonlyMap<string, string>;
   busy: boolean;
   onShowSnapshot: (session: AnalysisSession) => void;
+  onDeleteSession: (session: AnalysisSession) => void;
   onApplyProposal: (proposal: AiProposal) => void;
   onDismissProposal: (proposal: AiProposal) => void;
 }
@@ -206,6 +211,7 @@ function AnalysisSessionCard({
   accountNames,
   busy,
   onShowSnapshot,
+  onDeleteSession,
   onApplyProposal,
   onDismissProposal,
 }: AnalysisSessionCardProps) {
@@ -232,6 +238,12 @@ function AnalysisSessionCard({
       <Text style={textStyles.muted}>{session.provider ?? '제공자 없음'} · {session.model ?? '모델 없음'}</Text>
       <Text style={textStyles.muted}>{usageText(session)}</Text>
       <AppButton label="첨부 데이터 보기" variant="plain" onPress={() => onShowSnapshot(session)} />
+      <AppButton
+        label="분석 세션 삭제"
+        variant="danger"
+        disabled={busy}
+        onPress={() => onDeleteSession(session)}
+      />
       {proposals.map((proposal) => (
         <ProposalCard
           key={proposal.id}
@@ -256,15 +268,21 @@ interface ProposalCardProps {
 
 function ProposalCard({ proposal, accountNames, busy, onApply, onDismiss }: ProposalCardProps) {
   const payload = tryParsePlanChangePayload(proposal.payloadJson);
+  const safeForDisplayAndApply = Boolean(
+    payload
+      && proposal.rationale.trim()
+      && isAnalysisProseAllowed(proposal.rationale)
+      && (payload.note === null || isAnalysisProseAllowed(payload.note)),
+  );
   return (
     <View style={styles.proposal}>
       <View style={styles.rowBetween}>
         <Text style={textStyles.title}>주간 계획 변경안</Text>
         <Text style={textStyles.muted}>{PROPOSAL_STATUS_LABELS[proposal.status]}</Text>
       </View>
-      <Text style={textStyles.body}>{proposal.rationale}</Text>
-      {payload ? (
+      {safeForDisplayAndApply && payload ? (
         <>
+          <Text style={textStyles.body}>{proposal.rationale}</Text>
           <Text style={textStyles.muted}>대상 주: {payload.weekStart}</Text>
           {Object.entries(payload.minutesByAccount).map(([accountId, minutes]) => (
             <Text key={accountId} style={textStyles.number}>
@@ -272,11 +290,11 @@ function ProposalCard({ proposal, accountNames, busy, onApply, onDismiss }: Prop
             </Text>
           ))}
         </>
-      ) : <Text style={styles.errorText}>제안 데이터를 읽을 수 없습니다.</Text>}
+      ) : <Text style={styles.errorText}>제안 문구 또는 데이터를 안전하게 읽을 수 없습니다.</Text>}
       {proposal.status === 'pending' ? (
         <View style={styles.actions}>
           <AppButton label="무시" variant="secondary" disabled={busy} onPress={() => onDismiss(proposal)} />
-          <AppButton label="계획에 적용" disabled={busy || !payload} onPress={() => onApply(proposal)} />
+          <AppButton label="계획에 적용" disabled={busy || !safeForDisplayAndApply} onPress={() => onApply(proposal)} />
         </View>
       ) : null}
     </View>

@@ -6,6 +6,7 @@ import { Heading, LoadingView, Screen, StatusBanner } from '@/components/ui';
 import { useApp } from '@/context/app-context';
 import { AccountEditorSheet } from '@/features/settings/account-editor-sheet';
 import { AiSettingsSection } from '@/features/settings/ai-settings-section';
+import { AnalysisRecoverySection } from '@/features/settings/analysis-recovery-section';
 import {
   AppInfoSection,
   ExportSection,
@@ -155,6 +156,7 @@ export default function SettingsScreen() {
         />
         <RecentEntriesSection onEdit={openEntry} />
         <RecoverySection />
+        <AnalysisRecoverySection />
         <ExportSection />
         <AppInfoSection onReset={confirmReset} />
       </Screen>

@@ -1,8 +1,8 @@
 # Phase 4 게이트 통과 증빙 — 2026-09-04
 
-## 현재 판정
+## 역사적 판정
 
-Phase 4의 앱·SQLite·Supabase 동기화·안전 적용 경계와 SM-S721N 실응답 검증을 완료했다. Q-010에서 OpenAI Responses API·`gpt-5.6-terra`·과금을 확정하고 단일 소유자 인증 Supabase Edge Function에 서버 secret을 등록했다. 6개 모드와 §5.7 네 질문, 제안 적용·무시, 원격 동기화까지 확인해 AC-27~AC-30과 SPEC §10.3 단계 게이트를 통과했다.
+이 문서는 `0.4.0(7)` Phase 4 기준선의 역사적 판정이다. 해당 버전에서 앱·SQLite·Supabase 동기화·안전 적용 경계와 SM-S721N 실응답 검증을 완료했다. Q-010에서 OpenAI Responses API·`gpt-5.6-terra`·과금을 확정하고 단일 소유자 인증 Supabase Edge Function에 서버 secret을 등록했다. 6개 모드와 §5.7 네 질문, 제안 적용·무시, 원격 동기화까지 확인해 AC-27~AC-30과 SPEC §10.3 단계 게이트를 통과했다. 현재 리팩터 상태는 `phase-4-refactor-readiness-2026-09-04.md`를 기준으로 한다.
 
 ## 구현 범위
 
@@ -62,4 +62,4 @@ SQLite 통합 테스트는 fresh v4와 v2→v4 상향, 분석/제안 outbox, 역
 - AC-28: **통과** — 적용 전 불변, 명시적 적용으로만 새 `ai_applied` 버전, 무시 시 계획 불변.
 - AC-29: **통과** — 고정 prompt/schema 테스트와 실제 응답 숫자·금지 문구 점검.
 - AC-30: **통과** — §5.7 네 질문의 실제 저장 데이터 기반 답변.
-- 다음 제품 범위는 Q-005의 개인용 production 배포 및 상용화 명세 확정이다. Phase 4 완료 자체가 앱 스토어·결제·다중 사용자 운영 완료를 뜻하지는 않는다.
+- 다음 순서는 Phase 4R 동작 보존 리팩터, Phase 4S 개인용 standalone, 이후 Q-005의 공개 배포·결제·다중 사용자 운영 명세다. Phase 4 완료 자체가 이 후속 범위의 완료를 뜻하지는 않는다.

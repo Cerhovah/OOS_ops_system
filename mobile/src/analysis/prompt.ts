@@ -96,14 +96,27 @@ export const ANALYSIS_EXAMPLE_QUESTIONS = [
 
 const forbiddenOutputFragments = [
   '잘했', '못했', '아쉬', '연속!', '무너지', '조심하', '게으',
-  '의지가', '동기 부족', '심리적', '성향은', '당신의 성향', '사용자의 성향', '위험한 사람',
+  '의지가', '의욕', '동기 부족', '심리적', '성향', '충동',
+  '참을성', '융통성', '성실', '끈기', '자제력', '회복탄력', '즉흥', '선호합니다', '선호한다', '위험한 사람',
+  '포기', '미루', '회피', '그만두', '적응력',
+  'impulsive', 'unmotivated', 'lazy', 'impatient', 'personality', 'psychological',
+  'spontaneous', 'prefers',
 ] as const;
 
+const personalSubjectPattern = /(?:(?:사용자|이용자|기록자|대상자|분석\s*대상|해당\s*인물|이\s*사람|본\s*사람)(?:(?:\s*님)?\s*(?:께서는|께서|는|은|이|가|의)|\s+(?:또한|역시))|당신(?:은|이|의)?|귀하(?:는|가|의)?|너(?:는|가|의)?|본인(?:은|이|가|의)?|\b(?:you|your|users?|the user(?:'s)?|this user|this person|the person|this individual|the individual)\b)/i;
+
 const personDescriptionPatterns = [
-  /(?:^|[.!?\n,:;]\s*)(?:[-*•]\s*)?(?:사용자(?:는|은|가|의)|당신(?:은|이|의)?|귀하(?:는|가|의)?|너(?:는|가|의)?|본인(?:은|이|가|의))/i,
+  new RegExp(`(?:^|[.!?\\n,:;]\\s*)(?:[-*•]\\s*)?${personalSubjectPattern.source}`, 'i'),
   /(?:^|[.!?\n,:;]\s*)(?:[-*•]\s*)?[^.!?\n\d]{1,40}(?:사람|인간)(?:입니다|이다|이에요|예요)/i,
-  /(?:^|[.!?\n,:;]\s*)(?:[-*•]\s*)?(?:you|your|the user(?:'s)?)(?:\s|$)/i,
 ] as const;
+
+const aggregateUserLabelSource = '(?:유료|무료|활성|신규|등록|재방문|전체|고유|월간|주간|일간|서비스|앱)(?:\\s+(?:유료|무료|활성|신규|등록|재방문|전체|고유))?\\s+사용자(?:는|은|가|의)';
+const aggregateUserMetricPattern = new RegExp(
+  `${aggregateUserLabelSource}\\s*(?:(?:총|약)\\s*)?[-+]?\\d[\\d,.]*\\s*(?:명|건|%|퍼센트|회|곳|개)(?=\\s*(?:(?:이고|이며)\\s+(?=${aggregateUserLabelSource})|(?:(?:으로\\s+집계됩니다|(?:증가|감소)(?:했습니다|했다|합니다|한다)|입니다|이다|였다)\\s*)?(?:[.!?\\n]|$)))`,
+  'g',
+);
+const factualTendencySubjectPattern = /(?:계정|항목|기간|프로젝트|KPI|매출|계획|실제|차이|기록|시간|횟수|수치|비율|분포|추세|요일)(?:은|는|이|가|의)/i;
+const objectiveNarrativePattern = /(?:데이터|계정|항목|기간|프로젝트|KPI|계획(?:안)?|실제|차이|기록|시간|횟수|수치|비율|분포|추세|요일|매출|수익|비용|선택(?:지|안)|제안|변경안|일정|합계|평균|최소|최대|목표|상한|하한|토큰|집계\s*지표)|\b(?:data|account|item|period|project|kpi|plan|actual|difference|record|time|count|value|ratio|distribution|trend|weekday|revenue|cost|option|proposal|schedule|total|average|minimum|maximum|target|token)s?\b/i;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -113,10 +126,41 @@ function safeText(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
 
+function containsUnsupportedPersonalClause(value: string): boolean {
+  const withoutAggregateMetrics = value.replace(aggregateUserMetricPattern, '집계 지표');
+  return personalSubjectPattern.test(withoutAggregateMetrics);
+}
+
+function containsUnsupportedTendency(value: string): boolean {
+  return value
+    .split(/[.!?\n]+/)
+    .some((sentence) => sentence.includes('경향') && !factualTendencySubjectPattern.test(sentence));
+}
+
+function hasOnlyObjectiveNarrative(value: string): boolean {
+  const withoutAggregateMetrics = value.replace(aggregateUserMetricPattern, '집계 지표');
+  const sentences = withoutAggregateMetrics
+    .split(/[.!?\n]+/)
+    .map((sentence) => sentence.trim())
+    .filter(Boolean);
+  return sentences.length > 0 && sentences.every((sentence) => objectiveNarrativePattern.test(sentence));
+}
+
 function containsForbiddenDescription(value: string): boolean {
-  const normalized = value.replace(/[^\S\r\n]+/g, ' ').replace(/\r\n?/g, '\n');
-  return forbiddenOutputFragments.some((fragment) => normalized.includes(fragment))
-    || personDescriptionPatterns.some((pattern) => pattern.test(normalized));
+  const normalized = value
+    .replace(/[*_`~]/g, '')
+    .replace(/[^\S\r\n]+/g, ' ')
+    .replace(/\r\n?/g, '\n')
+    .trim();
+  const comparable = normalized.toLocaleLowerCase('en-US');
+  return forbiddenOutputFragments.some((fragment) => comparable.includes(fragment))
+    || personDescriptionPatterns.some((pattern) => pattern.test(normalized))
+    || containsUnsupportedPersonalClause(normalized)
+    || containsUnsupportedTendency(normalized);
+}
+
+export function isAnalysisProseAllowed(value: string): boolean {
+  return !containsForbiddenDescription(value) && hasOnlyObjectiveNarrative(value);
 }
 
 function blockedOutput(): ParsedAnalysisOutput {
@@ -181,12 +225,17 @@ export function parseAnalysisResponse(raw: string): ParsedAnalysisOutput {
     }
     const checkedNumbers = numbersUsed.filter((value): value is AnalysisNumberUsed => value !== null);
     const checkedProposals = proposals.filter((value): value is AnalysisPlanChangeProposal => value !== null);
-    const prose = [
+    const narratives = [
       answer,
-      ...checkedNumbers.flatMap((value) => [value.label, value.unit ?? '', value.period]),
-      ...checkedProposals.flatMap((value) => [value.rationale, value.payload.note ?? '']),
-    ].join('\n');
-    if (containsForbiddenDescription(prose)) return blockedOutput();
+      ...checkedProposals.flatMap((value) => [value.rationale, value.payload.note].filter(
+        (text): text is string => text !== null,
+      )),
+    ];
+    const metadata = checkedNumbers.flatMap((value) => [value.label, value.unit ?? '', value.period]);
+    if (
+      narratives.some((text) => !isAnalysisProseAllowed(text))
+      || metadata.some((text) => containsForbiddenDescription(text))
+    ) return blockedOutput();
     return {
       answer,
       numbersUsed: checkedNumbers,
@@ -195,7 +244,7 @@ export function parseAnalysisResponse(raw: string): ParsedAnalysisOutput {
       warning: null,
     };
   } catch {
-    if (containsForbiddenDescription(trimmed)) return blockedOutput();
+    if (!isAnalysisProseAllowed(trimmed)) return blockedOutput();
     return {
       answer: trimmed || 'AI 응답 본문이 비어 있습니다.',
       numbersUsed: [],

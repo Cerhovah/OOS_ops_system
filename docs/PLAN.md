@@ -3,7 +3,7 @@
 ## 현재 단계
 
 - 단계: Phase 4R — Phase 4 이후 동작 보존 리팩터
-- 상태: **전체 자동 게이트 통과·원격 부분 통과·새 build/실기기/CI 대기**
+- 상태: **전체 자동·clean DB CI·linked 원격·native build 통과, 인증 실호출/실기기 대기**
 - PLAN/구현 승인: 2026-08-20
 - Phase 종료 커밋 규칙: `docs/COMMIT_WORKFLOW.md`
 - 주 검증 플랫폼: Android 실기기, iOS 호환성 유지
@@ -52,7 +52,7 @@
 | 실기기 수동 테스트 | 통과(사용자 승인 승계) | SM-S721N(Galaxy S24 FE), 기존 전체 수기 검증 완료를 2026-09-02 재확인 |
 | 사용자 기기 하루치 실제 기록 | 통과(사용자 확인 승계) | 사용자가 이전 수기 검증을 완료했다고 재확인하고 Phase 2 진입 지시 |
 
-`npm audit --omit=dev`의 moderate 경고는 Expo SDK 57 전이 의존성 경로이며 자동 수정 제안이 호환되지 않는 구버전으로 바뀐다. ADR-004에 검토와 보류 근거를 기록했으며 게이트를 숨기거나 약화하지 않았다.
+`npm audit --omit=dev`의 잔여 16 moderate는 Expo SDK 57 전이 의존성의 두 root advisory를 중복 집계한 결과다. 호환 범위 안의 `@xmldom/xmldom`은 패치했고, Expo Router의 `decode-uri-component` 가용성 위험과 빌드 도구의 도달 불가능한 `uuid` 경고는 ADR-004에 경로·영향·보류 근거를 기록했다. SDK를 낮추는 강제 수정이나 CommonJS/ESM 계약을 깨는 override는 적용하지 않는다.
 
 ## Phase 2 AC-19~AC-22 구현·증빙
 
@@ -90,11 +90,11 @@
 
 | AC | 현재 코드 범위 | 현재 상태 | 남은 증빙 |
 |---|---|---|---|
-| AC-31 | Phase 1·2·4 공개 동작을 유지하는 characterization/integration test, 화면 busy·draft·refresh 경합 방지 | **자동·정적 통과, 실기기 대기** | `npm run verify` 33 files/166 tests, coverage 99.07/94.93/100/100, doctor 21/21, Android 1,488 modules; 새 build 실기기 대기 |
+| AC-31 | Phase 1·2·4 공개 동작을 유지하는 characterization/integration test, 화면 busy·draft·refresh 경합 방지 | **자동·정적 통과, 실기기 대기** | `npm run verify` 34 files/222 tests, coverage 99.07/94.93/100/100, doctor 21/21, Android 1,493 modules; 새 build 실기기 대기 |
 | AC-32 | SQLite v5 상향, migration+`user_version` 원자성, 정확한 `item_notification:` prefix, 기존 v4 상향 회귀 | **자동 통과·기기 대기** | fresh/v4→v5·rollback·prefix 회귀 통과, 기존 SM-S721N 데이터 보존 확인 대기 |
-| AC-33 | PKCE code-only callback, `shouldCreateUser:false`, native SecureStore와 기존 SQLite 세션 선이관·후삭제 | **자동 통과·기기 대기** | auth storage/callback 회귀 통과. build `ce72a92f-6fe5-456f-9a48-d9863788abaf` 진행 중 |
-| AC-34 | AppRepository 도메인 분리, sync persistence/codec 분리, 분석 packager·UI section/selector 분리, 조건부 outbox ACK·owner binding·unknown schema 실패 | **자동 통과·기기 대기** | repository/sync/draft/refresh 회귀 통과, 오프라인→온라인 실기기 동기화 대기 |
-| AC-35 | RPC 크기/개수/소유자·settings allowlist, Edge JSON·요청/snapshot 한도, secret redaction, 고정 CLI·CI·환경 예시 | **linked 원격 부분 통과·나머지 대기** | migration `20260904020000`, RLS/lint, Edge v3·무인증 401 통과. clean DB, 인증 실호출, GitHub Actions 대기 |
+| AC-33 | PKCE code-only callback, `shouldCreateUser:false`, native SecureStore와 기존 SQLite 세션 선이관·후삭제 | **자동·native build 통과, 기기 대기** | auth storage/callback 회귀와 build `ce72a92f-6fe5-456f-9a48-d9863788abaf` 생성 통과. 설치·세션 이관 대기 |
+| AC-34 | AppRepository 도메인 분리, sync persistence/codec 분리, 분석 packager·UI section/selector 분리, 공통 table manifest, 조건부 outbox ACK·owner binding·unknown schema 실패 | **자동 통과·기기 대기** | repository/sync/draft/refresh와 SQLite schema/export/reset manifest exact-set 회귀 통과, 오프라인→온라인 실기기 동기화 대기 |
+| AC-35 | RPC 크기/개수/소유자·settings allowlist, Edge JSON·요청/snapshot 한도, 질문·snapshot secret redaction, client/server exact-set 계약, 고정 CLI·CI·환경 예시 | **자동·clean DB CI·linked 원격 통과, 인증 실호출 대기** | migration `20260904020000`, 계약 2 files/8 tests, RLS/lint, Edge v3·무인증 401. 직전 GitHub Actions run `33856353851` 통과, 현재 refactor push 대기 |
 
 상세 범위와 대기/통과 기록은 `docs/evidence/phase-4-refactor-readiness-2026-09-04.md` 한 곳에서 갱신한다.
 
@@ -103,14 +103,14 @@
 Phase 4R 게이트 통과 뒤 시작한다. 현재 `eas.json`에는 development profile만 있으므로 아직 standalone 결과물이 없다.
 
 - [ ] AC-36 — 비개발용 Android 설치 파일 생성·설치, PC와 Metro를 끈 콜드 스타트.
-- [ ] AC-37 — 비행기 모드에서 로컬 기록·계획·프로젝트·알림·내보내기와 재시작 보존.
+- [ ] AC-37 — 비행기 모드에서 로컬 기록·계획·프로젝트·알림·내보내기와 재시작 보존. 종료일 알림의 30일 rolling horizon과 장기 재예약 정책을 실기기로 확정.
 - [ ] AC-38 — 온라인 복귀 후 인증·동기화 복구, AI의 서버 의존성과 로컬 기록 비차단 확인.
 - [ ] AC-39 — build ID·버전·SHA-256·서명/배포·rollback·native 재빌드 조건 기록.
 
 ## 다음 작업
 
-1. `0.4.1(8)` 전체 자동 게이트와 clean Supabase DB 보안 테스트를 실행하고 결과를 거짓 없이 기록한다.
-2. 적용된 원격 migration·Edge Function의 인증 실호출을 마치고 새 development build로 SecureStore 이관과 회귀를 SM-S721N에서 확인한다.
+1. 완료: `0.4.1(8)` 전체 자동 게이트, clean Supabase DB 보안 테스트, GitHub Actions와 native build 결과를 기록했다.
+2. 적용된 원격 Edge Function의 인증 실호출을 마치고 새 development build로 SecureStore 이관과 회귀를 SM-S721N에서 확인한다.
 3. Phase 4R 통과 후 Phase 4S standalone을 구현한다. Q-005의 공개 배포·결제 명세는 이 개인용 단계와 분리해 유지한다.
 
 ## 2026-09-02 정적 구현 감사 후속
@@ -129,7 +129,7 @@ Phase 4R 게이트 통과 뒤 시작한다. 현재 `eas.json`에는 development 
 - [x] Phase 2 — 동기화: AC-19~AC-22. 구현·자동·원격·SM-S721N 실기기 게이트 통과.
 - [x] Phase 3 — 철회: Telegram 구현과 원격 리소스를 사용자 지시에 따라 제거. 후속 Phase의 게이트가 아님.
 - [x] Phase 4 — 분석: AC-27~AC-30 자동·원격·SM-S721N 실기기 게이트 통과.
-- [ ] Phase 4R — 동작 보존 리팩터: AC-31~AC-35 코드 반영, 전체·원격·새 실기기 게이트 대기.
+- [ ] Phase 4R — 동작 보존 리팩터: AC-31~AC-35 코드와 자동·clean DB CI·linked 원격·native build 반영, 인증 실호출·새 실기기 게이트 대기.
 - [ ] Phase 4S — 개인용 standalone: PC·Metro 없는 Android 개인 설치 빌드와 오프라인/온라인 복귀 검증.
 - [ ] 상용화 명세 확장 — 앱 스토어 production 배포, 결제, 다중 사용자 운영 서버·백업·모니터링. Phase 4S와 별도이며 Q-005 승인 뒤 AC를 정의.
 - [ ] Phase 5 — 확장: 사용자 승인된 `FUTURE.md` 항목만 진행.

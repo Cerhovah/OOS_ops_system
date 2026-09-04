@@ -4,17 +4,11 @@ import { AppButton, Card, Section, textStyles } from '@/components/ui';
 import { APP_NAME } from '@/constants/app';
 import { useApp } from '@/context/app-context';
 import { useSync } from '@/context/sync-context';
+import { APP_DATA_TABLE_NAMES } from '@/data/app-data-tables';
 import { dateKey } from '@/domain/calculations';
 import type { Entry } from '@/types/domain';
 
 import { ANALYSIS_MODEL, ANALYSIS_PROVIDER } from '@/analysis/provider-registry';
-
-const EXPORT_TABLES = [
-  'accounts', 'projects', 'items', 'item_schedules', 'project_kpis', 'project_kpi_records',
-  'weekly_plans', 'weekly_plan_lines', 'entries', 'day_notes', 'day_closures',
-  'weekly_comments', 'today_item_additions', 'analysis_sessions', 'ai_proposals',
-  'settings', 'sync_outbox', 'sync_conflicts', 'sync_state',
-] as const;
 
 export function entryAmount(entry: Entry): number | null {
   return entry.durationMin ?? entry.value ?? entry.count;
@@ -143,7 +137,7 @@ export function ExportSection() {
       />
       <Text style={textStyles.muted}>CSV는 테이블별로 공유합니다. 소프트 삭제 행과 계획 전 버전을 포함합니다.</Text>
       <View style={styles.actions}>
-        {EXPORT_TABLES.map((table) => (
+        {APP_DATA_TABLE_NAMES.map((table) => (
           <AppButton
             key={table}
             label={`${table}.csv`}

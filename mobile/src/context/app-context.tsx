@@ -6,10 +6,12 @@ import { dateKey, timerDurationMinutes } from '@/domain/calculations';
 import { AppRepository } from '@/data/repository';
 import { shareFullJson, shareTableCsv } from '@/services/export-service';
 import { publishLocalMutation } from '@/services/local-mutation-signal';
+import { notificationScheduleFingerprint } from '@/services/notification-policy';
 import {
   cancelTimerLimitNotification,
   ensureNotificationSchedule,
   requestNotificationPermission,
+  resetNotificationSchedules,
   scheduleTestNotification,
   scheduleTimerLimitNotification,
 } from '@/services/notifications';
@@ -107,6 +109,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const loadedDate = useRef(dateKey(new Date()));
   const refreshSequence = useRef(0);
+  const completedNotificationSchedule = useRef<string | null>(null);
+  const pendingNotificationSchedule = useRef<string | null>(null);
   const busy = activeOperations > 0;
 
   const refresh = useCallback(async () => {
@@ -148,15 +152,44 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (loading) return;
     const today = dateKey(new Date());
-    void ensureNotificationSchedule(
-      repository,
-      snapshot.closures.some((closure) => closure.date === today),
+    const todayClosed = snapshot.closures.some((closure) => closure.date === today);
+    const fingerprint = notificationScheduleFingerprint(
+      today,
+      todayClosed,
       snapshot.items,
       snapshot.schedules,
-    ).catch(
-      (caught: unknown) => setError(caught instanceof Error ? caught.message : '알림 예약을 확인하지 못했습니다.'),
+      snapshot.settings,
+      snapshot.entries,
     );
-  }, [loading, repository, snapshot.closures, snapshot.items, snapshot.schedules, snapshot.settings]);
+    if (
+      completedNotificationSchedule.current === fingerprint
+      || pendingNotificationSchedule.current === fingerprint
+    ) return;
+    pendingNotificationSchedule.current = fingerprint;
+    void ensureNotificationSchedule(
+      repository,
+      todayClosed,
+      snapshot.items,
+      snapshot.schedules,
+      snapshot.entries,
+      snapshot.settings,
+    ).then(() => {
+      if (pendingNotificationSchedule.current !== fingerprint) return;
+      completedNotificationSchedule.current = fingerprint;
+      pendingNotificationSchedule.current = null;
+    }).catch((caught: unknown) => {
+      if (pendingNotificationSchedule.current === fingerprint) pendingNotificationSchedule.current = null;
+      setError(caught instanceof Error ? caught.message : '알림 예약을 확인하지 못했습니다.');
+    });
+  }, [
+    loading,
+    repository,
+    snapshot.closures,
+    snapshot.entries,
+    snapshot.items,
+    snapshot.schedules,
+    snapshot.settings,
+  ]);
 
   const mutate = useCallback(
     async <T,>(
@@ -194,7 +227,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       startTimer: (item) =>
         mutate(async () => {
           const entryId = await repository.startTimer(item);
-          await repository.setSetting('last_timer_item_id', item.id);
           await scheduleTimerLimitNotification(repository, entryId, item).catch(() => undefined);
         }),
       stopTimer: (entry) => {
@@ -234,33 +266,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
         mutate(() => repository.saveWeeklyPlan(weekStart, values, source, note)),
       copyPreviousWeek: (weekStart) => mutate(() => repository.copyPreviousWeek(weekStart)),
       closeDay: (day, planned, actual, snapshotJson, note) =>
-        mutate(async () => {
-          await repository.closeDay(day, planned, actual, snapshotJson, note);
-          await ensureNotificationSchedule(repository, true, snapshot.items, snapshot.schedules);
-        }),
+        mutate(() => repository.closeDay(day, planned, actual, snapshotJson, note)),
       setSetting: (key, settingValue) =>
-        mutate(async () => {
-          await repository.setSetting(key, settingValue);
-          if (key.startsWith('close_notification') || key === 'notification_always' || key.startsWith('item_notification:')) {
-            const today = dateKey(new Date());
-            const todayClosed = snapshot.closures.some((closure) => closure.date === today);
-            await ensureNotificationSchedule(repository, todayClosed, snapshot.items, snapshot.schedules);
-          }
-        }),
+        mutate(() => repository.setSetting(key, settingValue)),
       setSettings: (settingValues) =>
-        mutate(async () => {
-          await repository.setSettings(settingValues);
-          const changesNotificationSchedule = Object.keys(settingValues).some(
-            (key) => key.startsWith('close_notification')
-              || key === 'notification_always'
-              || key.startsWith('item_notification:'),
-          );
-          if (changesNotificationSchedule) {
-            const today = dateKey(new Date());
-            const todayClosed = snapshot.closures.some((closure) => closure.date === today);
-            await ensureNotificationSchedule(repository, todayClosed, snapshot.items, snapshot.schedules);
-          }
-        }),
+        mutate(() => repository.setSettings(settingValues)),
       getWeeklyComment: (weekStart) => repository.getWeeklyComment(weekStart),
       saveWeeklyComment: (weekStart, comment) => mutate(
         () => repository.saveWeeklyComment(weekStart, comment),
@@ -284,7 +294,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
           if (granted) {
             const today = dateKey(new Date());
             const todayClosed = snapshot.closures.some((closure) => closure.date === today);
-            await ensureNotificationSchedule(repository, todayClosed, snapshot.items, snapshot.schedules);
+            await ensureNotificationSchedule(
+              repository,
+              todayClosed,
+              snapshot.items,
+              snapshot.schedules,
+              snapshot.entries,
+              snapshot.settings,
+            );
           }
           return granted;
         }, { refresh: false, signalSync: false }),
@@ -292,7 +309,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
         () => scheduleTestNotification(repository),
         { refresh: false, signalSync: false },
       ),
-      resetAllData: () => mutate(() => repository.resetAllData()),
+      resetAllData: () => mutate(async () => {
+        const result = await resetNotificationSchedules(
+          (identifiers) => repository.resetAllData(identifiers),
+          () => repository.setSetting('notification_cleanup_pending', '[]'),
+        );
+        completedNotificationSchedule.current = null;
+        pendingNotificationSchedule.current = null;
+        return result.notificationCleanupPending;
+      }).then((notificationCleanupPending) => {
+        if (notificationCleanupPending) {
+          setError('데이터 초기화는 완료됐고 이전 알림 예약은 다음 실행에서 다시 정리합니다.');
+        }
+      }),
     }),
     [busy, error, loading, mutate, refresh, repository, snapshot],
   );

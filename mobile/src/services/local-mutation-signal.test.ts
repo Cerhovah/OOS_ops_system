@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { publishLocalMutation, subscribeToLocalMutations } from './local-mutation-signal';
+import {
+  getLocalMutationVersion,
+  publishLocalMutation,
+  subscribeToLocalMutations,
+} from './local-mutation-signal';
 
 describe('local mutation signal', () => {
   it('notifies active subscribers and stops after unsubscribe', () => {
@@ -10,5 +14,14 @@ describe('local mutation signal', () => {
     unsubscribe();
     publishLocalMutation();
     expect(listener).toHaveBeenCalledTimes(1);
+  });
+
+  it('advances a stable external-store version for every published mutation', () => {
+    const before = getLocalMutationVersion();
+
+    publishLocalMutation();
+    publishLocalMutation();
+
+    expect(getLocalMutationVersion()).toBe(before + 2);
   });
 });

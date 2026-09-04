@@ -5,18 +5,22 @@ import type { AnalysisTransport } from './types';
 
 describe('Phase 4 analysis service', () => {
   it('calculates provider token cost and preserves usage', async () => {
+    let transportedQuestion = '';
     const transport: AnalysisTransport = {
       provider: 'test-provider',
       model: 'test-model',
-      generate: async () => ({
-        text: JSON.stringify({ answer: '실제 60분입니다.', numbers_used: [], proposals: [] }),
-        inputTokens: 1000,
-        outputTokens: 500,
-      }),
+      generate: async (request) => {
+        transportedQuestion = request.question;
+        return {
+          text: JSON.stringify({ answer: '실제 60분입니다.', numbers_used: [], proposals: [] }),
+          inputTokens: 1000,
+          outputTokens: 500,
+        };
+      },
     };
     const result = await runAnalysis({
       mode: 'audit',
-      question: '차이를 보여줘',
+      question: '차이를 보여줘. API_KEY=credential-for-regression',
       rangeStart: '2026-08-01',
       rangeEnd: '2026-08-31',
       dataSnapshotJson: '{}',
@@ -25,6 +29,7 @@ describe('Phase 4 analysis service', () => {
     expect(result.provider).toBe('test-provider');
     expect(result.estimatedCostUsd).toBe(0.008);
     expect(result.structured).toBe(true);
+    expect(transportedQuestion).toBe('차이를 보여줘. API_KEY=[REDACTED]');
   });
 
   it('returns null when usage or a price is unavailable', () => {

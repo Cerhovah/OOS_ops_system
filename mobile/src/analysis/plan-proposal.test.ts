@@ -20,6 +20,7 @@ describe('plan proposal payload', () => {
     JSON.stringify({ weekStart: '2026-02-30', minutesByAccount: { accountA: 10 }, note: null }),
     JSON.stringify({ weekStart: '2026-08-31', minutesByAccount: {}, note: null }),
     JSON.stringify({ weekStart: '2026-08-31', minutesByAccount: { accountA: -1 }, note: null }),
+    JSON.stringify({ weekStart: '2026-08-31', minutesByAccount: { accountA: 10 }, note: 1 }),
   ])('rejects malformed or unsafe payloads', (payload) => {
     expect(tryParsePlanChangePayload(payload)).toBeNull();
   });

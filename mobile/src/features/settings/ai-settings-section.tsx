@@ -3,9 +3,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { Alert, StyleSheet, Text, View } from 'react-native';
 
 import { ANALYSIS_MODEL, ANALYSIS_PROVIDER, ANALYSIS_TOKEN_PRICE } from '@/analysis/provider-registry';
-import { AppButton, Card, ChoiceRow, Section, textStyles } from '@/components/ui';
+import { AppButton, Card, ChoiceRow, Section, StatusBanner, textStyles } from '@/components/ui';
 import { useApp } from '@/context/app-context';
 import { AnalysisRepository } from '@/data/analysis-repository';
+import { useLocalMutationVersion } from '@/hooks/use-local-mutation-version';
 
 import {
   DEFAULT_AI_SETTINGS_DRAFT,
@@ -31,14 +32,15 @@ interface AnalysisUsage {
   estimatedCostUsd: number;
 }
 
-const EMPTY_USAGE: AnalysisUsage = { sessions: 0, inputTokens: 0, outputTokens: 0, estimatedCostUsd: 0 };
-
 export function AiSettingsSection() {
   const app = useApp();
   const database = useSQLiteContext();
   const repository = useMemo(() => new AnalysisRepository(database), [database]);
+  const mutationVersion = useLocalMutationVersion();
   const [state, setState] = useState(() => createEditableDraft(DEFAULT_AI_SETTINGS_DRAFT));
-  const [usage, setUsage] = useState<AnalysisUsage>(EMPTY_USAGE);
+  const [usage, setUsage] = useState<AnalysisUsage | null>(null);
+  const [usageLoading, setUsageLoading] = useState(true);
+  const [usageError, setUsageError] = useState<string | null>(null);
   const draft = state.value;
 
   useEffect(() => {
@@ -47,15 +49,26 @@ export function AiSettingsSection() {
 
   useEffect(() => {
     let active = true;
+    setUsage(null);
+    setUsageLoading(true);
+    setUsageError(null);
     void repository.usageSummary()
       .then((summary) => {
-        if (active) setUsage(summary);
+        if (!active) return;
+        setUsage(summary);
+        setUsageError(null);
       })
-      .catch(() => undefined);
+      .catch((caught: unknown) => {
+        if (!active) return;
+        setUsageError(caught instanceof Error ? caught.message : '누적 사용량을 불러오지 못했습니다.');
+      })
+      .finally(() => {
+        if (active) setUsageLoading(false);
+      });
     return () => {
       active = false;
     };
-  }, [repository]);
+  }, [mutationVersion, repository]);
 
   function update(patch: Partial<AiSettingsDraft>) {
     setState((current) => patchEditableDraft(current, patch));
@@ -75,6 +88,12 @@ export function AiSettingsSection() {
 
   return (
     <Section title="AI 분석">
+      {usageError ? (
+        <StatusBanner
+          message={`누적 AI 사용량을 불러오지 못했습니다: ${usageError}`}
+          onClose={() => setUsageError(null)}
+        />
+      ) : null}
       <Card>
         <Text style={textStyles.body}>
           제공자·모델은 동기화 가능한 일반 설정이고 OpenAI API 키는 Supabase 서버 secret으로만 관리됩니다.
@@ -100,9 +119,15 @@ export function AiSettingsSection() {
           value={draft.includeNotes}
           onChange={(includeNotes) => update({ includeNotes: includeNotes === '1' ? '1' : '0' })}
         />
-        <Text style={textStyles.muted}>
-          누적 사용 · {usage.sessions}세션 · 입력 {usage.inputTokens}토큰 · 출력 {usage.outputTokens}토큰 · 추정 ${usage.estimatedCostUsd.toFixed(6)}
-        </Text>
+        {usage ? (
+          <Text style={textStyles.muted}>
+            누적 사용 · {usage.sessions}세션 · 입력 {usage.inputTokens}토큰 · 출력 {usage.outputTokens}토큰 · 추정 ${usage.estimatedCostUsd.toFixed(6)}
+          </Text>
+        ) : (
+          <Text style={textStyles.muted}>
+            {usageLoading ? '누적 사용량을 확인하는 중입니다.' : '누적 사용량을 표시할 수 없습니다.'}
+          </Text>
+        )}
         <View style={styles.actions}>
           <AppButton label="AI 설정 저장" onPress={() => void save().catch(() => undefined)} disabled={app.busy} />
         </View>

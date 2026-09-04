@@ -2,6 +2,8 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
+import { SYNCABLE_SETTING_KEYS, syncTableDefinitions } from '../../mobile/src/sync/schema';
+
 function read(relativePath: string): string {
   return readFileSync(fileURLToPath(new URL(relativePath, import.meta.url)), 'utf8');
 }
@@ -11,6 +13,19 @@ const edgeHandler = read('../functions/ai-analysis/index.ts');
 const syncMigration = read('../migrations/20260904020000_harden_sync_rpc.sql');
 const supabaseClient = read('../../mobile/src/services/supabase.ts');
 const syncContext = read('../../mobile/src/context/sync-context.tsx');
+
+function quotedValues(value: string): string[] {
+  return [...value.matchAll(/'([^']+)'/g)].map((match) => match[1]);
+}
+
+function sqlArrayBetween(start: RegExp, end: RegExp): string[] {
+  const startMatch = start.exec(syncMigration);
+  if (!startMatch) throw new Error(`SQL array start not found: ${start}`);
+  const remainder = syncMigration.slice(startMatch.index + startMatch[0].length);
+  const endMatch = end.exec(remainder);
+  if (!endMatch) throw new Error(`SQL array end not found: ${end}`);
+  return quotedValues(remainder.slice(0, endMatch.index));
+}
 
 describe('server security hardening contracts', () => {
   it('keeps public signup disabled for the existing-owner application', () => {
@@ -39,5 +54,19 @@ describe('server security hardening contracts', () => {
     expect(syncMigration).toContain('payload updated_at does not match client_updated_at');
     expect(syncMigration).toContain('payload deleted_at does not match deleted_at');
     expect(syncMigration).toContain('grant execute on function public.apply_oos_sync_records(jsonb) to authenticated');
+  });
+
+  it('keeps the latest RPC table and setting allowlists identical to the mobile sync contract', () => {
+    const serverTables = sqlArrayBetween(
+      /v_table_name\s*<>\s*all\s*\(array\[/,
+      /\]\)\s*then/,
+    );
+    const serverSettings = sqlArrayBetween(
+      /v_local_id\s*=\s*any\s*\(array\[/,
+      /\]\)/,
+    );
+
+    expect(serverTables).toEqual(syncTableDefinitions.map((definition) => definition.name));
+    expect(serverSettings).toEqual([...SYNCABLE_SETTING_KEYS]);
   });
 });

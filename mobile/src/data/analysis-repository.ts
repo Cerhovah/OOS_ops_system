@@ -2,7 +2,8 @@ import { randomUUID } from 'expo-crypto';
 import type { SQLiteDatabase } from 'expo-sqlite';
 
 import { parsePlanChangePayload } from '@/analysis/plan-proposal';
-import { serializeAnalysisOutput } from '@/analysis/prompt';
+import { isAnalysisProseAllowed, serializeAnalysisOutput } from '@/analysis/prompt';
+import { redactSensitiveText } from '@/analysis/redaction';
 import type { AnalysisTextNote, AnalysisWeeklyComment } from '@/analysis/snapshot-types';
 import type { AnalysisRunResult } from '@/analysis/types';
 import {
@@ -99,7 +100,7 @@ export class AnalysisRepository {
          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
         sessionId,
         input.mode,
-        input.question || null,
+        redactSensitiveText(input.question) || null,
         input.rangeStart,
         input.rangeEnd,
         input.dataSnapshotJson,
@@ -149,36 +150,127 @@ export class AnalysisRepository {
     return rows.map(sessionFromRow);
   }
 
-  async listProposals(sessionId?: string): Promise<AiProposal[]> {
-    const rows = sessionId
-      ? await this.db.getAllAsync<SqlRow>(
-        'SELECT * FROM ai_proposals WHERE deleted_at IS NULL AND session_id=? ORDER BY created_at',
+  async listDeletedSessions(limit = 50, offset = 0): Promise<AnalysisSession[]> {
+    const rows = await this.db.getAllAsync<SqlRow>(
+      'SELECT * FROM analysis_sessions WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC LIMIT ? OFFSET ?',
+      limit,
+      offset,
+    );
+    return rows.map(sessionFromRow);
+  }
+
+  async deleteSession(sessionId: string): Promise<void> {
+    await this.db.withExclusiveTransactionAsync(async (transaction) => {
+      const session = await transaction.getFirstAsync<SqlRow>(
+        'SELECT deleted_at FROM analysis_sessions WHERE id=?',
         sessionId,
-      )
-      : await this.db.getAllAsync<SqlRow>(
-        'SELECT * FROM ai_proposals WHERE deleted_at IS NULL ORDER BY created_at DESC',
       );
+      if (!session) throw new Error('삭제할 분석 세션을 찾지 못했습니다.');
+      if (sqliteNullableText(session, 'deleted_at')) return;
+
+      const now = new Date().toISOString();
+      await transaction.runAsync(
+        'UPDATE ai_proposals SET deleted_at=?,updated_at=? WHERE session_id=? AND deleted_at IS NULL',
+        now,
+        now,
+        sessionId,
+      );
+      await transaction.runAsync(
+        'UPDATE analysis_sessions SET deleted_at=?,updated_at=? WHERE id=? AND deleted_at IS NULL',
+        now,
+        now,
+        sessionId,
+      );
+    });
+  }
+
+  async restoreSession(sessionId: string): Promise<void> {
+    await this.db.withExclusiveTransactionAsync(async (transaction) => {
+      const session = await transaction.getFirstAsync<SqlRow>(
+        'SELECT deleted_at FROM analysis_sessions WHERE id=?',
+        sessionId,
+      );
+      if (!session) throw new Error('복구할 분석 세션을 찾지 못했습니다.');
+      const deletedAt = sqliteNullableText(session, 'deleted_at');
+      if (!deletedAt) return;
+
+      const now = new Date().toISOString();
+      await transaction.runAsync(
+        'UPDATE analysis_sessions SET deleted_at=NULL,updated_at=? WHERE id=? AND deleted_at=?',
+        now,
+        sessionId,
+        deletedAt,
+      );
+      await transaction.runAsync(
+        'UPDATE ai_proposals SET deleted_at=NULL,updated_at=? WHERE session_id=? AND deleted_at=?',
+        now,
+        sessionId,
+        deletedAt,
+      );
+    });
+  }
+
+  async listProposals(sessionId: string): Promise<AiProposal[]> {
+    const rows = await this.db.getAllAsync<SqlRow>(
+      `SELECT proposal.* FROM ai_proposals proposal
+       JOIN analysis_sessions session ON session.id=proposal.session_id
+       WHERE proposal.deleted_at IS NULL AND session.deleted_at IS NULL AND proposal.session_id=?
+       ORDER BY proposal.created_at`,
+      sessionId,
+    );
+    return rows.map(proposalFromRow);
+  }
+
+  async listProposalsForSessions(sessionIds: readonly string[]): Promise<AiProposal[]> {
+    const uniqueSessionIds = [...new Set(sessionIds)];
+    if (uniqueSessionIds.length === 0) return [];
+    const placeholders = uniqueSessionIds.map(() => '?').join(',');
+    const rows = await this.db.getAllAsync<SqlRow>(
+      `SELECT proposal.* FROM ai_proposals proposal
+       JOIN analysis_sessions session ON session.id=proposal.session_id
+       WHERE proposal.deleted_at IS NULL AND session.deleted_at IS NULL
+         AND proposal.session_id IN (${placeholders})
+       ORDER BY proposal.created_at DESC`,
+      ...uniqueSessionIds,
+    );
     return rows.map(proposalFromRow);
   }
 
   async dismissProposal(proposalId: string): Promise<void> {
     const now = new Date().toISOString();
-    await this.db.runAsync(
-      "UPDATE ai_proposals SET status='dismissed',updated_at=? WHERE id=? AND status='pending' AND deleted_at IS NULL",
+    const result = await this.db.runAsync(
+      `UPDATE ai_proposals SET status='dismissed',updated_at=?
+       WHERE id=? AND status='pending' AND deleted_at IS NULL
+       AND EXISTS (
+         SELECT 1 FROM analysis_sessions
+         WHERE analysis_sessions.id=ai_proposals.session_id AND analysis_sessions.deleted_at IS NULL
+       )`,
       now,
       proposalId,
     );
+    if (result.changes === 0) throw new Error('무시할 수 있는 대기 제안을 찾지 못했습니다.');
   }
 
   async applyPlanProposal(proposalId: string): Promise<number> {
     let version = 0;
     await this.db.withExclusiveTransactionAsync(async (transaction) => {
       const row = await transaction.getFirstAsync<SqlRow>(
-        "SELECT * FROM ai_proposals WHERE id=? AND kind='plan_change' AND status='pending' AND deleted_at IS NULL",
+        `SELECT proposal.* FROM ai_proposals proposal
+         JOIN analysis_sessions session ON session.id=proposal.session_id
+         WHERE proposal.id=? AND proposal.kind='plan_change' AND proposal.status='pending'
+         AND proposal.deleted_at IS NULL AND session.deleted_at IS NULL`,
         proposalId,
       );
       if (!row) throw new Error('적용할 수 있는 대기 제안을 찾지 못했습니다.');
       const payload = parsePlanChangePayload(sqliteText(row, 'payload_json'));
+      const rationale = sqliteText(row, 'rationale');
+      if (
+        !rationale.trim()
+        || !isAnalysisProseAllowed(rationale)
+        || (payload.note !== null && !isAnalysisProseAllowed(payload.note))
+      ) {
+        throw new Error('제안 문구가 고정 문구 규칙을 통과하지 못해 적용하지 않았습니다.');
+      }
       const weekStartSetting = await transaction.getFirstAsync<{ value: string }>(
         "SELECT value FROM settings WHERE key='week_start_day'",
       );
@@ -199,7 +291,7 @@ export class AnalysisRepository {
         weekStart: payload.weekStart,
         minutesByAccount: payload.minutesByAccount,
         source: 'ai_applied',
-        note: payload.note || sqliteText(row, 'rationale'),
+        note: payload.note || rationale,
         now,
       });
       await transaction.runAsync(

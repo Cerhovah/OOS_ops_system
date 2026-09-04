@@ -1,3 +1,5 @@
+import type { AppDataTableName } from '@/data/app-data-tables';
+
 export type SyncScalar = string | number | null;
 
 export const syncTableDefinitions = [
@@ -94,7 +96,11 @@ export const syncTableDefinitions = [
     primaryKey: 'key',
     columns: ['key', 'value', 'updated_at'],
   },
-] as const;
+] as const satisfies readonly {
+  readonly name: AppDataTableName;
+  readonly primaryKey: 'id' | 'key';
+  readonly columns: readonly string[];
+}[];
 
 export type SyncTableName = (typeof syncTableDefinitions)[number]['name'];
 
@@ -117,6 +123,26 @@ export const SYNC_BOOTSTRAP_SETTING_KEYS = [
   'timer_limit_notifications_enabled',
   'time_zone',
 ] as const;
+
+export const SYNC_BOOTSTRAP_TABLE_NAMES = [
+  'accounts',
+  'projects',
+  'items',
+  'item_schedules',
+  'project_kpis',
+  'project_kpi_records',
+  'weekly_plans',
+  'weekly_plan_lines',
+  'entries',
+  'day_notes',
+  'day_closures',
+  'weekly_comments',
+  'today_item_additions',
+] as const satisfies readonly SyncTableName[];
+
+export const SYNC_BOOTSTRAP_RESET_ORDER: readonly SyncTableName[] = [
+  ...SYNC_BOOTSTRAP_TABLE_NAMES,
+].reverse();
 
 export const SYNCABLE_SETTING_KEYS = [
   ...SYNC_BOOTSTRAP_SETTING_KEYS,

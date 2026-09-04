@@ -61,10 +61,11 @@ export default function AnalysisScreen() {
 
   const reloadHistory = useCallback(async () => {
     const request = ++historyRequest.current;
-    const [nextSessions, nextProposals] = await Promise.all([
-      repository.listSessions(search),
-      repository.listProposals(),
-    ]);
+    const nextSessions = await repository.listSessions(search);
+    if (request !== historyRequest.current) return;
+    const nextProposals = await repository.listProposalsForSessions(
+      nextSessions.map((session) => session.id),
+    );
     if (request !== historyRequest.current) return;
     setSessions(nextSessions);
     setProposals(nextProposals);
@@ -189,6 +190,34 @@ export default function AnalysisScreen() {
     }
   };
 
+  const deleteSession = (session: AnalysisSession) => {
+    Alert.alert(
+      '분석 세션 삭제',
+      '분석 답변과 실제 첨부 데이터가 목록에서 숨겨집니다. 설정에서 복구할 수 있습니다.',
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '삭제',
+          style: 'destructive',
+          onPress: () => {
+            setBusy(true);
+            void repository.deleteSession(session.id)
+              .then(async () => {
+                setSelectedSnapshot((current) => current?.id === session.id ? null : current);
+                publishLocalMutation();
+                await reloadHistory();
+                setMessage('분석 세션을 삭제했습니다. 설정에서 복구할 수 있습니다.');
+              })
+              .catch((caught: unknown) => {
+                setMessage(caught instanceof Error ? caught.message : '분석 세션을 삭제하지 못했습니다.');
+              })
+              .finally(() => setBusy(false));
+          },
+        },
+      ],
+    );
+  };
+
   return (
     <Screen>
       <Heading subtitle="AI는 저장된 숫자를 분석하며, 사용자가 적용하기 전에는 계획을 바꾸지 않습니다.">분석</Heading>
@@ -230,6 +259,7 @@ export default function AnalysisScreen() {
         onSearchChange={setSearch}
         onReload={reloadHistorySafely}
         onShowSnapshot={setSelectedSnapshot}
+        onDeleteSession={deleteSession}
         onApplyProposal={applyProposal}
         onDismissProposal={(proposal) => void dismissProposal(proposal).catch((caught: unknown) => {
           setMessage(caught instanceof Error ? caught.message : '제안을 무시하지 못했습니다.');

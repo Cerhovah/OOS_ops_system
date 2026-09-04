@@ -5,6 +5,7 @@ import {
   ANALYSIS_MODE_QUESTIONS,
   ANALYSIS_EXAMPLE_QUESTIONS,
   ANALYSIS_SYSTEM_PROMPT,
+  isAnalysisProseAllowed,
   parseAnalysisResponse,
   serializeAnalysisOutput,
 } from './prompt';
@@ -84,6 +85,10 @@ describe('Phase 4 analysis prompt and response parser', () => {
     for (const answer of [
       '매출의 주별 증가 경향이 데이터에 있습니다.',
       '최근 4주 화요일 실제 시간이 높은 경향이 있어요.',
+      '낙관적 시나리오 A는 제품 계정 900분을 제안합니다.',
+      '두 선택지 중 수면 49시간 유지안을 선호하면 A안을 고를 수 있습니다.',
+      'Revenue has an upward tendency over 4 weeks.',
+      'The project is resilient to a one-week delay.',
     ]) {
       expect(parseAnalysisResponse(JSON.stringify({ answer, numbers_used: [], proposals: [] })).structured).toBe(true);
     }
@@ -91,13 +96,36 @@ describe('Phase 4 analysis prompt and response parser', () => {
 
   it.each([
     '사용자는 충동적입니다.',
+    '사용자는 3시간만 기록한 충동적인 사람입니다.',
+    '데이터상 사용자는 3회 이후 낙관적입니다.',
+    '유료 사용자는 3명이고 충동적입니다.',
+    '활성 사용자는 3명이며 낙관적입니다.',
+    '이용자는 충동적입니다.',
+    '기록자는 낙관적입니다.',
+    '분석 대상은 의욕이 없습니다.',
+    'This person is impulsive.',
+    '계획을 자주 바꾸는 경향이 있습니다.',
+    '사용자님은 충동적입니다.',
+    '사용자께서는 충동적입니다.',
+    '사용자 또한 낙관적입니다.',
+    '**사용자**는 충동적입니다.',
+    'This user is impulsive.',
+    'User is impulsive.',
+    '유료 사용자는 3명입니다. 충동적입니다.',
+    '계획보다 즉흥적인 선택을 선호합니다.',
+    '쉽게 포기합니다.',
+    '결정을 자주 미룹니다.',
+    'They are adaptable under pressure.',
+    '유료 사용자는 3명입니다. 쉽게 포기합니다.',
     '사용자는 참을성이 부족합니다.',
     '사용자는 낙관적입니다.',
     '분석 결과, 사용자는 융통성이 큽니다.',
+    '데이터를 종합하면 사용자는 융통성이 큽니다.',
     '당신은 의욕이 없습니다.',
     '계획적인 사람입니다.',
     'You are an impulsive person.',
     'The user is unusually resilient.',
+    'Data indicate the user is unusually resilient.',
   ])('fails closed for a personal description outside the original phrase list: %s', (answer) => {
     const result = parseAnalysisResponse(JSON.stringify({ answer, numbers_used: [], proposals: [] }));
     expect(result.structured).toBe(false);
@@ -105,12 +133,43 @@ describe('Phase 4 analysis prompt and response parser', () => {
   });
 
   it('still allows factual customer metrics and project risk statements', () => {
+    for (const answer of [
+      '유료 사용자는 3명입니다. 프로젝트 위험 항목은 2건입니다.',
+      '유료 사용자는 총 3명입니다.',
+      '활성 사용자는 3명으로 집계됩니다.',
+      '유료 사용자는 3명이고 무료 사용자는 5명입니다.',
+      '유료 사용자는 3명 증가했습니다.',
+    ]) {
+      const result = parseAnalysisResponse(JSON.stringify({ answer, numbers_used: [], proposals: [] }));
+      expect(result.structured).toBe(true);
+    }
+  });
+
+  it('exposes the same fail-closed prose check for persisted proposal boundaries', () => {
+    expect(isAnalysisProseAllowed('계정별 계획 합계를 제안합니다.')).toBe(true);
+    expect(isAnalysisProseAllowed('사용자는 충동적입니다.')).toBe(false);
+    expect(isAnalysisProseAllowed('   사용자는 충동적입니다.')).toBe(false);
+    expect(isAnalysisProseAllowed('당신은 의욕이 없습니다.')).toBe(false);
+  });
+
+  it('checks answer, proposal rationale and proposal note as separate trust boundaries', () => {
     const result = parseAnalysisResponse(JSON.stringify({
-      answer: '유료 사용자는 3명이고 프로젝트 위험 항목은 2건입니다.',
+      answer: '최근 4주 실제 합계는 1200분입니다.',
       numbers_used: [],
-      proposals: [],
+      proposals: [{
+        kind: 'plan_change',
+        payload: {
+          week_start: '2026-09-07',
+          minutes_by_account: [{ account_id: 'account-a', planned_minutes: 600 }],
+          note: '결정을 자주 미룹니다.',
+        },
+        rationale: '쉽게 포기합니다.',
+      }],
     }));
-    expect(result.structured).toBe(true);
+
+    expect(result.structured).toBe(false);
+    expect(result.proposals).toEqual([]);
+    expect(result.warning).toContain('사용자 서술');
   });
 
   it('rejects malformed or duplicate plan lines', () => {

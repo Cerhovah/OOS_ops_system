@@ -5,6 +5,7 @@ import { addDays, dateKey, weekRange } from '@/domain/calculations';
 import { TestSQLiteDatabase } from '@/test/sqlite-adapter';
 import type { ItemInput } from '@/types/domain';
 
+import { APP_DATA_TABLE_NAMES } from './app-data-tables';
 import { migrateDatabase } from './migrations';
 import { AppRepository } from './repository';
 
@@ -23,6 +24,14 @@ describe('AppRepository with real SQLite', () => {
   });
 
   afterEach(() => adapter.close());
+
+  it('keeps the export and reset manifest identical to the migrated SQLite schema', () => {
+    const migratedTables = adapter.raw.prepare(
+      "SELECT name FROM sqlite_schema WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name",
+    ).all() as { name: string }[];
+
+    expect(migratedTables.map((row) => row.name).sort()).toEqual([...APP_DATA_TABLE_NAMES].sort());
+  });
 
   it('migrates and seeds idempotently with the exact Phase 1 baseline', async () => {
     const today = dateKey(new Date());
@@ -274,6 +283,28 @@ describe('AppRepository with real SQLite', () => {
     expect(await repository.getSetting('atomic_second')).toBeNull();
   });
 
+  it('stores a running timer and its last-item preference in one transaction', async () => {
+    const snapshot = await repository.loadSnapshot(dateKey(new Date()));
+    const item = snapshot.items.find((candidate) => candidate.type === 'time' && !candidate.deletedAt)!;
+
+    const entryId = await repository.startTimer(item);
+    expect(adapter.raw.prepare('SELECT item_id FROM entries WHERE id=?').get(entryId)).toMatchObject({ item_id: item.id });
+    expect(await repository.getSetting('last_timer_item_id')).toBe(item.id);
+
+    const originalRun = adapter.runAsync.bind(adapter);
+    const failure = vi.spyOn(adapter, 'runAsync').mockImplementation(async (source, ...params) => {
+      if (source.includes("VALUES ('last_timer_item_id'")) throw new Error('injected preference failure');
+      return originalRun(source, ...params);
+    });
+    const before = adapter.raw.prepare('SELECT COUNT(*) AS count FROM entries').get() as { count: number };
+
+    await expect(repository.startTimer(item)).rejects.toThrow('injected preference failure');
+    failure.mockRestore();
+
+    expect(adapter.raw.prepare('SELECT COUNT(*) AS count FROM entries').get()).toMatchObject({ count: before.count });
+    expect(await repository.getSetting('last_timer_item_id')).toBe(item.id);
+  });
+
   it('restores every runtime default and clears owner state during an explicit full reset', async () => {
     await repository.setSetting('ai_provider', 'changed');
     await repository.setSetting('ai_model', 'changed');
@@ -281,10 +312,12 @@ describe('AppRepository with real SQLite', () => {
       "INSERT INTO sync_state (key,value,updated_at) VALUES ('sync_owner_user_id','user-a','2026-09-04T00:00:00.000Z')",
     ).run();
 
-    await repository.resetAllData();
+    await repository.resetAllData(['old-close', 'old-timer', 'old-close']);
 
     expect(await repository.getSetting('ai_provider')).toBe('openai');
     expect(await repository.getSetting('ai_model')).toBe('gpt-5.6-terra');
+    expect(await repository.getSetting('notification_cleanup_pending'))
+      .toBe(JSON.stringify(['old-close', 'old-timer']));
     expect(adapter.raw.prepare("SELECT value FROM sync_state WHERE key='sync_owner_user_id'").get()).toBeUndefined();
     expect((await repository.loadSnapshot(dateKey(new Date()))).accounts).toHaveLength(14);
   });

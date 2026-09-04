@@ -8,6 +8,7 @@ import { decideMerge } from '@/sync/merge';
 import {
   getSyncTableDefinition,
   isSyncableSetting,
+  SYNC_BOOTSTRAP_RESET_ORDER,
   SYNC_BOOTSTRAP_SETTING_KEYS,
   SYNCABLE_SETTING_PREFIX,
   syncTableDefinitions,
@@ -35,23 +36,11 @@ export class RemoteSyncStore {
       );
 
       if (options.replaceSeedBootstrap) {
-        await transaction.execAsync(`
-          DELETE FROM project_kpi_records;
-          DELETE FROM entries;
-          DELETE FROM item_schedules;
-          DELETE FROM today_item_additions;
-          DELETE FROM weekly_plan_lines;
-          DELETE FROM weekly_plans;
-          DELETE FROM day_notes;
-          DELETE FROM day_closures;
-          DELETE FROM weekly_comments;
-          DELETE FROM project_kpis;
-          DELETE FROM items;
-          DELETE FROM projects;
-          DELETE FROM accounts;
-          DELETE FROM sync_outbox;
-          DELETE FROM sync_conflicts;
-        `);
+        await transaction.execAsync(
+          [...SYNC_BOOTSTRAP_RESET_ORDER, 'sync_outbox', 'sync_conflicts']
+            .map((table) => `DELETE FROM ${table};`)
+            .join('\n'),
+        );
         await transaction.runAsync(
           `DELETE FROM settings
            WHERE key IN (${sqlPlaceholders(SYNC_BOOTSTRAP_SETTING_KEYS.length)})

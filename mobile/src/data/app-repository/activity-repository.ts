@@ -22,19 +22,27 @@ export class ActivityRepository {
   async startTimer(item: Item): Promise<string> {
     const now = new Date().toISOString();
     const id = randomUUID();
-    await this.database.runAsync(
-      `INSERT INTO entries
-       (id,item_id,account_id,type,started_at,ended_at,duration_min,value,count,occurred_at,note,source,created_at,updated_at)
-       VALUES (?,?,?,?,?,NULL,NULL,NULL,NULL,?,NULL,'app',?,?)`,
-      id,
-      item.id,
-      item.accountId,
-      item.type,
-      now,
-      now,
-      now,
-      now,
-    );
+    await this.database.withExclusiveTransactionAsync(async (transaction) => {
+      await transaction.runAsync(
+        `INSERT INTO entries
+         (id,item_id,account_id,type,started_at,ended_at,duration_min,value,count,occurred_at,note,source,created_at,updated_at)
+         VALUES (?,?,?,?,?,NULL,NULL,NULL,NULL,?,NULL,'app',?,?)`,
+        id,
+        item.id,
+        item.accountId,
+        item.type,
+        now,
+        now,
+        now,
+        now,
+      );
+      await transaction.runAsync(
+        `INSERT INTO settings (key,value,updated_at) VALUES ('last_timer_item_id',?,?)
+         ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at`,
+        item.id,
+        now,
+      );
+    });
     return id;
   }
 

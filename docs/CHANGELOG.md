@@ -10,7 +10,7 @@
 - 2026-09-04: PKCE code-only callback, 네이티브 SecureStore session adapter, 기존 Expo SQLite Auth key의 선이관·후삭제와 경합 회귀 테스트 추가
 - 2026-09-04: SQLite v5 상향 migration과 v4→v5 데이터 보존·정확한 settings prefix·migration rollback 회귀 테스트 추가
 - 2026-09-04: Supabase RPC의 owner/schema/settings allowlist·batch/record 크기 제한과 Edge Function의 JSON/body/snapshot/date/mode/question 검증, RLS 보안 회귀 테스트 추가
-- 2026-09-04: 요청 snapshot의 credential/JWT marker redaction, 완료된 4·8·12주 기간 계산, 숫자 근거까지 포함하는 사용자 서술 금지 검증 추가
+- 2026-09-04: 요청 snapshot과 자유질문의 전송·저장 이중 credential redaction, 완료된 4·8·12주 기간 계산, 출력 필드별 객관 데이터 anchor와 사용자 서술 금지 검증 추가
 - 2026-09-04: 공개 변수 이름만 담은 `mobile/.env.example`, 고정 action/Node/npm/Supabase CLI 기반 GitHub Actions와 Dependabot 설정 추가
 - 2026-09-04: Phase 4R의 자동·원격·새 build 실기기 결과를 분리 기록하는 readiness 증빙과 Phase 4S standalone 검증 계획 추가
 - 제품 전체 명세와 Phase 1~5 개발 구조
@@ -51,6 +51,10 @@
 - 2026-09-04: `npm run verify`에 모바일↔Supabase Edge 요청·보안 계약 테스트를 포함하고 EAS CLI 23.2.0·Supabase CLI 2.116.0·npm 11.17.0을 재현 기준으로 고정
 - 2026-09-04: GitHub Actions 런타임 경고를 없애기 위해 Dependabot이 검증한 Checkout 7·Setup Node 7·Supabase Setup 3의 정확한 commit SHA로 갱신
 - 2026-09-04: sync RPC hardening migration `20260904020000`과 `ai-analysis` v3를 원격 배포하고 migration up to date·DB lint 0·RLS 회귀·익명 direct DML/함수 호출 401을 확인
+- 2026-09-04: Expo SDK 57 최신 호환 패치(`expo` 57.0.20, notifications 57.0.17, router 57.0.19, sharing 57.0.18)를 잠금 파일에 정렬하고 GitHub Actions run `33856353851`의 mobile·clean database 작업을 모두 통과
+- 2026-09-04: SecureStore 포함 EAS development build `ce72a92f-6fe5-456f-9a48-d9863788abaf` 생성을 완료하고 APK와 SHA-256을 로컬 보존. 설치·세션 이관·실기기 회귀는 별도 대기
+- 2026-09-04: 실제 전송 snapshot을 포함한 분석 세션과 자식 제안을 같은 tombstone으로 소프트삭제·복구하고, 설정 복구 UI와 표시 세션 범위 제안 조회를 추가
+- 2026-09-04: 앱 데이터 table manifest에서 export/reset을 파생하고 실제 SQLite schema, seed bootstrap 정책, 모바일↔서버 동기화 allowlist의 exact-set 계약을 추가
 - 2026-08-20: Phase 1을 사용자 구현 승인 대기 상태로 명시하고 승인 후 작업 순서를 고정
 - 2026-08-20: 후속 Phase의 수용 기준 범위를 SPEC에 맞게 Phase 2 AC-19~AC-22, Phase 3 AC-23~AC-26, Phase 4 AC-27~AC-30으로 수정
 - 2026-08-20: README에 현재 문서 전용 상태, 실행·개발 빌드 절차의 적용 시점, 환경변수·비밀값 정책을 명시
@@ -112,6 +116,12 @@
 - 2026-09-04: 주간 코멘트 조회 실패 뒤 빈 값을 저장하거나 오늘 종료 콜드 스타트에서 기존 메모를 덮을 수 있던 hydration·저장 경합을 차단
 - 2026-09-04: clean Supabase CI가 기존 Auth 사용자를 요구하던 테스트 결합을 자체 임시 사용자·전체 rollback fixture로 수정하고, multi-statement assertion은 격리 DB 컨테이너의 `psql`·`ON_ERROR_STOP`으로 실행
 - 2026-09-04: Windows PowerShell 5.1에서 UTF-8 no-BOM 스크립트의 한국어 안내가 깨지던 문제를 ASCII 프롬프트와 명시적인 실패 종료 코드로 수정했다.
+- 2026-09-04: 저장·동기화된 AI 제안도 렌더링과 적용 transaction에서 I-13 문구를 다시 검사하고, 삭제된 부모 세션의 제안 적용·무시를 차단
+- 2026-09-04: 숫자를 문장 사이에 섞어 I-13 사용자 서술 검사를 우회하는 변형도 차단하고 회귀 사례 2개를 추가
+- 2026-09-04: 삭제된 하루 종료 tombstone이 활성 snapshot에 재등장하던 문제와 타이머 행·최근 항목 설정의 부분 저장 가능성을 transaction으로 수정
+- 2026-09-04: 모든 알림 예약을 단일 queue·입력 fingerprint로 직렬화하고, 예약 ID 저장 실패 보상 취소·DB 초기화 transaction의 cleanup manifest·실패 재시도·종료 뒤 30일 rolling horizon을 추가. 기존 PUBLIC 채널 재사용을 피하도록 `daily-records-v3` PRIVATE 채널로 상향
+- 2026-09-04: AI 누적 사용량 조회 실패를 0건으로 위장하지 않고 오류로 표시하며, 공통 제목·선택·오류 UI의 TalkBack 의미를 보강
+- 2026-09-04: 호환 범위 안의 `@xmldom/xmldom`을 보안 패치하고, 남은 npm audit 경고를 Expo Router 런타임 가용성 경로와 실행 번들에 포함되지 않는 UUID 도구 경로로 분류. Expo SDK 하향이나 CJS/ESM 계약을 깨는 강제 override는 적용하지 않고 공식 호환판 갱신 조건을 기록
 
 - 2026-08-20: 계획 합계가 168시간과 다르거나 음수여도 형식이 유효하면 저장할 수 있도록 I-1 비차단 동작 수정
 - 2026-08-20: 진행 중 타이머를 고정 일정 완료로 오인해 남은 가용시간에서 누락하던 계산 수정

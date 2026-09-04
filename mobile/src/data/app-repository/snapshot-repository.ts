@@ -36,7 +36,7 @@ export class SnapshotRepository {
           rows(transaction, 'SELECT * FROM weekly_plan_lines'),
           rows(transaction, 'SELECT * FROM project_kpis ORDER BY sort_order, created_at'),
           rows(transaction, 'SELECT * FROM project_kpi_records ORDER BY occurred_at'),
-          rows(transaction, 'SELECT * FROM day_closures ORDER BY date DESC'),
+          rows(transaction, 'SELECT * FROM day_closures WHERE deleted_at IS NULL ORDER BY date DESC'),
           rows(transaction, 'SELECT item_id FROM today_item_additions WHERE date = ? AND deleted_at IS NULL', today),
           rows(transaction, 'SELECT key,value FROM settings'),
         ]);

@@ -70,6 +70,14 @@
 - npm의 강제 수정은 SDK 57 호환 패치가 아니라 `expo-router@5.1.11`, `expo-sharing@14.0.8`로 바꾸는 breaking change를 제안한다.
 - `expo install --check`, `expo-doctor`, 전체 자동 게이트가 통과했으므로 강제 수정 보류를 유지하고 Expo SDK 57의 공식 호환 업데이트에서 재검토한다.
 
+#### 2026-09-04 재검토
+
+- 잠금 파일 안의 `@xmldom/xmldom`은 선언된 호환 범위 안에서 `0.8.15`와 `0.9.12`로 올려 해당 경고를 제거했다.
+- 온라인 `npm audit --omit=dev`의 잔여 16 moderate는 서로 다른 결함 16개가 아니라 두 root advisory가 전이 패키지까지 집계된 결과다.
+- 런타임 경로 `expo-router@57.0.19 -> query-string@7.1.3 -> decode-uri-component@0.2.2`에는 조작된 percent-encoding으로 CPU 사용량을 높일 수 있는 가용성 위험이 남는다. 수정 버전 `decode-uri-component@0.5.0`은 ESM default export라 CommonJS 함수 자체를 요구하는 `query-string@7.1.3`에 직접 override하면 호출 호환성을 깨뜨린다.
+- 도구 경로 `@expo/config-plugins -> xcode@3.0.1 -> uuid@7.0.3`의 advisory는 caller-supplied buffer를 받는 UUID v3/v5/v6에 해당한다. 현재 xcode/ngrok 경로는 `v4()`만 호출하고 Android 실행 번들에는 포함되지 않으므로 도달 가능한 앱 취약점으로 보지 않는다.
+- 따라서 검증되지 않은 major override와 Expo SDK를 낮추는 `npm audit fix --force`는 적용하지 않는다. Expo Router가 호환 수정판을 내면 우선 갱신하고 전체 게이트와 deep-link 회귀를 다시 수행한다.
+
 ### ADR-005 — EAS 프로젝트 연결과 Windows 빌드 아카이브 방식
 
 - 날짜: 2026-08-20
@@ -283,6 +291,45 @@
 - 되돌림/재검토 조건: SecureStore가 실제 Supabase session 크기를 저장하지 못하거나 공개 배포 도메인·Universal/App Links를 준비할 때 인증 storage/callback adapter만 교체한다.
 - 관련 불변조건/AC: I-7, I-8, I-12, AC-19, AC-22, AC-33
 - 대체 관계: ADR-009의 SQLite 세션 저장과 ADR-011의 implicit fragment callback 부분을 대체. 이메일 매직링크와 기기 로컬 초기화 결정은 유지
+
+### ADR-021 — 분석 세션의 불변 감사 영수증과 복구 가능한 수명주기
+
+- 날짜: 2026-09-04
+- 상태: 승인
+- 맥락: `analysis_sessions.data_snapshot_json`에는 실제 외부 전송 데이터와 선택적 메모가 들어가지만 Phase 4에는 세션 삭제·복구 경로가 없었다. 원격에서 복원된 과거 제안이 현재 I-13 문구 검증을 거치지 않고 표시·적용될 가능성도 있었다.
+- 결정: 완료된 분석의 질문·응답·첨부 snapshot·사용량은 실제 요청의 감사 영수증이므로 직접 수정하지 않는다. 내용을 바꾸려면 새 세션을 실행한다. snapshot과 자유질문은 외부 전송 직전, 질문은 SQLite 저장 직전에도 credential redaction한다. `answer`, 각 `rationale`, 각 `note`는 서로 독립적으로 객관 데이터 anchor와 I-13 문구를 검사한다. 세션 삭제는 같은 transaction에서 아직 활성인 자식 제안을 동일 tombstone 시각으로 소프트 삭제하고, 복구는 그 시각이 같은 자식만 되살린다. 삭제된 부모의 제안은 조회·무시·적용할 수 없다. 설정에서 삭제 세션을 페이지 단위로 복구하며, 표시 중인 최대 50개 세션의 제안만 조회한다. 저장·동기화된 제안도 표시 직전과 적용 transaction 안에서 같은 규칙을 다시 검증한다.
+- 대안: 분석 원문 직접 수정, 즉시 물리 삭제, 부모만 숨기고 제안 유지, 생성 시점 검증만 신뢰.
+- 근거: 감사 영수증을 수정하면 실제 외부 전송 내용과 이력이 달라진다. 동일 tombstone과 이중 검증은 I-8의 복구 가능성, §9.1의 투명성, I-13의 출력 경계를 함께 지킨다.
+- 결과 및 위험: 소프트 삭제 데이터는 복구·전체 내보내기·동기화를 위해 로컬과 원격에 남는다. 법적 삭제나 저장 공간 회수를 위한 영구 삭제는 상용화 개인정보 정책과 별도 승인 범위다.
+- 되돌림/재검토 조건: 규정상 즉시 영구 삭제가 필요하거나 세션 수가 로컬 조회 성능을 해칠 때 보존 기간·purge·pagination AC를 별도로 추가한다.
+- 관련 불변조건/AC: I-6, I-8, I-13, AC-27~AC-35
+- 대체 관계: ADR-016의 투명한 snapshot 보관 결정을 유지하면서 수명주기와 재검증 경계를 보완
+
+### ADR-022 — 직렬화된 로컬 알림 조정과 비공개 Android 채널
+
+- 날짜: 2026-09-04
+- 상태: 승인
+- 맥락: snapshot refresh와 설정 저장이 겹치면 같은 알림을 중복 예약할 수 있었고, 예약 뒤 ID 저장 실패·전체 초기화는 추적할 수 없는 OS 알림을 남길 수 있었다. `오늘 종료 후 항상 받기=끔`은 내일 1회만 예약해 앱을 다시 열지 않으면 이후 매일 알림이 끊겼다. 기존 Android v2 채널은 `PUBLIC` 잠금화면 정책을 생성 뒤 유지한다.
+- 결정: close/item reconciliation과 test/timer/reset 예약을 단일 queue로 직렬화하고 날짜·종료 상태·관련 설정·활성 항목/일정 fingerprint가 같은 refresh는 재예약하지 않는다. 예약 ID 저장 실패 시 새 OS 예약을 보상 취소한다. 전체 초기화는 OS 예약 ID를 수집해 DB reset transaction의 `notification_cleanup_pending`에 원자 저장한 뒤 취소하며, 성공한 뒤에만 manifest를 비운다. 취소 실패·중간 종료와 종료된 타이머의 남은 ID는 다음 reconciliation에서 재시도한다. 오늘이 종료됐고 항상 받기가 꺼졌으면 다음 30일의 one-off 알림을 미리 예약하고 앱이 열린 날짜마다 horizon을 갱신한다. 그 밖에는 daily 반복을 유지한다. Android 채널은 새 `daily-records-v3`와 `PRIVATE` 잠금화면 가시성을 사용한다. 타이머 행과 최근 항목 설정은 한 SQLite transaction으로 저장한다.
+- 대안: 모든 refresh에서 전량 재예약, 내일 1회만 예약, 기존 PUBLIC 채널 재사용, 알림 오류로 핵심 기록 rollback.
+- 근거: OS 예약과 SQLite 식별자의 일관성을 높이면서 알림 실패가 I-7의 핵심 기록을 막지 않게 한다. 새 채널 ID는 이미 생성된 Android 채널 속성이 코드 변경만으로 바뀌지 않는 문제를 피한다.
+- 결과 및 위험: 앱을 30일 넘게 한 번도 열지 않으면 종료일 뒤 rolling horizon이 소진될 수 있다. Phase 4S에서 Android 장기 재예약과 iOS 예약 수 제한을 실기기로 검증하고, 무기한 보장이 필요하면 플랫폼별 background scheduler를 승인한다.
+- 되돌림/재검토 조건: 실기기에서 중복·누락·배터리 영향·플랫폼 예약 상한이 재현되거나 30일 무실행 보장이 제품 요구가 될 때.
+- 관련 불변조건/AC: I-7, I-8, I-12, AC-13, AC-14, AC-31, AC-34
+- 대체 관계: ADR-003의 알림 저장 비차단 원칙을 유지하면서 예약 수명주기와 개인정보 가시성을 강화
+
+### ADR-023 — 단일 앱 데이터 manifest와 client/server 동기화 계약
+
+- 날짜: 2026-09-04
+- 상태: 승인
+- 맥락: 전체 JSON/CSV export, 전체 초기화, seed 교체, 모바일 동기화 schema와 서버 RPC allowlist가 서로 다른 하드코딩 목록을 사용하면 새 테이블·설정 추가 시 한 경로가 조용히 누락될 수 있다.
+- 결정: 19개 로컬 앱 데이터 테이블은 단일 `APP_DATA_TABLE_NAMES` tuple로 선언하고 export와 FK 역순 reset을 파생한다. 실제 migration 뒤 `sqlite_schema`와 exact set이 같은지 통합 테스트한다. seed 교체 13개 테이블은 분석 이력을 의도적으로 제외하는 별도 정책 tuple로 둔다. 모바일 16개 sync table·11개 setting key는 최신 서버 RPC SQL allowlist와 계약 테스트에서 순서까지 일치시킨다. 과거 migration은 수정하지 않는다.
+- 대안: 각 기능의 문자열 목록 유지, migration에서 TypeScript 생성, 모든 테이블을 seed 교체 대상으로 취급.
+- 근거: 한 선언에서 export/reset을 파생하면 I-8 내보내기와 초기화 누락을 즉시 막고, SQLite·RPC exact-set 테스트는 서로 다른 런타임 경계를 생성 도구 없이 검증한다. seed 교체는 전체 초기화와 의미가 달라 명시적 subset이 더 안전하다.
+- 결과 및 위험: 새 테이블·동기화 설정은 typecheck 또는 계약 테스트를 함께 갱신해야 한다. Supabase의 과거 migration은 감사 이력으로 남고 최신 hardening migration만 현재 client 계약과 비교한다.
+- 되돌림/재검토 조건: schema가 여러 앱 버전을 동시에 지원해야 하거나 migration 생성기를 도입할 때 version별 manifest로 확장한다.
+- 관련 불변조건/AC: I-7, I-8, I-12, AC-15, AC-19~AC-22, AC-31, AC-34, AC-35
+- 대체 관계: ADR-008·ADR-018·ADR-019의 schema/repository/재현성 결정을 구체화
 
 ## 기록 형식
 
