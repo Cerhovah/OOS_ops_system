@@ -11,6 +11,13 @@
         "buildType": "apk",
         "image": "sdk-57"
       }
+    },
+    "personal": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk",
+        "image": "sdk-57"
+      }
     }
   }
 }

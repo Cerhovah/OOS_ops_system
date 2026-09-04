@@ -19,7 +19,14 @@
 - Saved the nine server-side `AI_MODEL_*` and `AI_PRICE_*` configuration values to Supabase project `majwsffhmbjwinvmxqzj`.
 - Deployed Edge Function `ai-analysis` with the model-policy shared module. Supabase CLI confirmed `Deployed Functions.`
 
-## Not executed
+## SM-S721N live verification
 
-- No paid OpenAI request or device request was made by this change.
-- A live request remains the final AC-38 device/server evidence; it requires the separately configured `OPENAI_API_KEY` secret.
+- Connected authorized device: `R5CY31QP08W`, model `SM-S721N`; installed development client reports `0.4.1 (8)`.
+- Started Metro through USB reverse forwarding and loaded the current source in the development client without a render or runtime error.
+- Confirmed the analysis UI exposes both standard and deep choices.
+- Ran one standard analysis against the signed-in device data. The UI confirmed: `분석 세션을 저장했습니다. 제안은 아직 데이터에 적용되지 않았습니다.` No proposal was applied.
+- The returned result correctly reported that one minute of actual weekly record is insufficient for an account-level change rationale, preserving the data-insufficient behavior.
+
+## Remaining Phase 4S work
+
+- Build and install a non-development Android APK, then repeat the PC/Metro-free launch portion of the device gate.
