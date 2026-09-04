@@ -49,6 +49,7 @@
 - 2026-09-04: 분석 기간을 진행 중인 경계 주가 아닌 직전까지 완료된 최근 4·8·12주로 정의하고 UI 문구와 snapshot preview를 실제 첨부 범위에 맞춤
 - 2026-09-04: Supabase Auth client를 PKCE와 `shouldCreateUser:false`로 제한하고 local config의 신규 가입 기본값을 비활성화. hosted Auth 적용은 Q-013 확인 대기
 - 2026-09-04: `npm run verify`에 모바일↔Supabase Edge 요청·보안 계약 테스트를 포함하고 EAS CLI 23.2.0·Supabase CLI 2.116.0·npm 11.17.0을 재현 기준으로 고정
+- 2026-09-04: GitHub Actions 런타임 경고를 없애기 위해 Dependabot이 검증한 Checkout 7·Setup Node 7·Supabase Setup 3의 정확한 commit SHA로 갱신
 - 2026-09-04: sync RPC hardening migration `20260904020000`과 `ai-analysis` v3를 원격 배포하고 migration up to date·DB lint 0·RLS 회귀·익명 direct DML/함수 호출 401을 확인
 - 2026-08-20: Phase 1을 사용자 구현 승인 대기 상태로 명시하고 승인 후 작업 순서를 고정
 - 2026-08-20: 후속 Phase의 수용 기준 범위를 SPEC에 맞게 Phase 2 AC-19~AC-22, Phase 3 AC-23~AC-26, Phase 4 AC-27~AC-30으로 수정
