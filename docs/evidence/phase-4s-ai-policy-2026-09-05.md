@@ -29,4 +29,4 @@
 
 ## Remaining Phase 4S work
 
-- Build and install a non-development Android APK, then repeat the PC/Metro-free launch portion of the device gate.
+- EAS internal non-development APK `0.4.2 (9)` is queued as build `8deb4d4b-3747-4073-9f06-c7b9b2ed9f09` from commit `b15500c`. After completion, install it over USB and repeat the PC/Metro-free launch portion of the device gate.
