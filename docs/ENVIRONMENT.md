@@ -106,7 +106,7 @@ set EAS_NO_VCS=
 
 현재 Windows 저장소 경로의 대괄호 때문에 기본 EAS 로컬 git archive가 실패하므로 이 경로에서만 `EAS_NO_VCS=1`을 사용한다. 대괄호 없는 경로에서는 먼저 기본 명령을 사용한다. PowerShell에서는 build 전 `$env:EAS_NO_VCS = '1'`, build 후 `Remove-Item Env:EAS_NO_VCS`로 같은 범위를 적용한다.
 
-현재 연결된 프로젝트는 `@ljh951206/oos-ops`, project ID는 `a0b6c215-c87a-40ff-b749-b715d1ed9352`다. Phase 4R용 `0.4.1(8)` development build `ce72a92f-6fe5-456f-9a48-d9863788abaf`에서 로그인 유지와 인증된 AI 실호출을 확인했다. 일상 사용용 `0.4.2(9)` personal build `8deb4d4b-3747-4073-9f06-c7b9b2ed9f09`도 SM-S721N에 데이터 보존 업데이트로 설치했다. 이후에도 native dependency·권한·config plugin을 바꾸면 새 binary가 필요하다. 비용·계정 플랜·자격증명 선택이 나타나면 임의로 진행하지 않는다.
+현재 연결된 프로젝트는 `@ljh951206/oos-ops`, project ID는 `a0b6c215-c87a-40ff-b749-b715d1ed9352`다. Phase 4R용 `0.4.1(8)` development build `ce72a92f-6fe5-456f-9a48-d9863788abaf`에서 로그인 유지와 인증된 AI 실호출을 확인했다. 일상 사용용 `0.4.3(10)` personal build `6eb9e668-8af4-4e87-9243-bcbaf2be9f0c`도 SM-S721N에 데이터 보존 업데이트로 설치했다. 이후에도 native dependency·권한·config plugin을 바꾸면 새 binary가 필요하다. 비용·계정 플랜·자격증명 선택이 나타나면 임의로 진행하지 않는다.
 
 development client는 JavaScript를 받기 위해 Metro가 필요하다. `personal` profile은 developer launcher 없이 release APK와 embedded JavaScript bundle을 생성한다. 2026-09-05 설치본은 non-debuggable, `assets/index.android.bundle` 포함, Metro 8081/8082 listener와 ADB reverse가 없는 상태에서 `Running "main"` cold start를 확인했다. USB는 설치·로그 확인에만 사용됐고 실행 의존성이 아니다.
 
@@ -118,7 +118,7 @@ npx eas-cli@23.2.0 build --platform android --profile personal --non-interactive
 set EAS_NO_VCS=
 ```
 
-현재 보존 artifact는 `C:\Users\skljh\Downloads\OOS-Ops-0.4.2-build9-personal.apk`, SHA-256은 `569108C00792314451FF443D4563E66194FD1A07E6B1F0E73A27EC6BD3641253`이다. native rollback은 동일 EAS Android keystore를 유지한 채 알려진 정상 commit을 더 높은 `versionCode`로 다시 빌드하고 `adb install -r` 또는 스토어 업데이트로 설치한다. SQLite migration은 전진형이므로 오래된 낮은 versionCode APK를 강제 downgrade하지 않는다.
+현재 보존 artifact는 `C:\Users\skljh\Downloads\OOS-Ops-0.4.3-build10-personal.apk`, SHA-256은 `F3122C838F3F75146886CA15D856C7AD4FAB87EBEC73746048A197C081FB1B9F`이다. native rollback은 동일 EAS Android keystore를 유지한 채 알려진 정상 commit을 더 높은 `versionCode`로 다시 빌드하고 `adb install -r` 또는 스토어 업데이트로 설치한다. SQLite migration은 전진형이므로 오래된 낮은 versionCode APK를 강제 downgrade하지 않는다.
 
 ## Phase 2 Supabase 개발 환경
 

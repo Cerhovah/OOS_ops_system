@@ -29,5 +29,5 @@
 
 ## Standalone follow-up
 
-- EAS internal non-development APK `0.4.2 (9)` build `8deb4d4b-3747-4073-9f06-c7b9b2ed9f09` finished and was installed over the prior package without clearing data.
+- EAS internal non-development APK `0.4.3 (10)` build `6eb9e668-8af4-4e87-9243-bcbaf2be9f0c` supersedes build 9 after adding legacy nullable session-field compatibility. It was installed over the prior package without clearing data.
 - The APK is non-debuggable, contains `assets/index.android.bundle`, and launches with no Metro listener or ADB reverse. Full offline interaction and online-return evidence remains in `phase-4s-standalone-2026-09-05.md`.

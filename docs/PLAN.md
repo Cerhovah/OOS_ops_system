@@ -100,7 +100,7 @@
 
 ## Phase 4S AC-36~AC-39 개인용 standalone
 
-Phase 4R 게이트 통과 뒤 시작했다. `personal` profile과 `0.4.2(9)` release APK 생성·설치·Metro 독립 cold start를 완료했고, 오프라인 조작과 온라인 복귀 게이트를 진행한다.
+Phase 4R 게이트 통과 뒤 시작했다. `personal` profile과 `0.4.3(10)` release APK 생성·설치·Metro 독립 cold start를 완료했고, 오프라인 조작과 온라인 복귀 게이트를 진행한다.
 
 - [x] AC-36 — 비개발용 Android 설치 파일 생성·설치, PC와 Metro를 끈 콜드 스타트.
 - [ ] AC-37 — 비행기 모드에서 로컬 기록·계획·프로젝트·알림·내보내기와 재시작 보존. 종료일 알림의 30일 rolling horizon과 장기 재예약 정책을 실기기로 확정.
@@ -118,7 +118,7 @@ Phase 4R 게이트 통과 뒤 시작했다. `personal` profile과 `0.4.2(9)` rel
 ## 다음 작업
 
 1. 완료: Phase 4R 자동·clean DB·원격 게이트와 새 build 로그인 유지·AI model policy 배포·실호출을 기록했다.
-2. 진행: `0.4.2(9)` personal release의 오프라인 로컬 조작·재시작 보존과 온라인 복귀를 SM-S721N에서 확인한다.
+2. 진행: `0.4.3(10)` personal release에서 구버전 AI 세션 호환 동기화 10→0, 오프라인 기록·재시작 보존을 확인했다. 로컬 프로젝트/계획/내보내기와 online AI 반복을 마친다.
 3. Phase 4S를 닫은 뒤 Q-005에서 production 환경·Google Play AAB·결제·다중 사용자 운영을 별도 상용화 Phase로 명세한다.
 
 ## 2026-09-02 정적 구현 감사 후속

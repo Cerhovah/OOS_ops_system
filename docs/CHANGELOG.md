@@ -6,7 +6,7 @@
 
 ### Added
 
-- 2026-09-05: `0.4.2(9)` personal release APK 생성·데이터 보존 설치와 embedded bundle·non-debuggable·PC/Metro 독립 cold start 증빙 추가
+- 2026-09-05: `0.4.3(10)` personal release APK 생성·데이터 보존 설치와 embedded bundle·non-debuggable·PC/Metro 독립 cold start 증빙 추가
 
 ### Fixed
 

@@ -142,10 +142,10 @@ Q-010 승인 뒤 `ai-analysis` Edge Function v2를 `verify_jwt=true`로 배포�
 
 | ID | 관련 AC | 검증 내용 | 현재 상태 |
 |---|---|---|---|
-| TP-S-01 | AC-36 | developer tools가 없는 Android binary 생성·설치 후 PC·Metro 종료 상태에서 아이콘 콜드 스타트 | **통과**: `0.4.2(9)` personal APK 설치, non-debuggable, embedded bundle 확인. 8081/8082 listener·ADB reverse 없이 launcher intent에서 `Running "main"` |
-| TP-S-02 | AC-37 | 비행기 모드에서 기록·계획·프로젝트·알림·내보내기, 강제 종료·재실행 뒤 SQLite 보존, 종료 뒤 알림 horizon·재부팅·장기 재예약 확인 | **미착수** |
-| TP-S-03 | AC-38 | 온라인 복귀 뒤 세션·수동/자동 동기화와 AI 서버 호출, 서버 실패 중 로컬 기록 비차단 | **미착수** |
-| TP-S-04 | AC-39 | build ID·versionCode·SHA-256·서명/배포·embedded bundle rollback·native 변경 재빌드 문서 대조 | **통과**: EAS `8deb4d4b-3747-4073-9f06-c7b9b2ed9f09`, `0.4.2(9)`, SHA-256 `569108C00792314451FF443D4563E66194FD1A07E6B1F0E73A27EC6BD3641253`, APK signing v2·EAS keystore, 보존/전진 rollback 절차 기록 |
+| TP-S-01 | AC-36 | developer tools가 없는 Android binary 생성·설치 후 PC·Metro 종료 상태에서 아이콘 콜드 스타트 | **통과**: `0.4.3(10)` personal APK 설치, non-debuggable, embedded bundle 확인. 8081/8082 listener·ADB reverse 없이 launcher intent에서 `Running "main"` |
+| TP-S-02 | AC-37 | 비행기 모드에서 기록·계획·프로젝트·알림·내보내기, 강제 종료·재실행 뒤 SQLite 보존, 종료 뒤 알림 horizon·재부팅·장기 재예약 확인 | **부분 통과**: Wi-Fi·mobile data 0에서 핵심 5탭과 예약 alarm 확인, 1분 기록 저장 뒤 force-stop/launcher 재실행에도 `1m` 보존. 계획·프로젝트 쓰기, export, 알림 장기 horizon 대기 |
+| TP-S-03 | AC-38 | 온라인 복귀 뒤 세션·수동/자동 동기화와 AI 서버 호출, 서버 실패 중 로컬 기록 비차단 | **부분 통과**: v6 이전 원격 AI 세션 pull 호환 오류를 수정한 build 10에서 기존 로그인·자동 동기화·대기 10→0 확인. offline 기록 비차단 통과, personal build AI 반복 대기 |
+| TP-S-04 | AC-39 | build ID·versionCode·SHA-256·서명/배포·embedded bundle rollback·native 변경 재빌드 문서 대조 | **통과**: EAS `6eb9e668-8af4-4e87-9243-bcbaf2be9f0c`, `0.4.3(10)`, SHA-256 `F3122C838F3F75146886CA15D856C7AD4FAB87EBEC73746048A197C081FB1B9F`, APK signing v2·EAS keystore, 보존/전진 rollback 절차 기록 |
 
 ## 하루치 실기기 기록 시나리오
 

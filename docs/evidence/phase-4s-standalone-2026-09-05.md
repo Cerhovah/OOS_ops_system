@@ -8,12 +8,12 @@ AC-36과 AC-39는 통과했다. AC-37의 전체 오프라인 조작·재시작 �
 
 - EAS project: `@ljh951206/oos-ops`
 - Build profile/status: `personal` / `FINISHED`
-- Build ID: `8deb4d4b-3747-4073-9f06-c7b9b2ed9f09`
-- Source commit: `b15500cd1a0fa4fb63190641a26924694e6e992a`
-- Package/version: `com.oosops.app`, `0.4.2`, versionCode `9`
+- Build ID: `6eb9e668-8af4-4e87-9243-bcbaf2be9f0c`
+- Source commit: `46c523ca732002e8a952f60c048282ce89343dde`
+- Package/version: `com.oosops.app`, `0.4.3`, versionCode `10`
 - Device: Samsung `SM-S721N`, serial `R5CY31QP08W`
-- Preserved file: `C:\Users\skljh\Downloads\OOS-Ops-0.4.2-build9-personal.apk`
-- SHA-256: `569108C00792314451FF443D4563E66194FD1A07E6B1F0E73A27EC6BD3641253`
+- Preserved file: `C:\Users\skljh\Downloads\OOS-Ops-0.4.3-build10-personal.apk`
+- SHA-256: `F3122C838F3F75146886CA15D856C7AD4FAB87EBEC73746048A197C081FB1B9F`
 - Install: `adb install -r` succeeded. `firstInstallTime` stayed at 2026-08-23 and `lastUpdateTime` became 2026-09-05, confirming a replace without app-data clearing.
 
 ## PC·Metro 독립 증빙
@@ -24,6 +24,13 @@ AC-36과 AC-39는 통과했다. AC-37의 전체 오프라인 조작·재시작 �
 - APK archive contains `assets/index.android.bundle`.
 - After force-stop, Android launcher intent started `com.oosops.app`; logcat recorded `ReactNativeJS: Running "main"` and no `Failed to connect`, `Unable to load script`, `FATAL EXCEPTION`, or Metro error.
 - The USB cable was used only to install and observe logs. No byte path from the app to the PC was configured, so it is not a runtime dependency.
+
+## Offline and online-return observations
+
+- With Wi-Fi disabled and mobile data set to 0, the Today, Week, Projects, Plan, and Analysis routes rendered local data and scheduled Android alarms remained registered.
+- A one-minute local record was saved offline. After force-stop and launcher restart, the Today view still showed `1h 30m → 1m` and the item showed `1m`.
+- Online return of build 9 exposed `analysis_sessions 원격 행에 필요한 열이 없습니다.` because pre-v6 remote JSON lacks five newly nullable audit fields. Commit `46c523c` limits backward filling to those fields and still rejects missing required fields; 36 files/223 tests and the full gate passed.
+- Build 10 retained the login session and automatically cleared the existing sync queue from 10 to 0 without the compatibility error.
 
 ## Server boundary
 

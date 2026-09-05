@@ -12,9 +12,9 @@
 - Phase 4 여섯 분석 모드, 기간별 데이터 package, SQLite 세션·제안, 명시적 계획 적용과 Supabase 동기화 구현 및 AC-27~AC-30 게이트 통과
 - Q-010에서 OpenAI Responses API·`gpt-5.6-terra`·API 과금을 확정했다. 단일 소유자 Supabase Edge Function에서 6개 모드를 포함한 실세션 9건, 제안 적용·무시, 원격 동기화를 SM-S721N으로 검증했다.
 - Phase 4R 동작 보존 리팩터 코드와 자동·clean DB·원격 게이트를 완료했다. SQLite v6, PKCE-only callback·네이티브 SecureStore 세션, repository/sync/UI/분석 모듈 분리, 동기화·RPC·AI 요청 보안 경계와 고정 버전 CI를 유지한다. 새 build의 로그인 유지와 AI 실호출은 확인했고, 넓은 실기기 회귀 일부는 Phase 4S 게이트와 함께 남아 있다.
-- Phase 4S `personal` release APK `0.4.2(9)`를 SM-S721N에 데이터 보존 업데이트로 설치했다. APK에 `assets/index.android.bundle`이 포함되고, 앱은 non-debuggable이며 Metro listener·ADB reverse 없이 launcher cold start가 됐다. 전체 오프라인 조작과 온라인 복귀 회귀는 아직 진행 중이다.
+- Phase 4S `personal` release APK `0.4.3(10)`을 SM-S721N에 데이터 보존 업데이트로 설치했다. APK에 `assets/index.android.bundle`이 포함되고, 앱은 non-debuggable이며 Metro listener·ADB reverse 없이 launcher cold start가 됐다. 구버전 AI 세션 pull 호환 문제를 수정해 자동 동기화 대기열 10→0을 확인했고, 전체 오프라인 조작과 온라인 AI 회귀는 진행 중이다.
 
-현재 앱 버전은 `0.4.2(9)`입니다. EAS `personal` build `8deb4d4b-3747-4073-9f06-c7b9b2ed9f09`를 설치했으며 이 빌드는 PC·USB·Metro 없이 로컬 기능을 실행하도록 JavaScript bundle을 내장합니다. 로그인·동기화는 Supabase 인터넷 연결이, AI 분석은 Supabase Edge Function과 OpenAI 연결이 필요합니다. 상세 판정은 `docs/evidence/phase-4s-standalone-2026-09-05.md`를 기준으로 합니다.
+현재 앱 버전은 `0.4.3(10)`입니다. EAS `personal` build `6eb9e668-8af4-4e87-9243-bcbaf2be9f0c`를 설치했으며 이 빌드는 PC·USB·Metro 없이 로컬 기능을 실행하도록 JavaScript bundle을 내장합니다. 로그인·동기화는 Supabase 인터넷 연결이, AI 분석은 Supabase Edge Function과 OpenAI 연결이 필요합니다. 상세 판정은 `docs/evidence/phase-4s-standalone-2026-09-05.md`를 기준으로 합니다.
 
 Phase 2·4의 실기기 결과와 철회된 Phase 3의 구현·제거 이력은 `docs/TESTPLAN.md`, `docs/evidence/phase-2-readiness-2026-09-02.md`, `docs/evidence/phase-3-readiness-2026-09-03.md`, `docs/evidence/phase-4-readiness-2026-09-04.md`에 기록되어 있습니다.
 
@@ -55,7 +55,7 @@ npm run verify
 
 Android Studio/JDK 로컬 환경은 현재 개발 흐름에 요구하지 않습니다. `mobile/eas.json`의 `development` 프로필은 EAS Cloud에서 SDK 57 이미지로 설치 가능한 development-client APK를 생성합니다.
 
-EAS 프로젝트는 `@ljh951206/oos-ops`에 연결됐습니다. `expo-secure-store`를 포함한 `0.4.1(8)` development build `ce72a92f-6fe5-456f-9a48-d9863788abaf`에서 로그인 유지와 인증된 AI 실호출을 확인했습니다. 일상 사용 대상은 이 개발 클라이언트가 아니라 현재 설치된 `0.4.2(9)` personal release입니다. 빌드 ID·해시·APK 경로는 `docs/TESTPLAN.md`와 `docs/evidence/`의 이력만 기준으로 합니다.
+EAS 프로젝트는 `@ljh951206/oos-ops`에 연결됐습니다. `expo-secure-store`를 포함한 `0.4.1(8)` development build `ce72a92f-6fe5-456f-9a48-d9863788abaf`에서 로그인 유지와 인증된 AI 실호출을 확인했습니다. 일상 사용 대상은 이 개발 클라이언트가 아니라 현재 설치된 `0.4.3(10)` personal release입니다. 빌드 ID·해시·APK 경로는 `docs/TESTPLAN.md`와 `docs/evidence/`의 이력만 기준으로 합니다.
 
 개발 클라이언트가 기기에 설치된 뒤 PC에서 다음 명령으로 개발 서버를 시작합니다.
 
@@ -73,7 +73,7 @@ cd mobile
 npx expo start --dev-client --tunnel
 ```
 
-이 절차는 개발 클라이언트용이므로 평상시 실행에 Metro가 필요합니다. 일상 사용에는 `personal` 프로필로 만든 `0.4.2(9)` release APK를 사용합니다. 이 APK는 Metro가 필요 없으며 EAS artifact URL이 만료되어도 이미 설치된 앱은 계속 실행됩니다. 로그인·동기화에는 Supabase 인터넷 연결, AI 분석에는 Supabase Edge Function과 OpenAI 연결이 필요하지만 기록·계획·프로젝트·로컬 알림은 SQLite 기반으로 오프라인 동작합니다.
+이 절차는 개발 클라이언트용이므로 평상시 실행에 Metro가 필요합니다. 일상 사용에는 `personal` 프로필로 만든 `0.4.3(10)` release APK를 사용합니다. 이 APK는 Metro가 필요 없으며 EAS artifact URL이 만료되어도 이미 설치된 앱은 계속 실행됩니다. 로그인·동기화에는 Supabase 인터넷 연결, AI 분석에는 Supabase Edge Function과 OpenAI 연결이 필요하지만 기록·계획·프로젝트·로컬 알림은 SQLite 기반으로 오프라인 동작합니다.
 
 ## 구현 기능
 
