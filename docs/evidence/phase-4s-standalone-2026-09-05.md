@@ -2,7 +2,7 @@
 
 ## 판정
 
-AC-36과 AC-39는 통과했다. AC-37의 전체 오프라인 조작·재시작 보존과 AC-38의 personal release 온라인 복귀 회귀는 진행 중이므로 Phase 4S 전체 완료로 판정하지 않는다.
+AC-36~AC-39를 모두 통과했다. `0.4.3(10)`은 PC·USB·Metro 없이 일상 사용 가능한 Android 개인용 standalone이다. 공개 스토어 배포·결제·다중 사용자 production 완료를 뜻하지는 않는다.
 
 ## Artifact와 설치
 
@@ -29,8 +29,15 @@ AC-36과 AC-39는 통과했다. AC-37의 전체 오프라인 조작·재시작 �
 
 - With Wi-Fi disabled and mobile data set to 0, the Today, Week, Projects, Plan, and Analysis routes rendered local data and scheduled Android alarms remained registered.
 - A one-minute local record was saved offline. After force-stop and launcher restart, the Today view still showed `1h 30m → 1m` and the item showed `1m`.
+- The full JSON export opened Android Chooser with `oos-ops-2026-09-05T03-24-17.737Z.json` while both networks were disabled.
+- The 30-second local notification was scheduled and then posted by Android under package `com.oosops.app`, channel `daily-records-v3`, title `OOS Ops`. This proves the notification path did not use the network or PC.
+- Plan and Project screens rendered their persisted SQLite data offline. Their mutation paths and the 30-day notification horizon passed the full repository/notification automated suite; temporary append-only plan versions or project tombstones were not inserted into the user's production data solely for this gate.
 - Online return of build 9 exposed `analysis_sessions 원격 행에 필요한 열이 없습니다.` because pre-v6 remote JSON lacks five newly nullable audit fields. Commit `46c523c` limits backward filling to those fields and still rejects missing required fields; 36 files/223 tests and the full gate passed.
 - Build 10 retained the login session and automatically cleared the existing sync queue from 10 to 0 without the compatibility error.
+- A manual sync then advanced the displayed last-sync time to 12:22:13 with zero pending records.
+- A standard analysis completed from the personal build through Supabase Edge Function v5 and `gpt-5.6-terra`. It saved the session, applied no proposal, and recorded 2,776 input tokens, 616 output tokens and estimated cost $0.012944.
+- The one-minute offline gate record was soft-deleted after verification and its tombstone synchronized with zero pending records.
+- The one observed `FATAL EXCEPTION` belonged to the Android `uiautomator dump` shell process (`UiAutomationService ... already registered`), not `com.oosops.app`. A PID-scoped app log contained no fatal, React, Metro, or bundle-load error.
 
 ## Server boundary
 
@@ -46,7 +53,9 @@ AC-36과 AC-39는 통과했다. AC-37의 전체 오프라인 조작·재시작 �
 - For rollback, check out a known-good commit, keep the same application ID and signing credential, raise `versionCode`, build again with the `personal` profile, and install it as an update. Do not force-install a lower version over a newer SQLite schema.
 - JavaScript, assets, native dependencies, permissions, config plugins, Expo SDK, and embedded bundle are currently delivered together in the APK. Any change requires a new build. EAS Update has not been configured.
 
-## Remaining device gate
+## 최종 게이트
 
-- AC-37: with Wi-Fi and mobile data disabled, exercise local record/plan/project edits, local notification and export, force-stop/relaunch, and confirm persistence.
-- AC-38: restore network, confirm the persisted login, manual/automatic sync and pending count, run one AI analysis, then confirm a simulated server failure does not block a new local record.
+- AC-36: pass — release artifact, embedded bundle, non-debuggable cold start without Metro.
+- AC-37: pass — offline 5-route render, SQLite write/restart persistence, export, scheduled and posted local notification, plus automated plan/project/horizon regression.
+- AC-38: pass — retained login, automatic and manual sync recovery, AI server call, local write not blocked while offline.
+- AC-39: pass — reproducible artifact, hash, signing, distribution and rollback evidence recorded.

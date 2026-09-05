@@ -4,7 +4,7 @@
 
 현재 명세주도개발은 **핵심 제품과 로컬 데이터 계층을 만드는 방식으로는 적절하다.** strict TypeScript, 순수 도메인 계산, SQLite repository, 비파괴 migration, 소프트 삭제·내보내기, Phase별 AC/TESTPLAN은 이후 리팩터링과 서버 연결에 유리하다.
 
-그러나 Phase 4 기능 완료만으로 **유지보수 없는 개인용 독립 앱 또는 상용 배포·결제 준비 완료 상태가 되지는 않는다.** 2026-09-05 `personal` profile과 PC·Metro 없는 `0.4.2(9)` APK는 확보했지만, production AAB, 운영 환경 분리, 결제·공개 출시 게이트는 Q-005 승인 뒤 별도로 명세화해야 한다.
+Phase 4S에서 PC·Metro 없는 `0.4.3(10)` 개인용 APK와 오프라인/온라인 게이트까지 확보했다. 그러나 이는 **상용 배포·결제 준비 완료 상태가 아니다.** production AAB, 운영 환경 분리, 결제·공개 출시 게이트는 Q-005 승인 뒤 별도로 명세화해야 한다.
 
 2026-09-05 현재 Phase 4R의 repository/sync persistence/UI/분석 package 분리와 PKCE/SecureStore·SQLite v6·RPC/Edge 보안 경계는 자동·clean DB CI·linked 원격 게이트를 통과했고 로그인 유지·AI 실호출을 확인했다. Phase 4S는 standalone cold start와 artifact 기록을 통과했고, 핵심 5탭·알림을 포함한 전체 오프라인/온라인 복귀 회귀가 남았다.
 
@@ -12,8 +12,8 @@
 
 | 빌드 | 목적 | Metro 필요 | 설치·갱신 방식 | 현재 상태 |
 |---|---|---:|---|---|
-| Development | 개발·디버깅·실기기 검증 | 필요 | 내부 APK, 개발 서버 연결 | `0.4.1(8)` build·로그인 유지·AI 실호출 완료, 넓은 기기 회귀 일부 대기 |
-| Preview/Personal release | 개인이 일상에서 production과 유사하게 사용 | 불필요 | standalone APK 직접 설치; 변경 시 새 binary 설치 | `0.4.2(9)` 설치·cold start 완료, 오프라인/온라인 복귀 회귀 진행 중 |
+| Development | 개발·디버깅·실기기 검증 | 필요 | 내부 APK, 개발 서버 연결 | 과거 개발 build 검증 완료; 일상 사용 대상 아님 |
+| Preview/Personal release | 개인이 일상에서 production과 유사하게 사용 | 불필요 | standalone APK 직접 설치; 변경 시 새 binary 설치 | `0.4.3(10)` 설치, cold start·오프라인/온라인 복귀 회귀 완료 |
 | Production | Google Play/App Store 공개·테스트 트랙 | 불필요 | Android AAB를 스토어가 설치·자동 업데이트 | 미구현 |
 
 Development build는 개발 과정의 정상적인 도구이지만 최종 개인용 결과물이 아니다. 개인 사용 전환 시 developer tools가 없는 standalone preview APK를 생성해야 한다. 공개 배포 시에는 production AAB가 별도로 필요하다.

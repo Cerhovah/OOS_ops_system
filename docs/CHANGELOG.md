@@ -1,5 +1,7 @@
 # CHANGELOG
 
+- 2026-09-05: `0.4.3(10)` personal release에서 Metro 독립 실행, offline 기록·재시작·내보내기·로컬 알림, online 동기화·AI를 확인해 Phase 4R AC-31~35와 Phase 4S AC-36~39를 최종 통과
+
 사용자에게 의미 있는 제품·범위·계획·검증 변경을 날짜별로 기록한다. 테스트 실행 결과 자체는 `TESTPLAN.md`, 기술적 선택은 `DECISIONS.md`에 기록한다.
 
 ## Unreleased

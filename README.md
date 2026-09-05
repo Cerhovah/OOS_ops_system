@@ -11,8 +11,8 @@
 - Phase 3 철회 마감: Telegram 제거와 함께 레거시 동기화 스키마·템플릿 잔여물·중복 테스트 기반·문서 드리프트 정리
 - Phase 4 여섯 분석 모드, 기간별 데이터 package, SQLite 세션·제안, 명시적 계획 적용과 Supabase 동기화 구현 및 AC-27~AC-30 게이트 통과
 - Q-010에서 OpenAI Responses API·`gpt-5.6-terra`·API 과금을 확정했다. 단일 소유자 Supabase Edge Function에서 6개 모드를 포함한 실세션 9건, 제안 적용·무시, 원격 동기화를 SM-S721N으로 검증했다.
-- Phase 4R 동작 보존 리팩터 코드와 자동·clean DB·원격 게이트를 완료했다. SQLite v6, PKCE-only callback·네이티브 SecureStore 세션, repository/sync/UI/분석 모듈 분리, 동기화·RPC·AI 요청 보안 경계와 고정 버전 CI를 유지한다. 새 build의 로그인 유지와 AI 실호출은 확인했고, 넓은 실기기 회귀 일부는 Phase 4S 게이트와 함께 남아 있다.
-- Phase 4S `personal` release APK `0.4.3(10)`을 SM-S721N에 데이터 보존 업데이트로 설치했다. APK에 `assets/index.android.bundle`이 포함되고, 앱은 non-debuggable이며 Metro listener·ADB reverse 없이 launcher cold start가 됐다. 구버전 AI 세션 pull 호환 문제를 수정해 자동 동기화 대기열 10→0을 확인했고, 전체 오프라인 조작과 온라인 AI 회귀는 진행 중이다.
+- Phase 4R 동작 보존 리팩터와 Phase 4S 개인용 standalone의 자동·clean DB·원격·실기기 게이트를 완료했다. SQLite v6, PKCE-only callback·네이티브 SecureStore 세션, repository/sync/UI/분석 모듈 분리, 동기화·RPC·AI 요청 보안 경계와 고정 버전 CI를 유지한다.
+- Phase 4S `personal` release APK `0.4.3(10)`을 SM-S721N에 데이터 보존 업데이트로 설치했다. APK에 `assets/index.android.bundle`이 포함되고, 앱은 non-debuggable이며 Metro listener·ADB reverse 없이 launcher cold start가 됐다. 오프라인 5탭·기록 저장/재시작·JSON 내보내기·로컬 알림, 온라인 복귀 동기화 10→0과 personal build AI 실호출까지 AC-36~AC-39를 통과했다.
 
 현재 앱 버전은 `0.4.3(10)`입니다. EAS `personal` build `6eb9e668-8af4-4e87-9243-bcbaf2be9f0c`를 설치했으며 이 빌드는 PC·USB·Metro 없이 로컬 기능을 실행하도록 JavaScript bundle을 내장합니다. 로그인·동기화는 Supabase 인터넷 연결이, AI 분석은 Supabase Edge Function과 OpenAI 연결이 필요합니다. 상세 판정은 `docs/evidence/phase-4s-standalone-2026-09-05.md`를 기준으로 합니다.
 

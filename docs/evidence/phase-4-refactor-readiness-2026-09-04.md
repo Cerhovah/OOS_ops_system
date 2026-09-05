@@ -2,7 +2,7 @@
 
 ## 판정
 
-현재 판정은 **자동·clean DB CI·linked 원격 hardening·native build 통과, 실기기와 인증 실호출 대기**다. 기존 `0.4.0(7)` Phase 4의 AC-27~AC-30 통과 기록은 유효하지만, `0.4.1(8)` 리팩터 결과를 새 native build 실기기 검증과 남은 인증 실호출 없이 최종 통과로 승격하지 않는다.
+최종 판정은 **AC-31~AC-35 통과**다. 자동·clean DB CI·linked 원격 hardening 뒤 `0.4.3(10)` personal release에서 기존 데이터·로그인, 핵심 5탭, 오프라인 기록·재시작, 로컬 알림, 온라인 동기화와 인증 AI 실호출을 확인했다.
 
 이번 범위는 새 사용자 기능을 늘리는 작업이 아니라 Phase 1·2·4의 동작과 데이터를 유지하면서 후속 standalone 개발의 결합도·중복·보안 위험을 줄이는 Phase 4R이다. PC·Metro 없이 실행되는 개인용 binary는 다음 Phase 4S에서 만든다.
 
@@ -86,7 +86,7 @@
 | linked 원격 DB | migration dry-run/push, lint, `phase_2_rls.sql`, RPC 제한 확인 | **통과**: `20260904020000` 적용, 재 dry-run up to date, DB lint 0, `phase_2_rls_passed`, 익명 direct DML 401 |
 | Edge Function | 최신 `ai-analysis` 배포, 무인증 거부와 인증 1회 실호출 | **통과**: 계약 2 files/8 tests, v5 ACTIVE·`verify_jwt=true`, 무인증 거부와 SM-S721N 인증 standard 요청·세션 저장 성공 |
 | hosted Auth | 기존 사용자 유지·신규 가입 차단 | **Q-013 사용자 확인 대기** |
-| Android native | 새 `0.4.1(8)` development build·SM-S721N 설치·SecureStore 이관·핵심 회귀·ADB error log | **부분 통과**: `ce72a92f-6fe5-456f-9a48-d9863788abaf` 설치, 기존 로그인과 AI 요청 성공. 핵심 5탭·알림·오프라인→온라인 종합 회귀는 Phase 4S 실기기 게이트와 함께 대기 |
+| Android native | native build·SM-S721N 설치·SecureStore 이관·핵심 회귀·ADB error log | **통과**: `0.4.3(10)` personal release에서 기존 데이터·로그인, 핵심 5탭, offline 기록/재시작, 로컬 알림, online 동기화와 AI 요청 성공. 앱 PID fatal/React/Metro 오류 0 |
 | GitHub Actions | commit/push 뒤 mobile/database job | **통과**: [run 33864610433](https://github.com/Cerhovah/OOS_ops_system/actions/runs/33864610433)에서 commit `686eb1e`의 mobile·database 모두 success |
 
 ## 남은 위험과 경계
@@ -98,7 +98,7 @@
 - AI rate limit·월 비용·idempotency는 Q-012가 열려 있어 현재 단일 소유자의 수동 요청만 범위다.
 - hosted Auth 신규 가입 차단은 저장소와 앱에는 반영됐지만 public settings는 `signupDisabled=false`다. Dashboard 변경은 Q-013 확인 전 실행하지 않는다.
 - Expo Router 57의 `query-string -> decode-uri-component`에는 조작된 percent-encoding으로 앱 응답성을 떨어뜨릴 수 있는 upstream 가용성 위험이 남는다. 공개 배포 전 공식 호환판으로 갱신하고 deep-link·전체 게이트를 재검증한다.
-- 현재 `eas.json`에는 development와 personal profile이 있고 `0.4.2(9)` personal APK가 설치됐다. production AAB profile은 아직 없다.
+- 현재 `eas.json`에는 development와 personal profile이 있고 `0.4.3(10)` personal APK가 설치됐다. production AAB profile은 아직 없다.
 - 종료일 뒤 알림은 앱이 열린 날짜마다 30일 horizon을 다시 채운다. 앱을 30일 넘게 한 번도 열지 않았을 때의 무기한 재예약은 Phase 4S에서 Android background 방식과 플랫폼 예약 한도를 확정한다.
 
 ## 통과 조건

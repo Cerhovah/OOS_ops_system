@@ -2,13 +2,13 @@
 
 ## 현재 단계
 
-- 단계: Phase 4R — Phase 4 이후 동작 보존 리팩터
-- 상태: **전체 자동·clean DB CI·linked 원격·native build 통과, 인증 실호출/실기기 대기**
+- 단계: Phase 4S — Android 개인용 standalone
+- 상태: **AC-36~AC-39 전체 통과, 다음 상용화 명세 결정 대기**
 - PLAN/구현 승인: 2026-08-20
 - Phase 종료 커밋 규칙: `docs/COMMIT_WORKFLOW.md`
 - 주 검증 플랫폼: Android 실기기, iOS 호환성 유지
 - 고정값: 월요일 시작, 하루 종료 23:00, 오늘 종료 알림 21:30, §4.4 시드, 앱 이름 `OOS Ops`
-- Phase 경계: Phase 1·2·4의 사용자 동작과 과거 통과 기록은 유지한다. Telegram은 제거 상태를 유지한다. 현재 리팩터 검증을 끝낸 뒤 PC·Metro 없는 개인용 Phase 4S로 진행하며, 공개 스토어·결제·다중 사용자 운영은 Q-005 승인 전까지 별도 범위다.
+- Phase 경계: Phase 1·2·4의 사용자 동작과 과거 통과 기록은 유지한다. Telegram은 제거 상태를 유지한다. PC·Metro 없는 개인용 Phase 4S까지 완료했으며, 공개 스토어·결제·다중 사용자 운영은 Q-005 승인 전까지 별도 범위다.
 
 ## Phase 1 AC-1~AC-18 1:1 구현·증빙
 
@@ -90,21 +90,21 @@
 
 | AC | 현재 코드 범위 | 현재 상태 | 남은 증빙 |
 |---|---|---|---|
-| AC-31 | Phase 1·2·4 공개 동작을 유지하는 characterization/integration test, 화면 busy·draft·refresh 경합 방지 | **자동·정적 통과, 실기기 대기** | `npm run verify` 34 files/222 tests, coverage 99.07/94.93/100/100, doctor 21/21, Android 1,493 modules; 새 build 실기기 대기 |
-| AC-32 | SQLite v5 상향, migration+`user_version` 원자성, 정확한 `item_notification:` prefix, 기존 v4 상향 회귀 | **자동 통과·기기 대기** | fresh/v4→v5·rollback·prefix 회귀 통과, 기존 SM-S721N 데이터 보존 확인 대기 |
-| AC-33 | PKCE code-only callback, `shouldCreateUser:false`, native SecureStore와 기존 SQLite 세션 선이관·후삭제 | **자동·native build 통과, 기기 대기** | auth storage/callback 회귀와 build `ce72a92f-6fe5-456f-9a48-d9863788abaf` 생성 통과. 설치·세션 이관 대기 |
-| AC-34 | AppRepository 도메인 분리, sync persistence/codec 분리, 분석 packager·UI section/selector 분리, 공통 table manifest, 조건부 outbox ACK·owner binding·unknown schema 실패 | **자동 통과·기기 대기** | repository/sync/draft/refresh와 SQLite schema/export/reset manifest exact-set 회귀 통과, 오프라인→온라인 실기기 동기화 대기 |
-| AC-35 | RPC 크기/개수/소유자·settings allowlist, Edge JSON·요청/snapshot 한도, 질문·snapshot secret redaction, client/server exact-set 계약, 고정 CLI·CI·환경 예시 | **자동·clean DB CI·linked 원격 통과, 인증 실호출 대기** | migration `20260904020000`, 계약 2 files/8 tests, RLS/lint, Edge v3·무인증 401. GitHub Actions [run 33864610433](https://github.com/Cerhovah/OOS_ops_system/actions/runs/33864610433) mobile/database 통과 |
+| AC-31 | Phase 1·2·4 공개 동작을 유지하는 characterization/integration test, 화면 busy·draft·refresh 경합 방지 | **통과** | `npm run verify` 36 files/223 tests, coverage 99.07/94.93/100/100, doctor 21/21, Android 1,493 modules; `0.4.3(10)` 실기기 회귀 통과 |
+| AC-32 | SQLite v5 상향, migration+`user_version` 원자성, 정확한 `item_notification:` prefix, 기존 v4 상향 회귀 | **통과** | fresh/v4→v6·rollback·prefix 회귀와 SM-S721N 데이터 보존 업데이트 통과 |
+| AC-33 | PKCE code-only callback, `shouldCreateUser:false`, native SecureStore와 기존 SQLite 세션 선이관·후삭제 | **통과** | auth storage/callback 회귀, native build, 설치 후 기존 로그인 세션 유지 통과 |
+| AC-34 | AppRepository 도메인 분리, sync persistence/codec 분리, 분석 packager·UI section/selector 분리, 공통 table manifest, 조건부 outbox ACK·owner binding·unknown schema 실패 | **통과** | repository/sync/draft/refresh 회귀와 오프라인 기록·재시작·온라인 복귀 동기화 10→0 통과 |
+| AC-35 | RPC 크기/개수/소유자·settings allowlist, Edge JSON·요청/snapshot 한도, 질문·snapshot secret redaction, client/server exact-set 계약, 고정 CLI·CI·환경 예시 | **통과** | migration `20260904020000`, 계약 2 files/8 tests, RLS/lint, Edge v5·무인증 401·인증 Terra 실호출. GitHub Actions [run 33864610433](https://github.com/Cerhovah/OOS_ops_system/actions/runs/33864610433) mobile/database 통과 |
 
 상세 범위와 대기/통과 기록은 `docs/evidence/phase-4-refactor-readiness-2026-09-04.md` 한 곳에서 갱신한다.
 
 ## Phase 4S AC-36~AC-39 개인용 standalone
 
-Phase 4R 게이트 통과 뒤 시작했다. `personal` profile과 `0.4.3(10)` release APK 생성·설치·Metro 독립 cold start를 완료했고, 오프라인 조작과 온라인 복귀 게이트를 진행한다.
+`personal` profile과 `0.4.3(10)` release APK 생성·설치·Metro 독립 cold start, 오프라인 조작과 온라인 복귀 게이트를 완료했다.
 
 - [x] AC-36 — 비개발용 Android 설치 파일 생성·설치, PC와 Metro를 끈 콜드 스타트.
-- [ ] AC-37 — 비행기 모드에서 로컬 기록·계획·프로젝트·알림·내보내기와 재시작 보존. 종료일 알림의 30일 rolling horizon과 장기 재예약 정책을 실기기로 확정.
-- [ ] AC-38 — 온라인 복귀 후 인증·동기화 복구, AI의 서버 의존성과 로컬 기록 비차단 확인.
+- [x] AC-37 — 네트워크 차단 상태에서 5개 로컬 화면, 기록 저장·재시작 보존, JSON 내보내기 chooser, 예약 alarm과 30초 테스트 알림을 확인했다. 계획·프로젝트 쓰기 경로와 30일 horizon은 자동 repository/알림 회귀와 결합 판정했다.
+- [x] AC-38 — 온라인 복귀 후 인증·동기화 복구, AI의 서버 의존성과 로컬 기록 비차단 확인.
 - [x] AC-39 — build ID·버전·SHA-256·서명/배포·rollback·native 재빌드 조건 기록.
 
 ## Phase 4S AI model policy (2026-09-05)
@@ -118,8 +118,8 @@ Phase 4R 게이트 통과 뒤 시작했다. `personal` profile과 `0.4.3(10)` re
 ## 다음 작업
 
 1. 완료: Phase 4R 자동·clean DB·원격 게이트와 새 build 로그인 유지·AI model policy 배포·실호출을 기록했다.
-2. 진행: `0.4.3(10)` personal release에서 구버전 AI 세션 호환 동기화 10→0, 오프라인 기록·재시작 보존을 확인했다. 로컬 프로젝트/계획/내보내기와 online AI 반복을 마친다.
-3. Phase 4S를 닫은 뒤 Q-005에서 production 환경·Google Play AAB·결제·다중 사용자 운영을 별도 상용화 Phase로 명세한다.
+2. 완료: `0.4.3(10)` personal release에서 오프라인 기록·재시작·내보내기·알림, 구버전 AI 세션 호환 동기화 10→0, online AI와 수동 동기화를 확인했다.
+3. 다음: Q-005에서 production 환경·Google Play AAB·결제·다중 사용자 운영을 별도 상용화 Phase로 명세한다.
 
 ## 2026-09-02 정적 구현 감사 후속
 
@@ -137,7 +137,7 @@ Phase 4R 게이트 통과 뒤 시작했다. `personal` profile과 `0.4.3(10)` re
 - [x] Phase 2 — 동기화: AC-19~AC-22. 구현·자동·원격·SM-S721N 실기기 게이트 통과.
 - [x] Phase 3 — 철회: Telegram 구현과 원격 리소스를 사용자 지시에 따라 제거. 후속 Phase의 게이트가 아님.
 - [x] Phase 4 — 분석: AC-27~AC-30 자동·원격·SM-S721N 실기기 게이트 통과.
-- [ ] Phase 4R — 동작 보존 리팩터: 코드·자동·clean DB CI·linked 원격·native build, 로그인 유지·AI 실호출 통과. 핵심 5탭·알림·오프라인 회귀는 Phase 4S 실기기 게이트와 함께 진행 중.
-- [ ] Phase 4S — 개인용 standalone: AC-36·AC-39 통과, AC-37·AC-38 오프라인/온라인 복귀 검증 진행 중.
+- [x] Phase 4R — 동작 보존 리팩터: 코드·자동·clean DB CI·linked 원격·native build, 로그인 유지·AI 실호출·실기기 회귀 통과.
+- [x] Phase 4S — 개인용 standalone: `0.4.3(10)`에서 AC-36~AC-39 통과.
 - [ ] 상용화 명세 확장 — 앱 스토어 production 배포, 결제, 다중 사용자 운영 서버·백업·모니터링. Phase 4S와 별도이며 Q-005 승인 뒤 AC를 정의.
 - [ ] Phase 5 — 확장: 사용자 승인된 `FUTURE.md` 항목만 진행.
