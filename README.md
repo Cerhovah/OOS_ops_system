@@ -11,9 +11,10 @@
 - Phase 3 철회 마감: Telegram 제거와 함께 레거시 동기화 스키마·템플릿 잔여물·중복 테스트 기반·문서 드리프트 정리
 - Phase 4 여섯 분석 모드, 기간별 데이터 package, SQLite 세션·제안, 명시적 계획 적용과 Supabase 동기화 구현 및 AC-27~AC-30 게이트 통과
 - Q-010에서 OpenAI Responses API·`gpt-5.6-terra`·API 과금을 확정했다. 단일 소유자 Supabase Edge Function에서 6개 모드를 포함한 실세션 9건, 제안 적용·무시, 원격 동기화를 SM-S721N으로 검증했다.
-- Phase 4R 동작 보존 리팩터 코드 반영: SQLite v5, PKCE-only callback·네이티브 SecureStore 세션, repository/sync/UI/분석 모듈 분리, 동기화·RPC·AI 요청 보안 경계, 고정 버전 CI를 추가했다. 전체 자동 게이트, clean DB CI, 원격 hardening migration·RLS/lint·Edge v3 무인증 거부와 새 native build 생성은 통과했고, 인증 실호출과 새 build 실기기 회귀만 대기 중이다.
+- Phase 4R 동작 보존 리팩터 코드와 자동·clean DB·원격 게이트를 완료했다. SQLite v6, PKCE-only callback·네이티브 SecureStore 세션, repository/sync/UI/분석 모듈 분리, 동기화·RPC·AI 요청 보안 경계와 고정 버전 CI를 유지한다. 새 build의 로그인 유지와 AI 실호출은 확인했고, 넓은 실기기 회귀 일부는 Phase 4S 게이트와 함께 남아 있다.
+- Phase 4S `personal` release APK `0.4.2(9)`를 SM-S721N에 데이터 보존 업데이트로 설치했다. APK에 `assets/index.android.bundle`이 포함되고, 앱은 non-debuggable이며 Metro listener·ADB reverse 없이 launcher cold start가 됐다. 전체 오프라인 조작과 온라인 복귀 회귀는 아직 진행 중이다.
 
-현재 소스 버전은 `0.4.1(8)`입니다. Phase 1·2·4의 완료 기록은 보존되지만, 이 리팩터 버전 자체의 최종 판정은 `docs/evidence/phase-4-refactor-readiness-2026-09-04.md`의 실기기 대기 항목을 끝낸 뒤 내립니다. SecureStore 포함 EAS development build `ce72a92f-6fe5-456f-9a48-d9863788abaf`는 `FINISHED`이며 APK를 로컬에 보존했습니다. 다음 단계인 Phase 4S는 PC·Metro 없이 실행되는 개인용 standalone 빌드이며 아직 구현·발급되지 않았습니다.
+현재 앱 버전은 `0.4.2(9)`입니다. EAS `personal` build `8deb4d4b-3747-4073-9f06-c7b9b2ed9f09`를 설치했으며 이 빌드는 PC·USB·Metro 없이 로컬 기능을 실행하도록 JavaScript bundle을 내장합니다. 로그인·동기화는 Supabase 인터넷 연결이, AI 분석은 Supabase Edge Function과 OpenAI 연결이 필요합니다. 상세 판정은 `docs/evidence/phase-4s-standalone-2026-09-05.md`를 기준으로 합니다.
 
 Phase 2·4의 실기기 결과와 철회된 Phase 3의 구현·제거 이력은 `docs/TESTPLAN.md`, `docs/evidence/phase-2-readiness-2026-09-02.md`, `docs/evidence/phase-3-readiness-2026-09-03.md`, `docs/evidence/phase-4-readiness-2026-09-04.md`에 기록되어 있습니다.
 
@@ -54,7 +55,7 @@ npm run verify
 
 Android Studio/JDK 로컬 환경은 현재 개발 흐름에 요구하지 않습니다. `mobile/eas.json`의 `development` 프로필은 EAS Cloud에서 SDK 57 이미지로 설치 가능한 development-client APK를 생성합니다.
 
-EAS 프로젝트는 `@ljh951206/oos-ops`에 연결됐습니다. 실기기에서 마지막으로 검증한 네이티브 개발 클라이언트는 매직링크 callback을 포함한 `0.2.0(3)` build `154087e2-b93d-451a-b62c-ba6e988f4592`입니다. `expo-secure-store`를 포함한 현재 `0.4.1(8)` build `ce72a92f-6fe5-456f-9a48-d9863788abaf` 생성은 끝났지만 아직 기기에 설치하지 않았으므로, 기존 세션 이관과 핵심 회귀는 Phase 4R 대기 항목입니다. 빌드 ID·해시·APK 경로는 `docs/TESTPLAN.md`와 `docs/evidence/`의 이력만 기준으로 합니다.
+EAS 프로젝트는 `@ljh951206/oos-ops`에 연결됐습니다. `expo-secure-store`를 포함한 `0.4.1(8)` development build `ce72a92f-6fe5-456f-9a48-d9863788abaf`에서 로그인 유지와 인증된 AI 실호출을 확인했습니다. 일상 사용 대상은 이 개발 클라이언트가 아니라 현재 설치된 `0.4.2(9)` personal release입니다. 빌드 ID·해시·APK 경로는 `docs/TESTPLAN.md`와 `docs/evidence/`의 이력만 기준으로 합니다.
 
 개발 클라이언트가 기기에 설치된 뒤 PC에서 다음 명령으로 개발 서버를 시작합니다.
 
@@ -72,7 +73,7 @@ cd mobile
 npx expo start --dev-client --tunnel
 ```
 
-이 절차는 개발 클라이언트용이므로 평상시 실행에 Metro가 필요합니다. PC 없이 여는 비개발용 Android binary는 Phase 4R 게이트 뒤 Phase 4S에서 별도로 생성·검증합니다. standalone 이후에도 로그인·동기화에는 Supabase 인터넷 연결, AI 분석에는 Supabase Edge Function과 OpenAI 연결이 필요하지만 기록·계획·프로젝트·로컬 알림은 SQLite 기반으로 오프라인 동작해야 합니다.
+이 절차는 개발 클라이언트용이므로 평상시 실행에 Metro가 필요합니다. 일상 사용에는 `personal` 프로필로 만든 `0.4.2(9)` release APK를 사용합니다. 이 APK는 Metro가 필요 없으며 EAS artifact URL이 만료되어도 이미 설치된 앱은 계속 실행됩니다. 로그인·동기화에는 Supabase 인터넷 연결, AI 분석에는 Supabase Edge Function과 OpenAI 연결이 필요하지만 기록·계획·프로젝트·로컬 알림은 SQLite 기반으로 오프라인 동작합니다.
 
 ## 구현 기능
 

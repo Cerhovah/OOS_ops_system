@@ -100,12 +100,12 @@
 
 ## Phase 4S AC-36~AC-39 개인용 standalone
 
-Phase 4R 게이트 통과 뒤 시작한다. 현재 `eas.json`에는 development profile만 있으므로 아직 standalone 결과물이 없다.
+Phase 4R 게이트 통과 뒤 시작했다. `personal` profile과 `0.4.2(9)` release APK 생성·설치·Metro 독립 cold start를 완료했고, 오프라인 조작과 온라인 복귀 게이트를 진행한다.
 
-- [ ] AC-36 — 비개발용 Android 설치 파일 생성·설치, PC와 Metro를 끈 콜드 스타트.
+- [x] AC-36 — 비개발용 Android 설치 파일 생성·설치, PC와 Metro를 끈 콜드 스타트.
 - [ ] AC-37 — 비행기 모드에서 로컬 기록·계획·프로젝트·알림·내보내기와 재시작 보존. 종료일 알림의 30일 rolling horizon과 장기 재예약 정책을 실기기로 확정.
 - [ ] AC-38 — 온라인 복귀 후 인증·동기화 복구, AI의 서버 의존성과 로컬 기록 비차단 확인.
-- [ ] AC-39 — build ID·버전·SHA-256·서명/배포·rollback·native 재빌드 조건 기록.
+- [x] AC-39 — build ID·버전·SHA-256·서명/배포·rollback·native 재빌드 조건 기록.
 
 ## Phase 4S AI model policy (2026-09-05)
 
@@ -113,13 +113,13 @@ Phase 4R 게이트 통과 뒤 시작한다. 현재 `eas.json`에는 development 
 - [x] Provider/model routing, price calculation, and response metadata are server-owned; the mobile binary has no production key or model-routing logic.
 - [x] SQLite v6 and sync payloads preserve provider, model, reasoning effort, token totals, estimated cost, provider response ID, and request timing.
 - [x] Standard/deep choice and strict structured-output handling pass the full automated gate.
-- [ ] Live Edge Function deployment and device request remain AC-38 evidence; no paid request was made during source verification.
+- [x] Edge Function v5 deployment and an authenticated standard device request completed; personal release online-return repetition remains AC-38 evidence.
 
 ## 다음 작업
 
-1. 완료: `0.4.1(8)` 전체 자동 게이트, clean Supabase DB 보안 테스트, GitHub Actions와 native build 결과를 기록했다.
-2. 적용된 원격 Edge Function의 인증 실호출을 마치고 새 development build로 SecureStore 이관과 회귀를 SM-S721N에서 확인한다.
-3. Phase 4R 통과 후 Phase 4S standalone을 구현한다. Q-005의 공개 배포·결제 명세는 이 개인용 단계와 분리해 유지한다.
+1. 완료: Phase 4R 자동·clean DB·원격 게이트와 새 build 로그인 유지·AI model policy 배포·실호출을 기록했다.
+2. 진행: `0.4.2(9)` personal release의 오프라인 로컬 조작·재시작 보존과 온라인 복귀를 SM-S721N에서 확인한다.
+3. Phase 4S를 닫은 뒤 Q-005에서 production 환경·Google Play AAB·결제·다중 사용자 운영을 별도 상용화 Phase로 명세한다.
 
 ## 2026-09-02 정적 구현 감사 후속
 
@@ -137,7 +137,7 @@ Phase 4R 게이트 통과 뒤 시작한다. 현재 `eas.json`에는 development 
 - [x] Phase 2 — 동기화: AC-19~AC-22. 구현·자동·원격·SM-S721N 실기기 게이트 통과.
 - [x] Phase 3 — 철회: Telegram 구현과 원격 리소스를 사용자 지시에 따라 제거. 후속 Phase의 게이트가 아님.
 - [x] Phase 4 — 분석: AC-27~AC-30 자동·원격·SM-S721N 실기기 게이트 통과.
-- [ ] Phase 4R — 동작 보존 리팩터: AC-31~AC-35 코드와 자동·clean DB CI·linked 원격·native build 반영, 인증 실호출·새 실기기 게이트 대기.
-- [ ] Phase 4S — 개인용 standalone: PC·Metro 없는 Android 개인 설치 빌드와 오프라인/온라인 복귀 검증.
+- [ ] Phase 4R — 동작 보존 리팩터: 코드·자동·clean DB CI·linked 원격·native build, 로그인 유지·AI 실호출 통과. 핵심 5탭·알림·오프라인 회귀는 Phase 4S 실기기 게이트와 함께 진행 중.
+- [ ] Phase 4S — 개인용 standalone: AC-36·AC-39 통과, AC-37·AC-38 오프라인/온라인 복귀 검증 진행 중.
 - [ ] 상용화 명세 확장 — 앱 스토어 production 배포, 결제, 다중 사용자 운영 서버·백업·모니터링. Phase 4S와 별도이며 Q-005 승인 뒤 AC를 정의.
 - [ ] Phase 5 — 확장: 사용자 승인된 `FUTURE.md` 항목만 진행.

@@ -6,6 +6,11 @@
 
 ### Added
 
+- 2026-09-05: `0.4.2(9)` personal release APK 생성·데이터 보존 설치와 embedded bundle·non-debuggable·PC/Metro 독립 cold start 증빙 추가
+
+### Fixed
+
+- 2026-09-05: SQLite v6 이전에 동기화된 AI 세션이 새 nullable 감사 필드를 갖지 않아 pull을 중단하던 문제를 명시적 legacy 호환 정규화로 수정
 - 2026-09-04: 사용자 지시에 따라 기존 Phase 1·2·4 의미를 보존하는 Phase 4R과 PC·Metro 없는 Android 개인용 Phase 4S를 SPEC v0.3.0의 AC-31~AC-39로 추가
 - 2026-09-04: PKCE code-only callback, 네이티브 SecureStore session adapter, 기존 Expo SQLite Auth key의 선이관·후삭제와 경합 회귀 테스트 추가
 - 2026-09-04: SQLite v5 상향 migration과 v4→v5 데이터 보존·정확한 settings prefix·migration rollback 회귀 테스트 추가

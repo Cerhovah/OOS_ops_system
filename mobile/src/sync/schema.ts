@@ -83,6 +83,9 @@ export const syncTableDefinitions = [
       'provider_response_id', 'started_at', 'finished_at',
       'created_at', 'updated_at', 'deleted_at',
     ],
+    legacyNullableColumns: [
+      'reasoning_effort', 'total_tokens', 'provider_response_id', 'started_at', 'finished_at',
+    ],
   },
   {
     name: 'ai_proposals',
@@ -101,6 +104,7 @@ export const syncTableDefinitions = [
   readonly name: AppDataTableName;
   readonly primaryKey: 'id' | 'key';
   readonly columns: readonly string[];
+  readonly legacyNullableColumns?: readonly string[];
 }[];
 
 export type SyncTableName = (typeof syncTableDefinitions)[number]['name'];
@@ -109,6 +113,7 @@ export interface SyncTableDefinition {
   readonly name: SyncTableName;
   readonly primaryKey: 'id' | 'key';
   readonly columns: readonly string[];
+  readonly legacyNullableColumns?: readonly string[];
 }
 
 const definitionMap = new Map<string, SyncTableDefinition>(

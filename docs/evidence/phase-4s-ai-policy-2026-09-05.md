@@ -27,6 +27,7 @@
 - Ran one standard analysis against the signed-in device data. The UI confirmed: `분석 세션을 저장했습니다. 제안은 아직 데이터에 적용되지 않았습니다.` No proposal was applied.
 - The returned result correctly reported that one minute of actual weekly record is insufficient for an account-level change rationale, preserving the data-insufficient behavior.
 
-## Remaining Phase 4S work
+## Standalone follow-up
 
-- EAS internal non-development APK `0.4.2 (9)` is queued as build `8deb4d4b-3747-4073-9f06-c7b9b2ed9f09` from commit `b15500c`. After completion, install it over USB and repeat the PC/Metro-free launch portion of the device gate.
+- EAS internal non-development APK `0.4.2 (9)` build `8deb4d4b-3747-4073-9f06-c7b9b2ed9f09` finished and was installed over the prior package without clearing data.
+- The APK is non-debuggable, contains `assets/index.android.bundle`, and launches with no Metro listener or ADB reverse. Full offline interaction and online-return evidence remains in `phase-4s-standalone-2026-09-05.md`.

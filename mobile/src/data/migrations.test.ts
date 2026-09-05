@@ -219,13 +219,17 @@ describe('Phase 1 seed manifest', () => {
       remote('analysis_sessions', 'session-remote', {
         id: 'session-remote', mode: 'audit', question: '원격 질문', range_start: '2026-08-01', range_end: '2026-09-01',
         data_snapshot_json: '{}', response_text: '원격 답변', provider: 'test', model: 'test',
-        reasoning_effort: 'medium', input_tokens: 10, output_tokens: 5, total_tokens: 15, estimated_cost_usd: 0.001,
-        provider_response_id: 'resp_remote', started_at: timestamp, finished_at: timestamp,
+        input_tokens: 10, output_tokens: 5, estimated_cost_usd: 0.001,
         created_at: timestamp, updated_at: timestamp, deleted_at: null,
       }),
     ]);
 
-    expect(db.raw.prepare("SELECT question FROM analysis_sessions WHERE id='session-remote'").get()).toMatchObject({ question: '원격 질문' });
+    expect(db.raw.prepare(
+      "SELECT question,reasoning_effort,total_tokens,provider_response_id,started_at,finished_at FROM analysis_sessions WHERE id='session-remote'",
+    ).get()).toMatchObject({
+      question: '원격 질문', reasoning_effort: null, total_tokens: null,
+      provider_response_id: null, started_at: null, finished_at: null,
+    });
     expect(db.raw.prepare("SELECT session_id FROM ai_proposals WHERE id='proposal-remote'").get()).toMatchObject({ session_id: 'session-remote' });
     db.raw.close();
   });

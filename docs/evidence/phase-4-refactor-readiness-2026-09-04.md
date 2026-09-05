@@ -84,21 +84,21 @@
 | 공급망 검토 | `npm audit --omit=dev` 결과와 실제 도달 경로 검토 | **검토 완료**: 잔여 16 moderate는 두 root advisory의 전이 집계다. xmldom은 호환 범위 내 패치 완료. Expo Router의 `decode-uri-component`는 조작된 URI에 대한 가용성 위험이지만 0.5.0 직접 override가 CJS/ESM 계약을 깨므로 공식 호환판 대기, UUID 경고는 Android 번들 밖 도구 경로이며 현재 호출은 영향 없는 v4뿐. SDK 하향 `--force` 없음 |
 | clean Supabase DB | `npx supabase@2.116.0 db start`, container `psql` RLS assertion, `stop --no-backup` | **통과**: 전체 migration 적용 뒤 자체 임시 Auth 사용자·전체 rollback fixture와 컨테이너 `psql`·`ON_ERROR_STOP` RLS assertion 성공 |
 | linked 원격 DB | migration dry-run/push, lint, `phase_2_rls.sql`, RPC 제한 확인 | **통과**: `20260904020000` 적용, 재 dry-run up to date, DB lint 0, `phase_2_rls_passed`, 익명 direct DML 401 |
-| Edge Function | 최신 `ai-analysis` 배포, 무인증 거부와 인증 1회 실호출 | **자동 통과·원격 부분 통과**: 계약 2 files/8 tests, v3 ACTIVE·`verify_jwt=true`·무인증 401. 인증 실호출 대기 |
+| Edge Function | 최신 `ai-analysis` 배포, 무인증 거부와 인증 1회 실호출 | **통과**: 계약 2 files/8 tests, v5 ACTIVE·`verify_jwt=true`, 무인증 거부와 SM-S721N 인증 standard 요청·세션 저장 성공 |
 | hosted Auth | 기존 사용자 유지·신규 가입 차단 | **Q-013 사용자 확인 대기** |
-| Android native | 새 `0.4.1(8)` development build·SM-S721N 설치·SecureStore 이관·핵심 회귀·ADB error log | **native build 통과·실기기 대기**: `ce72a92f-6fe5-456f-9a48-d9863788abaf` `FINISHED`, fingerprint `0fd3776c2e02c5cfa31162fe208d1c9c59685526`; APK 255,973,313 bytes, SHA-256 `BE1B577B1212F9B6D4D051A602062BAA38034C29D5AB2472E87D7DE5308C39B7` |
+| Android native | 새 `0.4.1(8)` development build·SM-S721N 설치·SecureStore 이관·핵심 회귀·ADB error log | **부분 통과**: `ce72a92f-6fe5-456f-9a48-d9863788abaf` 설치, 기존 로그인과 AI 요청 성공. 핵심 5탭·알림·오프라인→온라인 종합 회귀는 Phase 4S 실기기 게이트와 함께 대기 |
 | GitHub Actions | commit/push 뒤 mobile/database job | **통과**: [run 33864610433](https://github.com/Cerhovah/OOS_ops_system/actions/runs/33864610433)에서 commit `686eb1e`의 mobile·database 모두 success |
 
 ## 남은 위험과 경계
 
-- SecureStore 실제 session payload와 기존 설치 이관은 새 Android binary에서 아직 확인하지 않았다. iOS keychain payload/재설치 동작도 별도 플랫폼 검증이 필요하다.
+- 새 Android binary에서 기존 로그인 세션 사용은 확인했지만 로그아웃 후 비복원 전체 회귀는 아직 대기다. iOS keychain payload/재설치 동작도 별도 플랫폼 검증이 필요하다.
 - custom URL scheme callback은 개인 설치에는 사용할 수 있지만 공개 배포에서는 Universal/App Links로 재검토한다.
 - 두 기기에서 같은 자연키 데이터를 동시에 만드는 병합 정책은 Q-011이므로 현재는 단일 작성 기기를 기준으로 한다.
 - 현재 pull의 timestamp+offset pagination은 동시 원격 writer가 앞 페이지 행을 갱신하면 경계 행을 건너뛸 수 있다. 단일 작성 기기에서는 pull 뒤 push 순서로 제한되지만, 다기기 작성 전에는 복합 keyset과 실행 상한을 사용하는 owner RPC로 교체해야 한다.
 - AI rate limit·월 비용·idempotency는 Q-012가 열려 있어 현재 단일 소유자의 수동 요청만 범위다.
 - hosted Auth 신규 가입 차단은 저장소와 앱에는 반영됐지만 public settings는 `signupDisabled=false`다. Dashboard 변경은 Q-013 확인 전 실행하지 않는다.
 - Expo Router 57의 `query-string -> decode-uri-component`에는 조작된 percent-encoding으로 앱 응답성을 떨어뜨릴 수 있는 upstream 가용성 위험이 남는다. 공개 배포 전 공식 호환판으로 갱신하고 deep-link·전체 게이트를 재검증한다.
-- 현재 `eas.json`은 development profile뿐이다. Phase 4R 통과가 standalone 설치 파일의 존재를 뜻하지 않는다.
+- 현재 `eas.json`에는 development와 personal profile이 있고 `0.4.2(9)` personal APK가 설치됐다. production AAB profile은 아직 없다.
 - 종료일 뒤 알림은 앱이 열린 날짜마다 30일 horizon을 다시 채운다. 앱을 30일 넘게 한 번도 열지 않았을 때의 무기한 재예약은 Phase 4S에서 Android background 방식과 플랫폼 예약 한도를 확정한다.
 
 ## 통과 조건

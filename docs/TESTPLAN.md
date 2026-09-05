@@ -129,23 +129,23 @@ Q-010 승인 뒤 `ai-analysis` Edge Function v2를 `verify_jwt=true`로 배포�
 |---|---|---|---|
 | TP-R-01 | AC-31, AC-34 | `mobile/`에서 `npm ci`, `npm run verify`; TypeScript/ESLint, 전체 Vitest·커버리지, 모바일↔Edge 계약, Expo 호환·doctor, Android Hermes bundle | **통과**: Expo 57.0.20 호환 패치 정렬 후 종료 코드 0, 34 files/222 tests, coverage 99.07/94.93/100/100, Supabase 계약 2 files/8 tests, dependency up to date, doctor 21/21, Android Hermes 1,493 modules |
 | TP-R-02 | AC-32 | fresh SQLite v5, v4→v5 상향, migration 실패 rollback, 기존 행·outbox 보존, `item_notification:` 정확 prefix와 유사키 제외, `PRAGMA quick_check` | **자동 통과·기기 대기**: 전체 migration/repository 회귀 포함 222 tests 통과. 기존 SM-S721N v4→v5 상향은 TP-R-08에서 확인 |
-| TP-R-03 | AC-33 | PKCE code-only/error callback, malformed 환경값 로컬 우선 시작, 기존 SQLite Auth key의 SecureStore 선이관·후삭제, 실패 시 평문 fallback 없음, 로그아웃 뒤 세션 비복원 | **자동 통과·새 build 실기기 대기**: auth storage/callback 회귀 포함 222 tests 통과 |
+| TP-R-03 | AC-33 | PKCE code-only/error callback, malformed 환경값 로컬 우선 시작, 기존 SQLite Auth key의 SecureStore 선이관·후삭제, 실패 시 평문 fallback 없음, 로그아웃 뒤 세션 비복원 | **자동·기존 로그인 유지 통과/로그아웃 회귀 대기**: auth storage/callback 회귀 포함 222 tests 통과, 새 build에서 인증된 AI 요청 성공 |
 | TP-R-04 | AC-34 | 전송 중 같은 ID 재수정 시 최신 outbox 보존, 다른 user 로그인 차단, unknown table/setting 중단, snapshot 원자성, 오래된 refresh·draft 저장 경합 방지 | **자동 통과·기기 대기**: repository/sync/draft/refresh, schema/export/reset manifest 일치, 분석 세션+자식 제안 원자 삭제·복구, 삭제 부모 제안 차단, closure tombstone 제외, 타이머·알림 cleanup 원자 저장 회귀 포함 222 tests 통과 |
 | TP-R-05 | AC-35 | clean Supabase DB에 전체 migration 적용·RLS SQL, linked dry-run/push/lint/RPC, 익명·타 사용자 DML/RPC 차단, 크기·개수·settings allowlist 오류 계약 | **통과**: clean DB 전체 migration·임시 Auth fixture·container `psql` RLS assertion, migration `20260904020000` linked 적용·재 dry-run up to date·DB lint 0·`phase_2_rls_passed`·익명 direct DML 401 |
-| TP-R-06 | AC-35 | `ai-analysis` JSON content type·body/snapshot 한도·날짜/모드/질문 검증, owner JWT, 질문/snapshot credential redaction, 필드별 객관 anchor·금지 서술·`numbers_used`, client/server allowlist exact-set, 함수 재배포·인증 실호출 | **자동 통과·원격 부분 통과**: 계약 2 files/8 tests 포함 전체 gate 통과, `ai-analysis` v3 ACTIVE·`verify_jwt=true`·무인증 401. 인증 실호출 대기 |
+| TP-R-06 | AC-35 | `ai-analysis` JSON content type·body/snapshot 한도·날짜/모드/질문 검증, owner JWT, 질문/snapshot credential redaction, 필드별 객관 anchor·금지 서술·`numbers_used`, client/server allowlist exact-set, 함수 재배포·인증 실호출 | **통과**: 계약 2 files/8 tests 포함 전체 gate, `ai-analysis` v5 ACTIVE·`verify_jwt=true`, 무인증 거부와 SM-S721N 인증 standard 요청·세션 저장 성공 |
 | TP-R-07 | AC-31, AC-35 | `git diff --check`, 미사용 의존성/파일 검사, secret scan, `npm audit --omit=dev` 검토, 고정 action/CLI의 GitHub Actions 결과 | **통과**: diff/secret 0, source dead export 4개 제거, production import graph 85 modules/234 internal edges/0 cycle/0 unresolved, 11 route에서 전부 reachable. knip 잔여는 CLI tunnel용 `@expo/ngrok`과 Expo config 경유 `expo-updates` false positive뿐. audit의 두 root advisory 중 xmldom은 호환 패치 완료, Expo Router의 `decode-uri-component` 가용성 위험은 upstream 호환판 대기, 도구 전용 `uuid` 경로는 취약 API 비도달. 강제 SDK 하향/major override 없음. GitHub Actions [run 33864610433](https://github.com/Cerhovah/OOS_ops_system/actions/runs/33864610433) mobile/database success |
-| TP-R-08 | AC-31~AC-35 | 새 `0.4.1(8)` development build를 SM-S721N에 설치해 기존 데이터·로그인 이관, 앱 재시작, 핵심 5탭, PRIVATE v3 알림·30일 horizon, 오프라인→온라인 동기화, AI 1회, 오류 로그 0 확인 | **native build 통과·실기기 대기**: build `ce72a92f-6fe5-456f-9a48-d9863788abaf` `FINISHED`, fingerprint `0fd3776c2e02c5cfa31162fe208d1c9c59685526`, APK 로컬 보존 |
+| TP-R-08 | AC-31~AC-35 | 새 `0.4.1(8)` development build를 SM-S721N에 설치해 기존 데이터·로그인 이관, 앱 재시작, 핵심 5탭, PRIVATE v3 알림·30일 horizon, 오프라인→온라인 동기화, AI 1회, 오류 로그 0 확인 | **부분 통과**: build `ce72a92f-6fe5-456f-9a48-d9863788abaf` 설치, 기존 로그인과 AI 1회 성공. 핵심 5탭·알림·오프라인→온라인 종합 회귀는 personal TP-S-02/03과 함께 대기 |
 
 원격에는 migration `20260904020000_harden_sync_rpc.sql`과 `ai-analysis` v3가 적용됐고 위 linked 결과를 확인했다. hosted Auth public settings의 `signupDisabled=false`는 저장소·앱의 단일 사용자 설정과 아직 다르며 Q-013 확인 대기다.
 
-## Phase 4S 개인용 standalone 게이트 — 미착수
+## Phase 4S 개인용 standalone 게이트 — 진행 중
 
 | ID | 관련 AC | 검증 내용 | 현재 상태 |
 |---|---|---|---|
-| TP-S-01 | AC-36 | developer tools가 없는 Android binary 생성·설치 후 PC·Metro 종료 상태에서 아이콘 콜드 스타트 | **미착수** |
+| TP-S-01 | AC-36 | developer tools가 없는 Android binary 생성·설치 후 PC·Metro 종료 상태에서 아이콘 콜드 스타트 | **통과**: `0.4.2(9)` personal APK 설치, non-debuggable, embedded bundle 확인. 8081/8082 listener·ADB reverse 없이 launcher intent에서 `Running "main"` |
 | TP-S-02 | AC-37 | 비행기 모드에서 기록·계획·프로젝트·알림·내보내기, 강제 종료·재실행 뒤 SQLite 보존, 종료 뒤 알림 horizon·재부팅·장기 재예약 확인 | **미착수** |
 | TP-S-03 | AC-38 | 온라인 복귀 뒤 세션·수동/자동 동기화와 AI 서버 호출, 서버 실패 중 로컬 기록 비차단 | **미착수** |
-| TP-S-04 | AC-39 | build ID·versionCode·SHA-256·서명/배포·embedded bundle rollback·native 변경 재빌드 문서 대조 | **미착수** |
+| TP-S-04 | AC-39 | build ID·versionCode·SHA-256·서명/배포·embedded bundle rollback·native 변경 재빌드 문서 대조 | **통과**: EAS `8deb4d4b-3747-4073-9f06-c7b9b2ed9f09`, `0.4.2(9)`, SHA-256 `569108C00792314451FF443D4563E66194FD1A07E6B1F0E73A27EC6BD3641253`, APK signing v2·EAS keystore, 보존/전진 rollback 절차 기록 |
 
 ## 하루치 실기기 기록 시나리오
 

@@ -106,9 +106,19 @@ set EAS_NO_VCS=
 
 현재 Windows 저장소 경로의 대괄호 때문에 기본 EAS 로컬 git archive가 실패하므로 이 경로에서만 `EAS_NO_VCS=1`을 사용한다. 대괄호 없는 경로에서는 먼저 기본 명령을 사용한다. PowerShell에서는 build 전 `$env:EAS_NO_VCS = '1'`, build 후 `Remove-Item Env:EAS_NO_VCS`로 같은 범위를 적용한다.
 
-현재 연결된 프로젝트는 `@ljh951206/oos-ops`, project ID는 `a0b6c215-c87a-40ff-b749-b715d1ed9352`다. SM-S721N에서 검증한 마지막 네이티브 개발 클라이언트는 매직링크 callback 기준 `0.2.0(3)` build `154087e2-b93d-451a-b62c-ba6e988f4592`다. 현재 소스는 `0.4.1(8)`이며 새 `expo-secure-store` native module/config plugin을 포함하므로 과거 클라이언트에서 최종 검증할 수 없다. `0.4.1(8)` development build `ce72a92f-6fe5-456f-9a48-d9863788abaf` 생성과 APK 로컬 보존은 완료됐고, 실기기 설치·세션 이관·핵심 회귀가 Phase 4R 게이트의 대기 항목이다. 이후에도 native dependency·권한·config plugin을 바꾸면 새 binary가 필요하다. 비용·계정 플랜·자격증명 선택이 나타나면 임의로 진행하지 않는다.
+현재 연결된 프로젝트는 `@ljh951206/oos-ops`, project ID는 `a0b6c215-c87a-40ff-b749-b715d1ed9352`다. Phase 4R용 `0.4.1(8)` development build `ce72a92f-6fe5-456f-9a48-d9863788abaf`에서 로그인 유지와 인증된 AI 실호출을 확인했다. 일상 사용용 `0.4.2(9)` personal build `8deb4d4b-3747-4073-9f06-c7b9b2ed9f09`도 SM-S721N에 데이터 보존 업데이트로 설치했다. 이후에도 native dependency·권한·config plugin을 바꾸면 새 binary가 필요하다. 비용·계정 플랜·자격증명 선택이 나타나면 임의로 진행하지 않는다.
 
-development client는 JavaScript를 받기 위해 Metro가 필요하다. PC 없이 평상시 실행할 비개발용 Android binary는 Phase 4R 통과 뒤 Phase 4S에서 profile·embedded bundle·rollback을 추가하고 검증한다. 현재 `eas.json`에는 development profile만 있으므로 standalone이 준비됐다고 간주하지 않는다.
+development client는 JavaScript를 받기 위해 Metro가 필요하다. `personal` profile은 developer launcher 없이 release APK와 embedded JavaScript bundle을 생성한다. 2026-09-05 설치본은 non-debuggable, `assets/index.android.bundle` 포함, Metro 8081/8082 listener와 ADB reverse가 없는 상태에서 `Running "main"` cold start를 확인했다. USB는 설치·로그 확인에만 사용됐고 실행 의존성이 아니다.
+
+개인용 APK를 다시 만들 때는 `mobile/`에서 아래 명령을 사용한다. 앱 자체를 변경하지 않으면 다시 발급받을 필요가 없다.
+
+```bat
+set EAS_NO_VCS=1
+npx eas-cli@23.2.0 build --platform android --profile personal --non-interactive --wait
+set EAS_NO_VCS=
+```
+
+현재 보존 artifact는 `C:\Users\skljh\Downloads\OOS-Ops-0.4.2-build9-personal.apk`, SHA-256은 `569108C00792314451FF443D4563E66194FD1A07E6B1F0E73A27EC6BD3641253`이다. native rollback은 동일 EAS Android keystore를 유지한 채 알려진 정상 commit을 더 높은 `versionCode`로 다시 빌드하고 `adb install -r` 또는 스토어 업데이트로 설치한다. SQLite migration은 전진형이므로 오래된 낮은 versionCode APK를 강제 downgrade하지 않는다.
 
 ## Phase 2 Supabase 개발 환경
 
@@ -193,4 +203,4 @@ PowerShell에서 `npm.ps1`이 실행 정책으로 차단될 때는 정책을 바
 
 Windows 긴 경로는 OS에서 `LongPathsEnabled=1`, 이 저장소의 로컬 Git 설정에서 `core.longpaths=true`로 확인했다. 현재 의존성·Metro·자동 게이트의 복구 결과는 `docs/evidence/phase-1-recovery-2026-09-02.md`를 참조한다.
 
-2026-09-04 Phase 4R 소스에서는 `npm run verify` 종료 코드 0, 34 files/222 tests, coverage 99.07/94.93/100/100, Supabase 계약 2 files/8 tests, dependency up to date, doctor 21/21, Android Hermes 1,493 modules를 확인했다. SecureStore 포함 development build `ce72a92f-6fe5-456f-9a48-d9863788abaf`는 `FINISHED`이며 APK를 로컬 보존했다. 설치·기존 세션 이관·핵심 실기기 회귀는 아직 확정하지 않는다.
+2026-09-05 최신 소스에서는 `npm run verify` 종료 코드 0, 35 files/221 tests, coverage 99.07/94.93/100/100, Supabase 계약 2 files/8 tests, dependency up to date, doctor 21/21, Android Hermes 1,493 modules를 확인했다. `ai-analysis` v5는 ACTIVE이고, personal release APK의 설치·embedded bundle·non-debuggable·Metro 독립 cold start를 확인했다. Phase 4S의 전체 오프라인 조작과 온라인 복귀 회귀는 별도 게이트로 남긴다.

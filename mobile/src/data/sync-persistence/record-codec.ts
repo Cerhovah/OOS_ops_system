@@ -19,11 +19,14 @@ export function normalizeRemotePayload(
   payload: Readonly<Record<string, unknown>>,
 ): Record<string, SyncScalar> {
   const normalized: Record<string, SyncScalar> = {};
+  const legacyNullableColumns = new Set(definition.legacyNullableColumns ?? []);
   for (const column of definition.columns) {
     if (column === definition.primaryKey) {
       normalized[column] = recordId;
     } else if (Object.hasOwn(payload, column)) {
       normalized[column] = asSyncScalar(payload[column]);
+    } else if (legacyNullableColumns.has(column)) {
+      normalized[column] = null;
     }
   }
   if (definition.columns.some((column) => !Object.hasOwn(normalized, column))) {
