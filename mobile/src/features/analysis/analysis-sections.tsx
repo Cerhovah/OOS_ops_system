@@ -16,7 +16,7 @@ import {
   Section,
   textStyles,
 } from '@/components/ui';
-import { COLORS } from '@/constants/app';
+import { COLORS } from '@/theme/colors';
 import type { Account, AiProposal, AnalysisMode, AnalysisSession } from '@/types/domain';
 
 const MODE_CHOICES = (Object.keys(ANALYSIS_MODE_LABELS) as AnalysisMode[]).map((value) => ({

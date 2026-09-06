@@ -2,13 +2,14 @@
 
 ## 현재 단계
 
-- 단계: Phase 4S — Android 개인용 standalone
-- 상태: **AC-36~AC-39 전체 통과, 다음 상용화 명세 결정 대기**
-- PLAN/구현 승인: 2026-08-20
+- 단계: **Phase 5 완료 — 다음 단계는 Phase 6 서버 선행 준비**
+- 상태: **Mobbin Tiimo flow와 Figma Quiet Routine 4화면을 기준으로 P5 UI를 구현했고, 전체 자동 게이트·Android 개발 빌드 핵심 흐름·200% 글꼴·데이터 복원·`0.5.0(11)` personal standalone 설치/콜드 스타트를 통과했다. P6~P8 구현과 공개 배포는 미착수다.**
+- 최초 PLAN/구현 승인 이력: 2026-08-20. 2026-09-06 명세 보정과 디자인 선행 게이트 뒤 P5를 완료했다.
 - Phase 종료 커밋 규칙: `docs/COMMIT_WORKFLOW.md`
 - 주 검증 플랫폼: Android 실기기, iOS 호환성 유지
 - 고정값: 월요일 시작, 하루 종료 23:00, 오늘 종료 알림 21:30, §4.4 시드, 앱 이름 `OOS Ops`
-- Phase 경계: Phase 1·2·4의 사용자 동작과 과거 통과 기록은 유지한다. Telegram은 제거 상태를 유지한다. PC·Metro 없는 개인용 Phase 4S까지 완료했으며, 공개 스토어·결제·다중 사용자 운영은 Q-005 승인 전까지 별도 범위다.
+- Phase 경계: 2026-09-06 요청으로 P5 UI/UX, P6 핵심 기능, P7 배포 준비, P8 공개/유지보수 리팩터를 명세했다. 과거 게이트 이력·데이터는 보존하고 화면 위치는 SPEC §17로 변경한다. 결제·Telegram·동시 다기기 작성은 범위 밖이다.
+- 사용자 확정: 목표 도달 후 알림만·계속 측정·종료 시 실제 기록; 80,000원은 레퍼런스·MCP에만 사용; 첫 공개판은 public-local이며 모든 사용자 데이터는 기기 로컬에만 둔다.
 
 ## Phase 1 AC-1~AC-18 1:1 구현·증빙
 
@@ -119,7 +120,9 @@
 
 1. 완료: Phase 4R 자동·clean DB·원격 게이트와 새 build 로그인 유지·AI model policy 배포·실호출을 기록했다.
 2. 완료: `0.4.3(10)` personal release에서 오프라인 기록·재시작·내보내기·알림, 구버전 AI 세션 호환 동기화 10→0, online AI와 수동 동기화를 확인했다.
-3. 다음: Q-005에서 production 환경·Google Play AAB·결제·다중 사용자 운영을 별도 상용화 Phase로 명세한다.
+3. 완료: `0.5.0(11)` development build에서 `오늘의 할일 확인 → 선택/시작 → 종료 → 직접 기록 → 원장 확인`, 날짜 이동, 긴 목록/접근성, 200% 글꼴을 확인하고 임시 검증 뒤 원본 DB를 복원했다.
+4. 완료: 최종 personal build `fa8d2cf2-478b-4b62-8afd-1302ab7721a9`를 데이터 보존 업데이트로 설치하고 embedded bundle·non-debuggable·Metro/ADB reverse 독립 콜드 스타트와 기존 타이머 지속을 확인했다.
+5. 다음: P6 코드나 동기화 계약을 바꾸기 전에 사용자에게 서버 준비 범위를 알린다. server migration, RPC allowlist/protocol version fence, RLS, client/server 계약 테스트, 배포 순서와 구버전 앱 영향을 먼저 확정한 뒤 구현한다.
 
 ## 2026-09-02 정적 구현 감사 후속
 
@@ -139,5 +142,25 @@
 - [x] Phase 4 — 분석: AC-27~AC-30 자동·원격·SM-S721N 실기기 게이트 통과.
 - [x] Phase 4R — 동작 보존 리팩터: 코드·자동·clean DB CI·linked 원격·native build, 로그인 유지·AI 실호출·실기기 회귀 통과.
 - [x] Phase 4S — 개인용 standalone: `0.4.3(10)`에서 AC-36~AC-39 통과.
-- [ ] 상용화 명세 확장 — 앱 스토어 production 배포, 결제, 다중 사용자 운영 서버·백업·모니터링. Phase 4S와 별도이며 Q-005 승인 뒤 AC를 정의.
-- [ ] Phase 5 — 확장: 사용자 승인된 `FUTURE.md` 항목만 진행.
+- [x] Phase 5 — UI/UX: Tiimo 연속 flow와 Figma OOS 4화면을 근거로 theme/token, 오늘·기록 2탭, TaskSheet, 경과 TimerView, 기존 기능의 더보기 이동을 구현했다. 자동·실기기·standalone 게이트를 통과했고 schema·repository 명령·sync·알림·기록 귀속 날짜는 바꾸지 않았다.
+- [ ] Phase 6 — 실행·수동 입력·기록: P5 완료 뒤 entries 확장, daily_plan_versions, timer state, 목표 알림, 날짜별 수동 기록과 개인용 sync 호환을 한 변경 묶음으로 구현한다. 서버 계약을 먼저 준비하고 기존 데이터·내보내기·동기화를 보존한다.
+- [ ] Phase 7 — 공개 준비: personal과 public-local 변형의 capability·환경·application ID를 분리하고, 공개 빌드에는 개인 Supabase/AI 설정을 넣지 않는다. JSON restore, production AAB, 로컬 데이터 보존을 설명하는 정책 자료를 준비한다.
+- [ ] Phase 8 — 공개·유지보수: 실제 병목과 중복 코드만 정리한 뒤 사용자의 공개 지시가 있을 때 배포한다. 데이터 손실·시작 불가·보안 결함을 우선 복구한다.
+
+각 Phase는 SPEC §10.3의 최소 검증을 따른다. 저장 계약상 함께 바뀌는 client/server/test만 한 변경 단위로 묶고, 고정 성능 수치·반복 기간·반복 횟수는 완료 조건으로 두지 않는다.
+
+## 2026-09-06 명세 세션 증빙
+
+- [x] 첨부·사전 고려사항과 사용자의 최신 요청을 구분하고 현재 저장소 상태와 대조.
+- [x] 실제 파일/저장 schema/오늘 항목/알림/색상/sync 감사.
+- [x] 공식 외부 레퍼런스·가격/배포 요건 조사, 관찰 한계 기록.
+- [x] Figma MCP 계정 연결과 빈 P5 디자인 파일 생성 확인.
+- [x] Mobbin에서 Tiimo `Completing a task` 5화면을 주 레퍼런스로 선정하고 TIDE·Opal과 비교해 채택/배제 근거 기록.
+- [x] Mobbin Pro 결제 활성 상태 확인.
+- [x] ChatGPT Mobbin 플러그인 설치와 권한 화면 노출 확인. 현재 Codex 작업에는 Mobbin 전용 callable 도구가 없음을 기록.
+- [x] 선정 flow를 합성 데이터 Figma OOS 4화면으로 번역하고 코드의 시각 구조 확정.
+- [x] 최종 `npm run verify`: 37 files/225 tests + 2 files/8 contracts, coverage 99.07/94.93/100/100, Doctor 21/21, Android 1,499 modules.
+- [x] 어두운 모드 primary 대비 보정 뒤 typecheck, lint, layout 1 file/3 tests를 다시 통과.
+- [x] Android development build 핵심 흐름·날짜 이동·200% 글꼴·데이터 원본 복원과 personal standalone 데이터 보존 설치·콜드 스타트 통과.
+- [x] 문서 링크·형식과 `git diff --check`를 최종 변경에 다시 적용.
+- P5 기존 코드 판정 결과: 2탭 route·stack 이동·records view-model/테스트·저장 명령 연결은 유지했고, 오늘/기록 레이아웃·TaskSheet 표시 정보·theme/token·중복 설정 진입·과거 날짜 행동은 Figma 시안에 맞춰 선별 재작성했다. schema·repository·sync·알림·기록 귀속 날짜는 변경하지 않았다.

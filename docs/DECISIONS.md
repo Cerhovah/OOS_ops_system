@@ -338,6 +338,46 @@
 - Decision: Use OpenAI initially. Resolve `standard` and `deep` only in the Edge Function from server configuration; use Terra/medium and Sol/high as the initial policy. Reserve Luna for preprocessing, never final analysis.
 - Consequence: The app persists server-resolved provider/model/effort/usage/cost/response ID/timing per analysis session, without embedding a production key or routing on model IDs. Provider adapters retain a common result contract for later evaluation of a secondary provider.
 
+### ADR-025 — 실행 우선 두 탭과 기존 기능의 하위 진입
+
+- 날짜: 2026-09-06
+- 상태: 채택 / Phase 5 구현·게이트 통과
+- 결정: Mobbin의 Tiimo `Completing a task` 5화면을 유일한 주 레퍼런스로 삼고, 합성 데이터 Figma Quiet Routine 4화면으로 번역했다. 오늘/기록 2탭, 유휴 시작의 할일 시트, 상시 `오늘의 할일 확인` 버튼, 실행 중 복원으로 핵심 루프를 만들었다. 기존 주간·계획·프로젝트·분석·설정은 기록의 더보기로 이동하고 기능·숫자·데이터는 유지한다.
+- 근거/대안: 기존 5탭/다중 카드 첫 화면과 모든 기능 삭제 양쪽을 검토했다. 여러 앱의 장점을 임의 조합하지 않고 Tiimo의 선택→실행→종료 연속성만 채택했으며 브랜드·문구·그래픽·체크리스트·진행률·4탭·FAB는 배제했다. 출처·관찰의 한계와 Figma 링크는 `design-research.md`에 기록한다.
+- 결과 및 위험: 공통 Sheet에서 focus/Android back/키보드/스크롤/큰 글씨를 처리하고 실기기 핵심 흐름을 통과했다. P5는 기존 경과 타이머 의미를 유지하며 P6 countdown·초과·pause/resume은 구현하지 않았다.
+- 관련 불변조건: I-1, I-2, I-9
+- 대체 관계: 과거 화면 배치와 AC-6의 합계 위치만 대체. 도메인 기능 삭제 아님.
+
+### ADR-026 — entries 확장과 영속 타이머 상태
+
+- 날짜: 2026-09-06
+- 상태: 명세 채택 / 구현 미착수
+- 결정: 새 sessions 원장을 만들지 않고 entries에 timer/manual 출처 및 목표·구간·누적 ms·state/revision을 추가한다. source의 기존 의미는 보존한다. 단일 관리 타이머, operation ID/조건부 transaction, 저장 후 OS 알림 조정으로 실행한다. Q-014에 따라 목표 후 계속 측정하며 종료 때 실제 분을 확정한다.
+- 근거/대안: source를 timer/manual로 바꾸거나 분 tick을 누적하면 기존 sync/AI/export와 충돌하고 앱 종료 시 시간이 어긋난다. 원장 일원화는 집계/수정/삭제 경로를 재사용한다.
+- 결과 및 위험: SQLite v6 보존 upgrade, 기존 복수 열린 entry의 사용자 정리, 시계 변경의 한계 설명, 날짜 helper 통합이 필요하다. OS 강제 중지/전원 꺼짐의 정시 알림은 보장하지 않는다.
+- 관련 불변조건: I-1, I-7, I-8
+- 대체 관계: ADR-003의 복수 타이머 허용은 새 관리 세션에 대해 SPEC §18로 대체. 기존 행을 삭제하지 않는다. ADR-022의 알림 cleanup 원칙 유지.
+
+### ADR-027 — 일일 계획 버전과 동기화 버전 경계
+
+- 날짜: 2026-09-06
+- 상태: 명세 채택 / 구현 미착수
+- 결정: daily_plan_versions에 실제 생성 당시의 오늘 계획을 append-only 저장한다. 과거 일정에서 확인할 수 없는 과거 계획은 미확인으로 표시한다. entries 새 필드/일일 계획 table은 전체 manifest·export/reset·codec·trigger·RPC와 함께 도입한다. 구 client가 확장 행을 덮어쓰지 못하도록 서버 protocol 경계를 먼저 준비한다.
+- 근거/대안: 최신 schedule로 과거 계획을 재계산하면 그날의 계획이 변한다. client만 nullable 필드를 추가하면 구 client의 전체 row push가 새 필드를 지울 수 있다.
+- 결과 및 위험: 공개 서버와 앱의 배포 순서·구 client 차단·오프라인 작성 지속을 실제 계약 테스트로 입증해야 한다. 다기기 동시 작성은 Q-011 해결 전 지원 완료로 표시하지 않는다.
+- 관련 불변조건: I-2, I-7, I-8
+- 대체 관계: ADR-023의 단일 manifest 원칙 유지, 버전별 호환 계약으로 확장.
+
+### ADR-028 — 총액 예산 안의 공개 변형과 운영 준비
+
+- 날짜: 2026-09-06
+- 상태: 사용자 확정 / 구현 미착수
+- 결정: Android public-local을 첫 공개 변형으로 확정하며 개인용 sync/AI는 유지한다. 공개판의 사용자 데이터는 기기 로컬에만 두며 개인 Supabase/AI 설정을 포함하지 않는다. P7에서 복구/import·진단·서명·정책을 준비하고 P8에서 필요한 사전 리팩터 후 사용자의 공개 지시가 있을 때 배포한다.
+- 근거/대안: 80,000원은 레퍼런스·MCP 예산이며 월 운영비가 아니다. Supabase 무료 기본 SMTP와 단일 owner AI를 그대로 공개 계정 서비스로 제공할 수 없다. 가격 근거·한계는 SPEC §21/BUDGET을 따른다.
+- 결과 및 위험: 계정 없는 공개판에는 자동 클라우드 백업/AI가 없다. 로컬 JSON 복구를 먼저 구현해야 한다. 사용자 기기 삭제 전 백업 필요성과 운영 정책을 제품 안내로 제공한다. 등록·본인 확인·tester 확보·심사는 실제 사용자/외부 서비스 단계다.
+- 관련 불변조건: I-7, I-8, I-14
+- 대체 관계: 공개 스토어 비목표/F-005 일부를 최신 SPEC으로 대체. 결제·구독·광고·텔레메트리 범위를 추가하지 않는다.
+
 ## 기록 형식
 
 ### ADR-NNN — 제목

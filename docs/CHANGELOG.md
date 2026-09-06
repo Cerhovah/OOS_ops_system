@@ -6,6 +6,19 @@
 
 ## Unreleased
 
+### Phase 5 completed — 2026-09-06
+
+- P5 시각 설계 전에 Mobbin의 출시 모바일 앱 연속 flow 하나를 주 레퍼런스로 확인하고 Figma OOS 4화면으로 번역하는 선행 게이트를 완료했다. 데이터·sync·P6 기능 경계는 바꾸지 않았다.
+- Figma MCP와 Mobbin ChatGPT 플러그인 설치를 확인했다. Mobbin 전용 callable 도구는 현재 Codex 작업에 노출되지 않았지만, 확인한 Tiimo flow와 합성 데이터 Figma 4화면을 기준으로 P5를 완료했다.
+- Mobbin의 Tiimo `Completing a task` 5화면을 P5 주 레퍼런스로 확정하고 Quiet Routine 번역 규칙을 추가했다. TIDE·Opal은 비교 후보로만 남기고 P6 countdown·하위 작업·진행률·게임화는 P5에서 제외했다.
+- theme/token과 공용 UI, 오늘·기록 2탭, TaskSheet, P5 경과 TimerView, 날짜별 기록 원장, 기존 기능의 더보기 이동을 구현했다.
+- 자동 전체 게이트와 Android 개발 빌드 핵심 흐름·200% 글꼴·DB 원본 복원을 통과하고, 최종 `0.5.0(11)` personal standalone을 데이터 보존 설치해 Metro 독립 콜드 스타트와 기존 타이머 지속을 확인했다.
+- 첨부 사전 고려사항과 실제 Phase 4S 코드를 비교해 SPEC v0.5.3의 Phase 5~8 상세와 현재 완료 상태를 기록했다.
+- P5는 오늘/기록 2탭·할일 자동 시트·명시적 재열기 버튼·극단적 미니멀 UI, P6는 countdown/초과 측정·pause/복구·수동 시간·통합 원장으로 정의했다.
+- 사용자 답변에 따라 목표 도달은 알림 후 계속 측정, 종료에서 실제 시간 기록으로 확정했다. 수동 과거 기록을 3일 이내로 제한하지 않는다.
+- 전체 추가 지출 총액을 80,000원으로 확정했다. Android 공개 준비/배포/복구/유지보수를 P7~P8로 구체화했고 Q-016에서 첫 공개판을 계정·서버 없는 public-local로 확정했다.
+- 외부 앱 비교, 구현 감사, 예산 원장과 상세 AGENTS를 정비했다. 구형·중복 AC 문서 4개를 제거하고 기존 기록·계획·개인용 sync/AI를 보존하는 확장/제거 기준과 검증 계획을 연결했다.
+
 ### Added
 
 - 2026-09-05: `0.4.3(10)` personal release APK 생성·데이터 보존 설치와 embedded bundle·non-debuggable·PC/Metro 독립 cold start 증빙 추가

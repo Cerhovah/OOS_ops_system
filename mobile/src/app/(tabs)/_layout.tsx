@@ -1,9 +1,9 @@
-import { Tabs, router } from 'expo-router';
-import { Pressable, Text, useWindowDimensions } from 'react-native';
+import { Tabs } from 'expo-router';
+import { useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { accessibleTabBarHeight } from '@/components/layout';
-import { COLORS } from '@/constants/app';
+import { COLORS } from '@/theme/colors';
 
 export default function TabsLayout() {
   const { fontScale } = useWindowDimensions();
@@ -12,30 +12,21 @@ export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
-        headerRight: () => (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="설정 열기"
-            onPress={() => router.push('/settings')}
-            style={{ minHeight: 44, minWidth: 56, alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ color: COLORS.accent, fontWeight: '700' }}>설정</Text>
-          </Pressable>
-        ),
+        headerShown: false,
         tabBarActiveTintColor: COLORS.accent,
         tabBarAllowFontScaling: true,
         tabBarInactiveTintColor: COLORS.muted,
         tabBarStyle: {
+          backgroundColor: COLORS.surface,
+          borderTopColor: COLORS.border,
           height: accessibleTabBarHeight(fontScale, insets.bottom),
-          paddingTop: 6,
+          paddingTop: 8,
         },
         tabBarIcon: () => null,
         tabBarLabelStyle: { fontSize: 13, fontWeight: '700' },
       }}>
       <Tabs.Screen name="index" options={{ title: '오늘', tabBarLabel: '오늘' }} />
-      <Tabs.Screen name="week" options={{ title: '주간', tabBarLabel: '주간' }} />
-      <Tabs.Screen name="projects" options={{ title: '프로젝트', tabBarLabel: '프로젝트' }} />
-      <Tabs.Screen name="plan" options={{ title: '계획', tabBarLabel: '계획' }} />
-      <Tabs.Screen name="analysis" options={{ title: '분석', tabBarLabel: '분석' }} />
+      <Tabs.Screen name="records" options={{ title: '기록', tabBarLabel: '기록' }} />
     </Tabs>
   );
 }

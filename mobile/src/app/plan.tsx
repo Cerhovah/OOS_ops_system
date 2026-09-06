@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Alert, StyleSheet, Text, View } from 'react-native';
 
 import { AppButton, Card, Field, Heading, LoadingView, Screen, Section, StatusBanner, textStyles } from '@/components/ui';
-import { COLORS } from '@/constants/app';
+import { COLORS } from '@/theme/colors';
 import { useApp } from '@/context/app-context';
 import { addDays, dateKey, formatMinutes, latestPlanForWeek, parseWeekStartDay, planStatus, weekRange } from '@/domain/calculations';
 import {
@@ -13,7 +13,7 @@ import {
   type PlanDraft,
 } from '@/features/plan/plan-draft';
 
-export default function PlanScreen() {
+export default function PlanRoute() {
   const app = useApp();
   const weekStartDay = parseWeekStartDay(app.snapshot.settings.week_start_day);
   const initial = weekRange(dateKey(new Date()), weekStartDay).start;

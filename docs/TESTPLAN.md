@@ -1,5 +1,36 @@
 # TESTPLAN
 
+현재 완료 판정은 Phase 5까지다. P6~P8은 미구현·미검증이며, 과거 통과 이력을 새 기능의 증빙으로 사용하지 않는다.
+
+## Phase 5~8 최소 검증
+
+- Phase 5: Mobbin의 Tiimo `Completing a task` 5화면과 Figma의 Quiet Routine OOS 4화면 채택/배제 기록을 먼저 확인한다. 그 뒤 typecheck/lint와 변경 화면의 테스트, Android 개발 빌드에서 `오늘의 할일 확인 → 선택/시작 → 종료 → 직접 기록 → 원장 확인`을 한 번 실행한다. P6 기능이 보이지 않아야 한다.
+- Phase 6: timer·날짜·SQLite 변경의 단위/저장/migration 보존 테스트와 server/client sync 계약 테스트를 실행한다. Android 개발 빌드에서 시간 복원, 일시정지/재개, 작업 전환, 목표 알림 뒤 계속 측정, 종료, 수동 기록을 각각 한 번 확인한다.
+- Phase 7: production 산출물의 새 설치·업데이트, 기존 기록 보존, export/restore, 공개 빌드의 개인 서버 설정 미포함을 확인한다.
+- Phase 8: 공개 전에는 시작·데이터 손실·보안 결함이 없는지 확인하고, 공개 지시 뒤 게시 상태·설치 링크·새 설치의 핵심 흐름을 확인한다.
+
+실행 기록에는 실행일, source SHA, 앱 버전/versionCode, SQLite 버전, 기기/OS, 조건, 기대값/실제값, 증빙 위치와 재현 실패만 남긴다. 자동 검증은 합성 데이터, 실기기는 개인정보를 가린 증빙을 사용한다.
+
+## Phase 5 종료 게이트 — 2026-09-06 통과
+
+- 디자인 선행: Mobbin Tiimo `Completing a task` 5화면의 채택/배제 근거와 합성 데이터 Figma Quiet Routine 4화면을 기록했다.
+- 자동: `npm run verify` 종료 코드 0, TypeScript/ESLint 0, Vitest 37 files/225 tests, Supabase 계약 2 files/8 tests, coverage 99.07/94.93/100/100, Doctor 21/21, Android Hermes 1,499 modules를 통과했다.
+- 최소 재검증: 마지막 primary 대비 토큰 1줄 보정 뒤 typecheck, lint, layout 1 file/3 tests만 다시 통과했다. 이 UI 보정 때문에 전체 게이트를 반복하지 않았다.
+- 경계: `mobile/src/data`, `mobile/src/services`, `mobile/src/sync`, `supabase` 변경 0건이며 P6의 countdown·pause/resume·날짜 귀속 편집·sync 계약 변경을 포함하지 않았다.
+- 개발 빌드: EAS `f9ff3f21-45f2-4e1f-a682-06e3fe18d4c6`, 앱 `0.5.0(11)`을 SM-S721N(Android 16)에 데이터 보존 업데이트하고 핵심 흐름, 날짜 이동, 긴 목록/접근성, 200% 글꼴을 확인했다.
+- 데이터 보존: 앱 전용 SQLite DB/WAL/SHM을 검증 전에 복사해 해시를 대조했고, 임시 흐름 뒤 세 파일을 원본과 같은 해시로 복원했다. 사용자 데이터가 보이는 screenshot·UI dump와 임시 백업은 제거했다.
+- standalone: EAS personal `fa8d2cf2-478b-4b62-8afd-1302ab7721a9`를 `adb install -r`로 설치했다. embedded bundle·non-debuggable·Metro/ADB reverse 없는 콜드 스타트·기존 타이머 지속·release 오류 0을 확인했다.
+- 상세 증빙: `docs/evidence/phase-5-ui-2026-09-06.md`.
+
+
+### Phase 5 착수 기준선 확인
+
+- 2026-09-06, `385e20b` 앱 코드 그대로 `mobile/`에서 `npm run verify` 재실행, 종료 코드 0.
+- TypeScript/ESLint 오류·경고 0, Vitest 36 files/223 tests, Supabase 계약 2 files/8 tests. 도메인 coverage statements 99.07% / branches 94.93% / functions 100% / lines 100%.
+- Expo 패키지 호환 통과, Doctor 21/21, Android Hermes export 1,493 modules 성공.
+- 이 항목은 P5 구현 전 기준선이다. 종료 결과는 위 Phase 5 게이트와 상세 증빙을 기준으로 하며, 원격 DB/AI·Play 게시에는 손대지 않았다.
+- 문서 정합성은 변경 시 링크와 `git diff --check`로 확인한다.
+
 ## 원칙
 
 - TP-AC-01~TP-AC-18은 AC-1~AC-18과 1:1로 대응한다.
@@ -183,5 +214,6 @@ Q-010 승인 뒤 `ai-analysis` Edge Function v2를 `verify_jwt=true`로 배포�
 | 2026-09-03 | app 0.3.2(6), repository closeout | SM-S721N(Galaxy S24 FE), Android 16/API 36 + 로컬·원격 정합성 게이트 | Phase 3 마감 | **통과** | 12 files/59 tests, strict unused·doctor 21/21·Android 1,440 modules, Metro 1,603 modules 재로드·앱 오류 0, legacy schema 제거·active 63행 보존 |
 | 2026-09-04 | app 0.4.0(7) source on 0.2.0(3) development client, `ai-analysis` v2 | SM-S721N(Galaxy S24 FE), Android 16/API 36 | TP-AC-27~30 | **Phase 4 통과** | 19 files/83 tests, doctor 21/21, Android export 1,447; 6개 모드·§5.7 네 질문을 포함한 실세션 9건, 입력 25,026·출력 7,271토큰·추정 $0.137304, 제안 적용/무시, outbox 0, 원격 계획 2·라인 28 확인 |
 | 2026-09-04 | EAS `ce72a92f-6fe5-456f-9a48-d9863788abaf` / [build page](https://expo.dev/accounts/ljh951206/projects/oos-ops/builds/ce72a92f-6fe5-456f-9a48-d9863788abaf), app 0.4.1(8) | SM-S721N(Galaxy S24 FE), Android 16/API 36 예정 | TP-R-01~08 / AC-31~35 | **자동·원격·CI·build 통과/실기기 대기** | `FINISHED`, fingerprint `0fd3776c2e02c5cfa31162fe208d1c9c59685526`, APK SHA-256 `BE1B577B1212F9B6D4D051A602062BAA38034C29D5AB2472E87D7DE5308C39B7` |
+| 2026-09-06 | EAS development `f9ff3f21-45f2-4e1f-a682-06e3fe18d4c6` + [personal `fa8d2cf2-478b-4b62-8afd-1302ab7721a9`](https://expo.dev/accounts/ljh951206/projects/oos-ops/builds/fa8d2cf2-478b-4b62-8afd-1302ab7721a9), app 0.5.0(11) | SM-S721N(Galaxy S24 FE), Android 16/API 36 | Phase 5 §17.5 | **Phase 5 통과** | 핵심 흐름 1회, 날짜 이동·200% 글꼴, DB/WAL/SHM 원본 복원, personal 데이터 보존 설치·Metro 독립 콜드 스타트·오류 0. 최종 APK SHA-256 `E5AEDD98A849614F98189908259F4FCDD14AAC99CD5E168B939F3FE27DEB3422` |
 
-과거 build URL과 현재 `0.4.1(8)` build URL은 각각의 expiration 이후 만료되지만 로컬 APK와 이미 설치된 앱이 삭제되는 것은 아니다. 현재 APK는 `C:\Users\skljh\Downloads\OOS-Ops-0.4.1-build8.apk`에 보존했다. Android 버전과 TP-AC-01~TP-AC-17 결과를 같은 표에 이어서 기록한다.
+과거 build URL은 expiration 이후 만료될 수 있지만 로컬 APK와 이미 설치된 앱이 삭제되는 것은 아니다. 현재 개인용 APK는 `C:\Users\skljh\Downloads\OOS-Ops-0.5.0-build11-personal-final.apk`에 보존했으며, 휴대폰에도 같은 `0.5.0(11)` standalone이 설치돼 있다.

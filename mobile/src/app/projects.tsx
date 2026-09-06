@@ -22,7 +22,7 @@ interface RecordForm {
   record: ProjectKpiRecord | null;
 }
 
-export default function ProjectsScreen() {
+export default function ProjectsRoute() {
   const app = useApp();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [projectForm, setProjectForm] = useState<Project | 'new' | null>(null);

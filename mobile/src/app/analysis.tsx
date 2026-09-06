@@ -8,7 +8,7 @@ import { ANALYSIS_MODE_QUESTIONS } from '@/analysis/prompt';
 import { resolveAnalysisTransport } from '@/analysis/provider-registry';
 import { runAnalysis } from '@/analysis/service';
 import { Heading, Screen, Sheet, StatusBanner, textStyles } from '@/components/ui';
-import { COLORS } from '@/constants/app';
+import { COLORS } from '@/theme/colors';
 import { useApp } from '@/context/app-context';
 import { useSync } from '@/context/sync-context';
 import { AnalysisRepository } from '@/data/analysis-repository';
@@ -22,7 +22,7 @@ import { completedAnalysisRange } from '@/features/analysis/analysis-range';
 import { publishLocalMutation } from '@/services/local-mutation-signal';
 import type { AiProposal, AnalysisMode, AnalysisSession } from '@/types/domain';
 
-export default function AnalysisScreen() {
+export default function AnalysisRoute() {
   const db = useSQLiteContext();
   const repository = useMemo(() => new AnalysisRepository(db), [db]);
   const { snapshot, refresh, error, clearError } = useApp();

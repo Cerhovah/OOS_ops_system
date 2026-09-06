@@ -9,17 +9,3 @@ export const NOTIFICATION_CHANNEL_ID = 'daily-records-v3';
 export const NOTIFICATION_CATEGORY_ID = 'daily_close';
 export const NOTIFICATION_ACTION_ID = 'open_close';
 export const NOTIFICATION_ROUTE = '/today/close';
-
-export const COLORS = {
-  background: '#F5F6F8',
-  surface: '#FFFFFF',
-  text: '#17202A',
-  muted: '#607080',
-  border: '#D9DEE5',
-  accent: '#2457D6',
-  accentSoft: '#E9EEFC',
-  warning: '#8A5300',
-  warningSoft: '#FFF2D8',
-  danger: '#9A2E2E',
-  dangerSoft: '#FDECEC',
-} as const;

@@ -17,6 +17,11 @@ function Navigation() {
   return (
     <Stack screenOptions={{ headerBackTitle: '뒤로' }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="more" options={{ title: '더보기' }} />
+      <Stack.Screen name="week" options={{ title: '주간' }} />
+      <Stack.Screen name="projects" options={{ title: '프로젝트' }} />
+      <Stack.Screen name="plan" options={{ title: '계획' }} />
+      <Stack.Screen name="analysis" options={{ title: '분석' }} />
       <Stack.Screen name="today/close" options={{ title: '오늘 종료', presentation: 'modal' }} />
       <Stack.Screen name="settings" options={{ title: '설정' }} />
       <Stack.Screen name="auth/callback" options={{ title: '로그인 확인' }} />

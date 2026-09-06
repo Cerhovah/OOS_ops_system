@@ -28,7 +28,7 @@ import type { Account } from '@/types/domain';
 const dayLabels = ['월', '화', '수', '목', '금', '토', '일'];
 const COMMENT_LOAD_ERROR = '주간 코멘트를 불러오지 못했습니다. 다시 불러온 뒤 저장할 수 있습니다.';
 
-export default function WeekScreen() {
+export default function WeekRoute() {
   const app = useApp();
   const weekStartDay = parseWeekStartDay(app.snapshot.settings.week_start_day);
   const initial = weekRange(dateKey(new Date()), weekStartDay).start;
