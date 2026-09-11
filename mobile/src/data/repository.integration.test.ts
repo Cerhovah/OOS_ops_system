@@ -2,6 +2,7 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { addDays, dateKey, weekRange } from '@/domain/calculations';
+import { timerRuntimeSettingKey } from '@/domain/timer-runtime';
 import { TestSQLiteDatabase } from '@/test/sqlite-adapter';
 import type { ItemInput } from '@/types/domain';
 
@@ -290,6 +291,7 @@ describe('AppRepository with real SQLite', () => {
     const entryId = await repository.startTimer(item);
     expect(adapter.raw.prepare('SELECT item_id FROM entries WHERE id=?').get(entryId)).toMatchObject({ item_id: item.id });
     expect(await repository.getSetting('last_timer_item_id')).toBe(item.id);
+    expect(await repository.getSetting(timerRuntimeSettingKey(entryId))).toContain('"status":"running"');
 
     const originalRun = adapter.runAsync.bind(adapter);
     const failure = vi.spyOn(adapter, 'runAsync').mockImplementation(async (source, ...params) => {
@@ -303,6 +305,28 @@ describe('AppRepository with real SQLite', () => {
 
     expect(adapter.raw.prepare('SELECT COUNT(*) AS count FROM entries').get()).toMatchObject({ count: before.count });
     expect(await repository.getSetting('last_timer_item_id')).toBe(item.id);
+  });
+
+  it('keeps timer runtime local and clears it atomically when the entry ends', async () => {
+    const snapshot = await repository.loadSnapshot(dateKey(new Date()));
+    const item = snapshot.items.find((candidate) => candidate.type === 'time' && !candidate.deletedAt)!;
+    const entryId = await repository.startTimer(item);
+
+    await repository.updateTimerRuntimes([{
+      entryId,
+      value: JSON.stringify({
+        status: 'paused',
+        accumulatedMilliseconds: 90_000,
+        pausedAt: '2026-09-12T00:01:30.000Z',
+      }),
+    }]);
+    expect(await repository.getSetting(timerRuntimeSettingKey(entryId))).toContain('"status":"paused"');
+
+    await repository.stopTimer(entryId, 2);
+    expect(await repository.getSetting(timerRuntimeSettingKey(entryId))).toBeNull();
+    expect(adapter.raw.prepare('SELECT duration_min, ended_at FROM entries WHERE id=?').get(entryId)).toMatchObject({
+      duration_min: 2,
+    });
   });
 
   it('restores every runtime default and clears owner state during an explicit full reset', async () => {

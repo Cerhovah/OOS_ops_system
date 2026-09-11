@@ -7,6 +7,8 @@ import {
   hydratePlanDraft,
   markPlanDraftSaved,
   planDraftHours,
+  planDraftMinutes,
+  planDraftValues,
 } from './plan-draft';
 
 const account = (id: string): Account => ({
@@ -44,6 +46,12 @@ describe('plan draft', () => {
     };
 
     expect(planDraftHours([account('a')], [line('a', 90), deletedLine])).toEqual({ a: '1.5' });
+  });
+
+  it('converts decimal-hour inputs to canonical integer minutes in one place', () => {
+    expect(planDraftMinutes([account('a'), account('b')], { a: '1.5', b: '2' })).toEqual([90, 120]);
+    expect(planDraftValues([account('a')], { a: '1.5' })).toEqual({ a: 90 });
+    expect(planDraftMinutes([account('a')], { a: '1.333' })).toBeNull();
   });
 
   it('keeps unsaved edits when a background refresh changes the source snapshot', () => {

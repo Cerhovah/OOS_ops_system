@@ -2,8 +2,18 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { AppState } from 'react-native';
 
-import { dateKey, timerDurationMinutes } from '@/domain/calculations';
+import { dateKey } from '@/domain/calculations';
 import { AppRepository } from '@/data/repository';
+import {
+  createTimerRuntime,
+  parseTimerRuntime,
+  pauseTimerRuntime,
+  resumeTimerRuntime,
+  serializeTimerRuntime,
+  timerElapsedMinutes,
+  timerRuntimeSettingKey,
+  type TimerRuntime,
+} from '@/domain/timer-runtime';
 import { shareFullJson, shareTableCsv } from '@/services/export-service';
 import { publishLocalMutation } from '@/services/local-mutation-signal';
 import { notificationScheduleFingerprint } from '@/services/notification-policy';
@@ -48,7 +58,9 @@ interface AppContextValue {
   refresh: () => Promise<void>;
   clearError: () => void;
   addTodayItem: (itemId: string) => Promise<void>;
-  startTimer: (item: Item) => Promise<void>;
+  startTimer: (item: Item, pauseEntry?: Entry | null) => Promise<void>;
+  pauseTimer: (entry: Entry) => Promise<void>;
+  resumeTimer: (entry: Entry, pauseEntry?: Entry | null) => Promise<void>;
   stopTimer: (entry: Entry) => Promise<void>;
   createEntry: (item: Item, amount: number | null, note?: string | null) => Promise<void>;
   updateEntry: (entryId: string, amount: number | null, note: string | null) => Promise<void>;
@@ -224,15 +236,57 @@ export function AppProvider({ children }: { children: ReactNode }) {
       refresh,
       clearError: () => setError(null),
       addTodayItem: (itemId) => mutate(() => repository.addTodayItem(dateKey(new Date()), itemId)),
-      startTimer: (item) =>
+      startTimer: (item, pauseEntry = null) =>
         mutate(async () => {
-          const entryId = await repository.startTimer(item);
+          const now = new Date().toISOString();
+          const pausedRuntimeUpdates = pauseEntry?.startedAt
+            ? [{
+                entryId: pauseEntry.id,
+                value: serializeTimerRuntime(pauseTimerRuntime(runtimeForEntry(snapshot, pauseEntry), now)),
+              }]
+            : [];
+          const entryId = await repository.startTimer(
+            item,
+            serializeTimerRuntime(createTimerRuntime(now)),
+            pausedRuntimeUpdates,
+          );
+          if (pauseEntry) await cancelTimerLimitNotification(repository, pauseEntry.id).catch(() => undefined);
           await scheduleTimerLimitNotification(repository, entryId, item).catch(() => undefined);
         }),
+      pauseTimer: (entry) => {
+        if (!entry.startedAt) return Promise.resolve();
+        return mutate(async () => {
+          const now = new Date().toISOString();
+          const runtime = pauseTimerRuntime(runtimeForEntry(snapshot, entry), now);
+          await repository.updateTimerRuntimes([{ entryId: entry.id, value: serializeTimerRuntime(runtime) }]);
+          await cancelTimerLimitNotification(repository, entry.id).catch(() => undefined);
+        }, { signalSync: false });
+      },
+      resumeTimer: (entry, pauseEntry = null) => {
+        if (!entry.startedAt) return Promise.resolve();
+        return mutate(async () => {
+          const now = new Date().toISOString();
+          const runtime = resumeTimerRuntime(runtimeForEntry(snapshot, entry), now);
+          const updates = [{ entryId: entry.id, value: serializeTimerRuntime(runtime) }];
+          if (pauseEntry?.startedAt && pauseEntry.id !== entry.id) {
+            updates.push({
+              entryId: pauseEntry.id,
+              value: serializeTimerRuntime(pauseTimerRuntime(runtimeForEntry(snapshot, pauseEntry), now)),
+            });
+          }
+          await repository.updateTimerRuntimes(updates);
+          if (pauseEntry && pauseEntry.id !== entry.id) {
+            await cancelTimerLimitNotification(repository, pauseEntry.id).catch(() => undefined);
+          }
+          const item = snapshot.items.find((candidate) => candidate.id === entry.itemId);
+          if (item) await scheduleRemainingTimerNotification(repository, entry.id, item, runtime, now);
+        }, { signalSync: false });
+      },
       stopTimer: (entry) => {
         if (!entry.startedAt) return Promise.resolve();
         return mutate(async () => {
-          await repository.stopTimer(entry.id, timerDurationMinutes(entry.startedAt!, new Date().toISOString()));
+          const now = new Date().toISOString();
+          await repository.stopTimer(entry.id, timerElapsedMinutes(runtimeForEntry(snapshot, entry), now));
           await cancelTimerLimitNotification(repository, entry.id).catch(() => undefined);
         });
       },
@@ -333,4 +387,26 @@ export function useApp(): AppContextValue {
   const value = useContext(AppContext);
   if (!value) throw new Error('useApp은 AppProvider 안에서 사용해야 합니다.');
   return value;
+}
+
+function runtimeForEntry(snapshot: AppSnapshot, entry: Entry): TimerRuntime {
+  if (!entry.startedAt) throw new Error('타이머 시작 시간이 없습니다.');
+  return parseTimerRuntime(snapshot.settings[timerRuntimeSettingKey(entry.id)], entry.startedAt);
+}
+
+async function scheduleRemainingTimerNotification(
+  repository: AppRepository,
+  entryId: string,
+  item: Item,
+  runtime: TimerRuntime,
+  now: string,
+): Promise<void> {
+  if (item.levelMax === null) return;
+  const remainingMinutes = Math.max(0, item.levelMax - timerElapsedMinutes(runtime, now));
+  if (remainingMinutes === 0) return;
+  await scheduleTimerLimitNotification(
+    repository,
+    entryId,
+    { ...item, levelMax: remainingMinutes },
+  ).catch(() => undefined);
 }

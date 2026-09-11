@@ -1,88 +1,124 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { AppButton, Sheet, textStyles } from '@/components/ui';
+import { AppButton, textStyles } from '@/components/ui';
 import { COLORS } from '@/theme/colors';
 import { formatMinutes } from '@/domain/calculations';
+import { timerElapsedMilliseconds, type TimerRuntime } from '@/domain/timer-runtime';
+import type {
+  TimerSessionViewModel,
+  TodayAccountGroupViewModel,
+  TodayItemViewModel,
+} from '@/features/today/today-view-model';
 import { tokens } from '@/theme/tokens';
-import type { Entry, Item } from '@/types/domain';
+import type { Item } from '@/types/domain';
 
-export interface TaskSheetItem {
-  item: Item;
-  plannedValue: number | null;
-}
-
-export function TaskSheet({
-  visible,
-  items,
-  onClose,
-  onItemPress,
-  onAddItem,
-  onManualRecord,
-}: {
-  visible: boolean;
-  items: readonly TaskSheetItem[];
-  onClose: () => void;
-  onItemPress: (item: Item) => void;
-  onAddItem: () => void;
-  onManualRecord: () => void;
-}) {
+export function TodaySummary({ plannedMinutes, actualMinutes }: { plannedMinutes: number; actualMinutes: number }) {
   return (
-    <Sheet
-      visible={visible}
-      title="오늘 어떤 일을 할까요?"
-      onClose={onClose}
-      footer={(
-        <>
-          <View style={styles.footerItem}>
-            <AppButton label="할일 추가" variant="secondary" onPress={onAddItem} />
-          </View>
-          <View style={styles.footerItem}>
-            <AppButton label="직접 기록" onPress={onManualRecord} />
-          </View>
-        </>
-      )}>
-      <Text style={textStyles.muted}>시간형 항목은 누르면 바로 시작합니다.</Text>
-      {items.length === 0 ? <Text style={textStyles.body}>오늘 할일이 없습니다.</Text> : null}
-      {items.map(({ item, plannedValue }) => (
-        <Pressable
-          key={item.id}
-          accessibilityRole="button"
-          accessibilityLabel={`${item.name}, ${taskActionLabel(item)}, ${plannedValue === null ? '계획 없음' : `계획 ${plannedValue}${taskUnit(item)}`}`}
-          onPress={() => onItemPress(item)}
-          style={({ pressed }) => [styles.taskRow, pressed && styles.pressed]}>
-          <Text style={styles.taskName} numberOfLines={2}>{item.name}</Text>
-          <View style={styles.taskMeta}>
-            <Text style={styles.taskPlan}>{plannedValue === null ? '계획 없음' : `${plannedValue}${taskUnit(item)}`}</Text>
-            <Text style={styles.taskAction}>{taskActionLabel(item)}</Text>
-          </View>
-        </Pressable>
-      ))}
-    </Sheet>
+    <View style={styles.todaySummary}>
+      <Text style={styles.todaySummaryText}>
+        오늘 기록 {formatMinutes(actualMinutes)} · 남은 계획 {formatMinutes(Math.max(0, plannedMinutes - actualMinutes))}
+      </Text>
+    </View>
   );
 }
 
-export function TimerView({
-  entry,
-  item,
-  onStop,
-  onOpenTasks,
-  busy,
+export function TodayAccountSection({
+  group,
+  onItemPress,
 }: {
-  entry: Entry;
-  item: Item;
-  onStop: () => void;
-  onOpenTasks: () => void;
-  busy: boolean;
+  group: TodayAccountGroupViewModel;
+  onItemPress: (item: TodayItemViewModel) => void;
 }) {
-  const elapsed = useElapsedMilliseconds(entry.startedAt);
   return (
-    <View style={styles.timerWrap}>
-      <Text accessibilityRole="header" style={styles.timerItem}>{item.name}</Text>
-      <Text style={textStyles.muted}>경과 시간</Text>
-      <Text accessibilityLabel={`경과 시간 ${formatTimer(elapsed)}`} style={styles.timerValue}>{formatTimer(elapsed)}</Text>
-      <AppButton label="종료하고 기록" onPress={onStop} disabled={busy} style={styles.timerAction} />
-      <AppButton label="오늘의 할일 확인" variant="plain" onPress={onOpenTasks} />
+    <View style={styles.accountGroup}>
+      <View style={styles.accountHeader}>
+        <Text accessibilityRole="header" style={styles.accountTitle} numberOfLines={2}>{group.accountName}</Text>
+        <Text style={styles.accountSubtotal}>
+          {formatMinutes(group.actualMinutes)} / {formatMinutes(group.plannedMinutes)}
+        </Text>
+      </View>
+      {group.items.map((item) => (
+        <TodayItemRow key={item.candidate.item.id} model={item} onPress={() => onItemPress(item)} />
+      ))}
+    </View>
+  );
+}
+
+export function TodayItemRow({ model, onPress }: { model: TodayItemViewModel; onPress: () => void }) {
+  const state = model.session?.runtime.status ?? 'idle';
+  const action = state === 'running' ? '실행 중' : state === 'paused' ? '다시 시작' : '열기';
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${model.candidate.item.name}, ${model.summary}, ${action}`}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.todayItem,
+        state === 'running' && styles.todayItemRunning,
+        state === 'paused' && styles.todayItemPaused,
+        pressed && styles.pressed,
+      ]}>
+      <View style={styles.todayItemCopy}>
+        <Text style={styles.taskName} numberOfLines={2}>{model.candidate.item.name}</Text>
+        <Text style={[textStyles.muted, state === 'running' && styles.activeMeta]} numberOfLines={2}>
+          {model.summary}
+        </Text>
+      </View>
+      <Text style={[styles.todayItemAction, state === 'running' && styles.activeMeta]}>{action}</Text>
+    </Pressable>
+  );
+}
+
+export function CurrentSessionCard({
+  session,
+  accountName,
+  plannedValue,
+  busy,
+  onPause,
+  onResume,
+  onStop,
+}: {
+  session: TimerSessionViewModel;
+  accountName: string;
+  plannedValue: number | null;
+  busy: boolean;
+  onPause: () => void;
+  onResume: () => void;
+  onStop: () => void;
+}) {
+  const elapsed = useTimerElapsed(session.runtime);
+  const elapsedMinutes = Math.round(elapsed / 60_000);
+  const remaining = plannedValue === null ? null : plannedValue - elapsedMinutes;
+  const statusLabel = session.runtime.status === 'paused' ? '일시정지됨' : '지금 실행 중';
+  const remainingLabel = remaining === null
+    ? '계획 없음'
+    : remaining >= 0
+      ? `${formatMinutes(remaining)} 남음`
+      : `계획보다 ${formatMinutes(Math.abs(remaining))} 더 기록`;
+  return (
+    <View style={[styles.sessionCard, session.runtime.status === 'paused' && styles.sessionCardPaused]}>
+      <Text style={[styles.sessionStatus, session.runtime.status === 'paused' && styles.pausedMeta]}>{statusLabel}</Text>
+      <Text accessibilityRole="header" style={styles.sessionItem} numberOfLines={2}>
+        {accountName} · {session.item.name}
+      </Text>
+      <Text accessibilityLabel={`경과 시간 ${formatTimer(elapsed)}`} style={styles.sessionTimer}>
+        {formatTimer(elapsed)}
+      </Text>
+      <Text style={textStyles.muted}>{remainingLabel}</Text>
+      <View style={styles.sessionActions}>
+        <View style={styles.sessionSecondaryAction}>
+          <AppButton
+            label={session.runtime.status === 'paused' ? '다시 시작' : '일시정지'}
+            variant="secondary"
+            onPress={session.runtime.status === 'paused' ? onResume : onPause}
+            disabled={busy}
+          />
+        </View>
+        <View style={styles.sessionPrimaryAction}>
+          <AppButton label="종료하고 기록" onPress={onStop} disabled={busy} />
+        </View>
+      </View>
     </View>
   );
 }
@@ -178,12 +214,6 @@ export function taskActionLabel(item: Item): string {
   return '값 입력';
 }
 
-function taskUnit(item: Item): string {
-  if (item.type === 'time') return '분';
-  if (item.type === 'completion' || item.type === 'count') return '회';
-  return item.unit ?? '값';
-}
-
 function MetricColumn({ label, value }: { label: string; value: string }) {
   return (
     <View style={styles.metricColumn}>
@@ -193,15 +223,15 @@ function MetricColumn({ label, value }: { label: string; value: string }) {
   );
 }
 
-function useElapsedMilliseconds(startedAt: string | null): number {
+function useTimerElapsed(runtime: TimerRuntime): number {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     setNow(Date.now());
+    if (runtime.status === 'paused') return undefined;
     const interval = setInterval(() => setNow(Date.now()), 1_000);
     return () => clearInterval(interval);
-  }, [startedAt]);
-  if (!startedAt) return 0;
-  return Math.max(0, now - new Date(startedAt).getTime());
+  }, [runtime]);
+  return timerElapsedMilliseconds(runtime, new Date(now).toISOString());
 }
 
 function formatTimer(milliseconds: number): string {
@@ -213,17 +243,29 @@ function formatTimer(milliseconds: number): string {
 }
 
 const styles = StyleSheet.create({
-  footerItem: { flex: 1 },
-  taskRow: { minHeight: 64, flexDirection: 'row', alignItems: 'center', gap: tokens.space.sm, paddingVertical: tokens.space.sm, borderBottomColor: COLORS.border, borderBottomWidth: 1 },
+  todaySummary: { minHeight: tokens.hitTarget, justifyContent: 'center', borderRadius: tokens.radius.control, backgroundColor: COLORS.surface, paddingHorizontal: tokens.space.sm },
+  todaySummaryText: { color: COLORS.muted, fontSize: tokens.type.caption, fontWeight: '600', fontVariant: ['tabular-nums'] },
+  accountGroup: { gap: tokens.space.xs },
+  accountHeader: { minHeight: 32, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: tokens.space.sm },
+  accountTitle: { flex: 1, color: COLORS.text, fontSize: tokens.type.caption, fontWeight: '700' },
+  accountSubtotal: { color: COLORS.muted, fontSize: tokens.type.caption, fontVariant: ['tabular-nums'] },
+  todayItem: { minHeight: 72, flexDirection: 'row', alignItems: 'center', gap: tokens.space.sm, borderColor: COLORS.border, borderWidth: 1, borderRadius: tokens.radius.card, backgroundColor: COLORS.surface, paddingVertical: tokens.space.sm, paddingHorizontal: tokens.space.md },
+  todayItemRunning: { borderColor: COLORS.accent, backgroundColor: COLORS.accentSoft },
+  todayItemPaused: { borderColor: COLORS.warning, backgroundColor: COLORS.warningSoft },
+  todayItemCopy: { flex: 1, gap: tokens.space.xxs },
   taskName: { flex: 1, color: COLORS.text, fontSize: tokens.type.body, fontWeight: '700', lineHeight: 23 },
-  taskMeta: { alignItems: 'flex-end', gap: tokens.space.xxs },
-  taskPlan: { color: COLORS.text, fontSize: tokens.type.caption, fontWeight: '700', fontVariant: ['tabular-nums'] },
-  taskAction: { color: COLORS.muted, fontSize: 12 },
+  todayItemAction: { color: COLORS.muted, fontSize: tokens.type.caption, fontWeight: '700' },
+  activeMeta: { color: COLORS.accent },
+  pausedMeta: { color: COLORS.warning },
   pressed: { opacity: 0.7 },
-  timerWrap: { alignItems: 'center', gap: tokens.space.md, paddingTop: 80, paddingBottom: tokens.space.xl },
-  timerItem: { color: COLORS.text, fontSize: tokens.type.title, fontWeight: '800', textAlign: 'center' },
-  timerValue: { color: COLORS.text, fontSize: tokens.type.timer, fontWeight: '800', fontVariant: ['tabular-nums'], letterSpacing: -2 },
-  timerAction: { alignSelf: 'stretch', marginTop: tokens.space.lg },
+  sessionCard: { gap: tokens.space.sm, borderRadius: tokens.radius.card, backgroundColor: COLORS.accentSoft, padding: tokens.space.md },
+  sessionCardPaused: { backgroundColor: COLORS.warningSoft },
+  sessionStatus: { color: COLORS.accent, fontSize: tokens.type.caption, fontWeight: '700' },
+  sessionItem: { color: COLORS.text, fontSize: tokens.type.body, fontWeight: '700', lineHeight: 23 },
+  sessionTimer: { color: COLORS.text, fontSize: 44, lineHeight: 52, fontWeight: '800', fontVariant: ['tabular-nums'], letterSpacing: -1.5 },
+  sessionActions: { flexDirection: 'row', gap: tokens.space.xs },
+  sessionSecondaryAction: { flex: 2 },
+  sessionPrimaryAction: { flex: 3 },
   metricHero: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: tokens.space.xs, paddingVertical: tokens.space.sm },
   metricValue: { color: COLORS.text, fontSize: tokens.type.body, fontWeight: '700', fontVariant: ['tabular-nums'] },
   metricRow: { flexDirection: 'row', borderTopColor: COLORS.border, borderTopWidth: 1, borderBottomColor: COLORS.border, borderBottomWidth: 1, paddingVertical: tokens.space.md },

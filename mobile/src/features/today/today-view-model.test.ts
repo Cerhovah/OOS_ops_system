@@ -106,12 +106,19 @@ describe('buildTodayViewModel', () => {
 
     expect(result.activeItems.map((candidate) => candidate.id)).toEqual(['focus', 'weight', 'spare']);
     expect(result.visibleItems.map((candidate) => candidate.candidate.item.id)).toEqual(['focus', 'weight']);
-    expect(result.visibleItems.map((candidate) => candidate.summary)).toEqual(['35m', '71 kg']);
+    expect(result.visibleItems.map((candidate) => candidate.summary)).toEqual(['35분 기록 · 55분 남음', '71 kg']);
     expect(result.visibleItems[0]?.latestManualEntry?.id).toBe('focus-manual');
     expect(result.runningTimers.map((timer) => timer.entry.id)).toEqual(['focus-running']);
     expect(result.missingItems.map((candidate) => candidate.id)).toEqual(['spare']);
     expect(result.plannedMinutes).toBe(90);
     expect(result.actualMinutes).toBe(55);
+    expect(result.accountGroups).toEqual([
+      expect.objectContaining({
+        accountId: 'account-1',
+        plannedMinutes: 90,
+        actualMinutes: 35,
+      }),
+    ]);
     expect(searchMissingItems(result.missingItems, '다른')).toHaveLength(1);
   });
 });

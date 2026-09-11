@@ -16,12 +16,17 @@ describe('AnalysisRepository with real SQLite', () => {
   let repository: AnalysisRepository;
 
   beforeEach(async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-01-15T00:00:00.000Z'));
     adapter = new TestSQLiteDatabase();
     await migrateDatabase(adapter.asExpoDatabase());
     repository = new AnalysisRepository(adapter.asExpoDatabase());
   });
 
-  afterEach(() => adapter.close());
+  afterEach(() => {
+    adapter.close();
+    vi.useRealTimers();
+  });
 
   function resultWithPlan(minutesByAccount: Readonly<Record<string, number>>): AnalysisRunResult {
     return {

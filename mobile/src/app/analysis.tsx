@@ -19,6 +19,7 @@ import {
   AnalysisHistory,
 } from '@/features/analysis/analysis-sections';
 import { completedAnalysisRange } from '@/features/analysis/analysis-range';
+import { AiSettingsSection } from '@/features/settings/ai-settings-section';
 import { publishLocalMutation } from '@/services/local-mutation-signal';
 import type { AiProposal, AnalysisMode, AnalysisSession } from '@/types/domain';
 
@@ -193,7 +194,7 @@ export default function AnalysisRoute() {
   const deleteSession = (session: AnalysisSession) => {
     Alert.alert(
       '분석 세션 삭제',
-      '분석 답변과 실제 첨부 데이터가 목록에서 숨겨집니다. 설정에서 복구할 수 있습니다.',
+      '분석 답변과 실제 첨부 데이터가 목록에서 숨겨집니다. 기록 관리에서 복구할 수 있습니다.',
       [
         { text: '취소', style: 'cancel' },
         {
@@ -206,7 +207,7 @@ export default function AnalysisRoute() {
                 setSelectedSnapshot((current) => current?.id === session.id ? null : current);
                 publishLocalMutation();
                 await reloadHistory();
-                setMessage('분석 세션을 삭제했습니다. 설정에서 복구할 수 있습니다.');
+                setMessage('분석 세션을 삭제했습니다. 기록 관리에서 복구할 수 있습니다.');
               })
               .catch((caught: unknown) => {
                 setMessage(caught instanceof Error ? caught.message : '분석 세션을 삭제하지 못했습니다.');
@@ -220,7 +221,7 @@ export default function AnalysisRoute() {
 
   return (
     <Screen>
-      <Heading subtitle="AI는 저장된 숫자를 분석하며, 사용자가 적용하기 전에는 계획을 바꾸지 않습니다.">분석</Heading>
+      <Heading subtitle="AI는 저장된 숫자를 분석하며, 사용자가 적용하기 전에는 계획을 바꾸지 않습니다.">AI 분석</Heading>
       {error ? <StatusBanner message={error} onClose={clearError} /> : null}
       {message ? <StatusBanner message={message} onClose={() => setMessage(null)} /> : null}
 
@@ -267,6 +268,8 @@ export default function AnalysisRoute() {
           setMessage(caught instanceof Error ? caught.message : '제안을 무시하지 못했습니다.');
         })}
       />
+
+      <AiSettingsSection />
 
       <Sheet visible={selectedSnapshot !== null} title="실제 첨부 데이터" onClose={() => setSelectedSnapshot(null)}>
         <Text style={textStyles.muted}>이 JSON이 해당 분석 요청에 첨부되어 저장되었습니다. API 키는 포함되지 않습니다.</Text>

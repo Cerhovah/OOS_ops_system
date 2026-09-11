@@ -1,25 +1,32 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Alert, RefreshControl, StyleSheet, Text, View } from 'react-native';
 
 import { AppButton, Field, Heading, LoadingView, Screen, Sheet, StatusBanner, textStyles } from '@/components/ui';
 import { DEFAULT_DAY_END_TIME } from '@/constants/app';
 import { useApp } from '@/context/app-context';
-import { dateKey } from '@/domain/calculations';
+import { dateKey, formatMinutes, parseDurationToMinutes } from '@/domain/calculations';
 import {
   ChoiceChips,
+  CurrentSessionCard,
   FixedActionBar,
-  TaskSheet,
-  TimerView,
+  TodayAccountSection,
+  TodaySummary,
+  taskActionLabel,
 } from '@/features/today/today-components';
 import {
   amountLabel,
   buildTodayViewModel,
   searchMissingItems,
+  type TimerSessionViewModel,
+  type TodayItemViewModel,
 } from '@/features/today/today-view-model';
-import { COLORS } from '@/theme/colors';
-import type { Item, ItemInput, ItemType } from '@/types/domain';
+import { tokens } from '@/theme/tokens';
+import type { Entry, Item, ItemInput, ItemType } from '@/types/domain';
 
-type SheetMode = 'tasks' | 'add-existing' | 'quick-add' | 'manual-items' | null;
+type SheetMode = 'add-existing' | 'quick-add' | 'manual-items' | null;
+type PendingTimerAction =
+  | { kind: 'start'; item: Item }
+  | { kind: 'resume'; session: TimerSessionViewModel };
 
 const itemTypeChoices: readonly { value: ItemType; label: string }[] = [
   { value: 'time', label: '시간' },
@@ -32,6 +39,9 @@ const itemTypeChoices: readonly { value: ItemType; label: string }[] = [
 export default function TodayScreen() {
   const app = useApp();
   const [sheetMode, setSheetMode] = useState<SheetMode>(null);
+  const [selectedItem, setSelectedItem] = useState<TodayItemViewModel | null>(null);
+  const [pendingTimerAction, setPendingTimerAction] = useState<PendingTimerAction | null>(null);
+  const [recordWarningItem, setRecordWarningItem] = useState<Item | null>(null);
   const [recordItem, setRecordItem] = useState<Item | null>(null);
   const [recordAmount, setRecordAmount] = useState('');
   const [recordNote, setRecordNote] = useState('');
@@ -40,7 +50,6 @@ export default function TodayScreen() {
   const [quickAccountId, setQuickAccountId] = useState('');
   const [quickType, setQuickType] = useState<ItemType>('time');
   const [quickDuration, setQuickDuration] = useState('');
-  const autoOpened = useRef(false);
   const today = dateKey(new Date());
   const todayLabel = formatTodayLabel(new Date());
   const dayEndTime = app.snapshot.settings.day_end_time ?? DEFAULT_DAY_END_TIME;
@@ -53,43 +62,54 @@ export default function TodayScreen() {
     [app.snapshot.accounts],
   );
   const searchedMissingItems = useMemo(
-    () => searchMissingItems(viewModel.missingItems, itemSearch),
-    [itemSearch, viewModel.missingItems],
+    () => searchMissingItems(viewModel.missingItems, itemSearch, viewModel.accountNames),
+    [itemSearch, viewModel.accountNames, viewModel.missingItems],
   );
-
-  useEffect(() => {
-    if (app.loading || autoOpened.current) return;
-    autoOpened.current = true;
-    if (viewModel.runningTimers.length === 0) setSheetMode('tasks');
-  }, [app.loading, viewModel.runningTimers.length]);
+  const currentSession = viewModel.runningTimer ?? viewModel.timerSessions[0] ?? null;
 
   if (app.loading) return <LoadingView />;
 
   function openManualRecord(item: Item) {
     setSheetMode(null);
+    setSelectedItem(null);
+    setRecordWarningItem(null);
     setRecordItem(item);
     setRecordAmount(String(item.defaultDurationMin ?? (item.type === 'count' || item.type === 'completion' ? 1 : '')));
     setRecordNote('');
   }
 
-  async function selectTask(item: Item) {
-    if (item.type === 'time') {
-      await app.startTimer(item);
-      setSheetMode(null);
-      return;
-    }
-    if (item.type === 'completion' || item.type === 'count') {
-      await app.createEntry(item, 1);
-      setSheetMode(null);
+  function requestManualRecord(item: Item) {
+    setSelectedItem(null);
+    setSheetMode(null);
+    if (viewModel.runningTimer) {
+      setRecordWarningItem(item);
       return;
     }
     openManualRecord(item);
   }
 
+  async function runTimerAction(action: PendingTimerAction, pauseEntry: Entry | null = null) {
+    if (action.kind === 'start') await app.startTimer(action.item, pauseEntry);
+    else await app.resumeTimer(action.session.entry, pauseEntry);
+    setSelectedItem(null);
+    setPendingTimerAction(null);
+  }
+
+  function requestTimerAction(action: PendingTimerAction) {
+    const targetEntryId = action.kind === 'resume' ? action.session.entry.id : null;
+    const running = viewModel.runningTimer;
+    if (running && running.entry.id !== targetEntryId) {
+      setSelectedItem(null);
+      setPendingTimerAction(action);
+      return;
+    }
+    void runTimerAction(action).catch(() => undefined);
+  }
+
   async function addExistingItem(item: Item) {
     await app.addTodayItem(item.id);
     setItemSearch('');
-    setSheetMode('tasks');
+    setSheetMode(null);
   }
 
   function startQuickAdd() {
@@ -128,12 +148,14 @@ export default function TodayScreen() {
     };
     const itemId = await app.saveItem(input);
     await app.addTodayItem(itemId);
-    setSheetMode('tasks');
+    setSheetMode(null);
   }
 
   async function submitManualRecord() {
     if (!recordItem) return;
-    const amount = recordItem.type === 'event' && recordAmount.trim() === '' ? null : Number(recordAmount);
+    const amount = recordItem.type === 'event' && recordAmount.trim() === ''
+      ? null
+      : recordItem.type === 'time' ? parseDurationToMinutes(recordAmount) : Number(recordAmount);
     if (amount !== null && !Number.isFinite(amount)) {
       Alert.alert('입력 확인', '숫자를 입력하십시오.');
       return;
@@ -142,64 +164,157 @@ export default function TodayScreen() {
     setRecordItem(null);
   }
 
+  async function recordOne(item: Item) {
+    await app.createEntry(item, 1);
+    setSelectedItem(null);
+  }
+
+  const selected = selectedItem?.candidate;
+  const selectedSession = selectedItem?.session ?? null;
+
   return (
     <>
       <Screen
+        usesTabBar
         refreshControl={(
           <RefreshControl refreshing={app.busy} onRefresh={() => void app.refresh().catch(() => undefined)} />
         )}>
         <Heading subtitle={todayLabel}>오늘</Heading>
         {app.error ? <StatusBanner message={app.error} onClose={app.clearError} /> : null}
-        {viewModel.runningTimers.length > 0 ? (
-          viewModel.runningTimers.map(({ entry, item }) => (
-            <TimerView
-              key={entry.id}
-              entry={entry}
-              item={item}
-              busy={app.busy}
-              onStop={() => void app.stopTimer(entry).catch(() => undefined)}
-              onOpenTasks={() => setSheetMode('tasks')}
-            />
-          ))
-        ) : (
-          <View style={styles.idle}>
-            <AppButton label="오늘의 할일 확인" onPress={() => setSheetMode('tasks')} style={styles.primaryAction} />
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyLabel}>지금 실행 중</Text>
-              <Text style={styles.emptyMark}>—</Text>
-              <Text style={textStyles.muted}>현재 실행 중인 항목이 없습니다.</Text>
-            </View>
+        <TodaySummary plannedMinutes={viewModel.plannedMinutes} actualMinutes={viewModel.actualMinutes} />
+        {currentSession ? (
+          <CurrentSessionCard
+            session={currentSession}
+            accountName={viewModel.accountNames[currentSession.item.accountId] ?? '기존 계정'}
+            plannedValue={viewModel.visibleItems.find(
+              (visible) => visible.candidate.item.id === currentSession.item.id,
+            )?.candidate.plannedValue ?? null}
+            busy={app.busy}
+            onPause={() => void app.pauseTimer(currentSession.entry).catch(() => undefined)}
+            onResume={() => requestTimerAction({ kind: 'resume', session: currentSession })}
+            onStop={() => void app.stopTimer(currentSession.entry).catch(() => undefined)}
+          />
+        ) : null}
+        <View style={styles.listHeader}>
+          <Text accessibilityRole="header" style={textStyles.title}>오늘 목록</Text>
+          <View style={styles.listActions}>
+            <AppButton label="항목 불러오기" variant="plain" onPress={() => { setItemSearch(''); setSheetMode('add-existing'); }} />
+            <AppButton label="직접 기록" variant="plain" onPress={() => setSheetMode('manual-items')} />
           </View>
-        )}
+        </View>
+        {viewModel.accountGroups.map((group) => (
+          <TodayAccountSection key={group.accountId} group={group} onItemPress={setSelectedItem} />
+        ))}
+        {viewModel.accountGroups.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Text style={textStyles.title}>오늘 표시할 항목이 없습니다.</Text>
+            <Text style={textStyles.muted}>저장된 항목을 불러오거나 새 항목을 만든 뒤 바로 기록할 수 있습니다.</Text>
+            <AppButton label="항목 불러오기" variant="secondary" onPress={() => setSheetMode('add-existing')} />
+          </View>
+        ) : null}
       </Screen>
 
-      <TaskSheet
-        visible={sheetMode === 'tasks'}
-        items={viewModel.visibleItems.map(({ candidate }) => candidate)}
-        onClose={() => setSheetMode(null)}
-        onItemPress={(item) => void selectTask(item).catch(() => undefined)}
-        onAddItem={() => { setItemSearch(''); setSheetMode('add-existing'); }}
-        onManualRecord={() => setSheetMode('manual-items')}
-      />
+      <Sheet
+        visible={selectedItem !== null}
+        title={selected?.item.name ?? '항목 동작'}
+        onClose={() => setSelectedItem(null)}>
+        {selected ? (
+          <>
+            <Text style={textStyles.muted}>
+              {viewModel.accountNames[selected.item.accountId] ?? '기존 계정'} · {' '}
+              {selected.plannedValue === null ? '계획 없음' : `${formatMinutes(selected.plannedValue)} 계획`}
+            </Text>
+            {selected.item.type === 'time' && !selectedSession ? (
+              <AppButton
+                label="타이머 시작"
+                onPress={() => requestTimerAction({ kind: 'start', item: selected.item })}
+                disabled={app.busy}
+              />
+            ) : null}
+            {selected.item.type === 'time' && selectedSession?.runtime.status === 'running' ? (
+              <AppButton
+                label="일시정지"
+                variant="secondary"
+                onPress={() => void app.pauseTimer(selectedSession.entry).then(() => setSelectedItem(null)).catch(() => undefined)}
+                disabled={app.busy}
+              />
+            ) : null}
+            {selected.item.type === 'time' && selectedSession?.runtime.status === 'paused' ? (
+              <AppButton
+                label="다시 시작"
+                onPress={() => requestTimerAction({ kind: 'resume', session: selectedSession })}
+                disabled={app.busy}
+              />
+            ) : null}
+            {selectedSession ? (
+              <AppButton
+                label="종료하고 기록"
+                variant="secondary"
+                onPress={() => void app.stopTimer(selectedSession.entry).then(() => setSelectedItem(null)).catch(() => undefined)}
+                disabled={app.busy}
+              />
+            ) : null}
+            {(selected.item.type === 'completion' || selected.item.type === 'count') ? (
+              <AppButton
+                label={taskActionLabel(selected.item)}
+                onPress={() => void recordOne(selected.item).catch(() => undefined)}
+                disabled={app.busy}
+              />
+            ) : null}
+            <AppButton
+              label={selected.item.type === 'numeric' || selected.item.type === 'event' ? '값 입력' : '직접 기록'}
+              variant="secondary"
+              onPress={() => requestManualRecord(selected.item)}
+            />
+          </>
+        ) : null}
+      </Sheet>
 
-      <Sheet visible={sheetMode === 'add-existing'} title="오늘 할일 추가" onClose={() => setSheetMode('tasks')}>
-        <Field label="항목 검색" value={itemSearch} onChangeText={setItemSearch} placeholder="항목 이름" />
+      <Sheet visible={pendingTimerAction !== null} title="다른 기록이 실행 중입니다" onClose={() => setPendingTimerAction(null)}>
+        <Text style={textStyles.muted}>
+          {viewModel.runningTimer
+            ? `${viewModel.accountNames[viewModel.runningTimer.item.accountId] ?? '기존 계정'} · ${viewModel.runningTimer.item.name}`
+            : '실행 중인 기록'}은 그대로 돌아갈 수 있습니다.
+        </Text>
+        <AppButton label="기존 기록으로 돌아가기" variant="secondary" onPress={() => setPendingTimerAction(null)} />
+        <AppButton
+          label="일시정지하고 새로 시작"
+          onPress={() => {
+            if (!pendingTimerAction) return;
+            void runTimerAction(pendingTimerAction, viewModel.runningTimer?.entry ?? null).catch(() => undefined);
+          }}
+          disabled={app.busy}
+        />
+      </Sheet>
+
+      <Sheet visible={recordWarningItem !== null} title="실행 중에도 직접 기록할 수 있습니다" onClose={() => setRecordWarningItem(null)}>
+        <Text style={textStyles.muted}>현재 타이머는 계속 흐릅니다. 저장 후 언제든 오늘 화면으로 돌아갈 수 있습니다.</Text>
+        <AppButton label="기록 계속하기" onPress={() => recordWarningItem && openManualRecord(recordWarningItem)} />
+        <AppButton label="취소" variant="secondary" onPress={() => setRecordWarningItem(null)} />
+      </Sheet>
+
+      <Sheet visible={sheetMode === 'add-existing'} title="저장된 항목 불러오기" onClose={() => setSheetMode(null)}>
+        <Field label="계정 또는 항목 검색" value={itemSearch} onChangeText={setItemSearch} placeholder="계정 또는 항목 이름" />
         {viewModel.missingItems.length === 0 ? <Text style={textStyles.body}>추가할 기존 항목이 없습니다.</Text> : null}
         {viewModel.missingItems.length > 0 && searchedMissingItems.length === 0 ? <Text style={textStyles.body}>검색 결과가 없습니다.</Text> : null}
-        {searchedMissingItems.map((item) => (
-          <AppButton
-            key={item.id}
-            label={`${item.name} · ${viewModel.accountNames[item.accountId] ?? '기존 계정'}`}
-            variant="secondary"
-            onPress={() => void addExistingItem(item).catch(() => undefined)}
-            disabled={app.busy}
-          />
-        ))}
+        {activeAccounts.map((account) => {
+          const accountItems = searchedMissingItems.filter((item) => item.accountId === account.id);
+          if (accountItems.length === 0) return null;
+          return (
+            <View key={account.id} style={styles.itemGroup}>
+              <Text style={textStyles.title}>{account.name}</Text>
+              {accountItems.map((item) => (
+                <AppButton key={item.id} label={item.name} variant="secondary"
+                  onPress={() => void addExistingItem(item).catch(() => undefined)} disabled={app.busy} />
+              ))}
+            </View>
+          );
+        })}
         <AppButton label="새 항목 만들기" onPress={startQuickAdd} disabled={app.busy || activeAccounts.length === 0} />
       </Sheet>
 
       <Sheet visible={sheetMode === 'quick-add'} title="새 항목 만들기" onClose={() => setSheetMode('add-existing')}>
-        <Text style={textStyles.muted}>기본 정보만 저장하고 오늘 할일에 추가합니다. 일정과 고급 설정은 설정에서 바꿀 수 있습니다.</Text>
+        <Text style={textStyles.muted}>기본 정보만 저장하고 오늘 목록에 추가합니다. 일정과 고급 설정은 항목 관리에서 바꿀 수 있습니다.</Text>
         <Field label="이름" value={quickName} onChangeText={setQuickName} placeholder="항목 이름" />
         <View style={styles.accountChoices}>
           <Text style={textStyles.muted}>계정</Text>
@@ -220,15 +335,15 @@ export default function TodayScreen() {
         <AppButton label="저장하고 오늘에 추가" onPress={() => void saveQuickItem().catch(() => undefined)} disabled={app.busy} />
       </Sheet>
 
-      <Sheet visible={sheetMode === 'manual-items'} title="직접 기록" onClose={() => setSheetMode('tasks')}>
+      <Sheet visible={sheetMode === 'manual-items'} title="직접 기록" onClose={() => setSheetMode(null)}>
         <Text style={textStyles.muted}>기록할 항목을 고르십시오.</Text>
-        {viewModel.activeItems.map((item) => (
-          <AppButton
-            key={item.id}
-            label={`${item.name} · ${amountLabel(item)}`}
-            variant="secondary"
-            onPress={() => openManualRecord(item)}
-          />
+        {activeAccounts.map((account) => (
+          <View key={account.id} style={styles.itemGroup}>
+            <Text style={textStyles.title}>{account.name}</Text>
+            {viewModel.activeItems.filter((item) => item.accountId === account.id).map((item) => (
+              <AppButton key={item.id} label={`${item.name} · ${amountLabel(item)}`} variant="secondary" onPress={() => requestManualRecord(item)} />
+            ))}
+          </View>
         ))}
       </Sheet>
 
@@ -269,11 +384,10 @@ function formatTodayLabel(now: Date): string {
 }
 
 const styles = StyleSheet.create({
-  idle: { alignItems: 'stretch', gap: 24 },
-  primaryAction: { alignSelf: 'stretch' },
-  emptyState: { alignItems: 'center', gap: 8, paddingTop: 72 },
-  emptyLabel: { color: COLORS.muted, fontSize: 13, fontWeight: '600' },
-  emptyMark: { color: COLORS.text, fontSize: 48, fontWeight: '800', lineHeight: 56 },
-  accountChoices: { gap: 8 },
+  listHeader: { gap: tokens.space.xs },
+  listActions: { flexDirection: 'row', flexWrap: 'wrap', gap: tokens.space.xxs },
+  emptyState: { gap: tokens.space.sm, borderRadius: tokens.radius.card, padding: tokens.space.md },
+  accountChoices: { gap: tokens.space.xs },
   recordChip: { flexGrow: 1 },
+  itemGroup: { gap: tokens.space.xs },
 });

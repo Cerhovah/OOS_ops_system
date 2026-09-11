@@ -13,25 +13,42 @@ interface ItemManagementSectionProps {
 
 export function ItemManagementSection({ items, accounts, onCreate, onEdit }: ItemManagementSectionProps) {
   const app = useApp();
-  const accountNames = new Map(accounts.map((account) => [account.id, account.name]));
+  const activeAccounts = accounts.filter((account) => !account.deletedAt);
+  const orphanedItems = items.filter((item) => !activeAccounts.some((account) => account.id === item.accountId));
 
   return (
     <Section title="항목 관리" action={<AppButton label="+ 항목" variant="plain" onPress={onCreate} />}>
-      {items.map((item) => (
-        <Card key={item.id}>
-          <Text style={textStyles.title}>{item.name}</Text>
-          <Text style={textStyles.muted}>{item.type} · {accountNames.get(item.accountId) ?? '삭제된 계정'}</Text>
-          <View style={styles.actions}>
-            <AppButton label="편집" variant="secondary" onPress={() => onEdit(item)} />
-            <AppButton
-              label={item.archived ? '보관 해제' : '보관'}
-              variant="plain"
-              onPress={() => void app.setItemArchived(item.id, !item.archived).catch(() => undefined)}
-              disabled={app.busy}
-            />
+      {activeAccounts.map((account) => {
+        const accountItems = items.filter((item) => item.accountId === account.id);
+        if (accountItems.length === 0) return null;
+        return (
+          <View key={account.id} style={styles.group}>
+            <Text style={textStyles.title}>{account.name}</Text>
+            {accountItems.map((item) => (
+              <Card key={item.id}>
+                <Text style={textStyles.title}>{item.name}</Text>
+                <Text style={textStyles.muted}>{item.type} · {item.archived ? '보관됨' : '사용 중'}</Text>
+                <View style={styles.actions}>
+                  <AppButton label="편집" variant="secondary" onPress={() => onEdit(item)} />
+                  <AppButton label={item.archived ? '보관 해제' : '보관'} variant="plain"
+                    onPress={() => void app.setItemArchived(item.id, !item.archived).catch(() => undefined)} disabled={app.busy} />
+                </View>
+              </Card>
+            ))}
           </View>
-        </Card>
-      ))}
+        );
+      })}
+      {orphanedItems.length > 0 ? (
+        <View style={styles.group}>
+          <Text style={textStyles.title}>삭제된 계정</Text>
+          {orphanedItems.map((item) => (
+            <Card key={item.id}>
+              <Text style={textStyles.title}>{item.name}</Text>
+              <AppButton label="편집" variant="secondary" onPress={() => onEdit(item)} />
+            </Card>
+          ))}
+        </View>
+      ) : null}
     </Section>
   );
 }
@@ -68,4 +85,5 @@ export function AccountManagementSection({ accounts, onCreate, onEdit }: Account
 
 const styles = StyleSheet.create({
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  group: { gap: 8 },
 });

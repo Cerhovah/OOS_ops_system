@@ -7,12 +7,14 @@ import {
   dateKey,
   entryBelongsToRange,
   formatMinutes,
+  formatDurationKo,
   latestPlanForWeek,
   parseWeekStartDay,
   planStatus,
   remainingAvailableToday,
   scheduleMatchesDate,
   timerDurationMinutes,
+  parseDurationToMinutes,
   todayItems,
   weekdayIndex,
   weekRange,
@@ -211,10 +213,19 @@ describe('today and timer calculations', () => {
 
 describe('formatting and KPI aggregation', () => {
   it('formats signed minute values without judgment', () => {
-    expect(formatMinutes(0)).toBe('0m');
-    expect(formatMinutes(60)).toBe('1h');
-    expect(formatMinutes(100)).toBe('1h 40m');
-    expect(formatMinutes(-100)).toBe('−1h 40m');
+    expect(formatMinutes(0)).toBe('0분');
+    expect(formatDurationKo(60)).toBe('1시간');
+    expect(formatDurationKo(100)).toBe('1시간 40분');
+    expect(formatDurationKo(-100)).toBe('−1시간 40분');
+  });
+
+  it('parses duration input once at the minute boundary', () => {
+    expect(parseDurationToMinutes('90')).toBe(90);
+    expect(parseDurationToMinutes('1시간 30분')).toBe(90);
+    expect(parseDurationToMinutes('1.5', 'hours')).toBe(90);
+    expect(parseDurationToMinutes('1.333', 'hours')).toBeNull();
+    expect(parseDurationToMinutes('')).toBeNull();
+    expect(parseDurationToMinutes('one hour')).toBeNull();
   });
 
   it('supports all KPI aggregation modes', () => {

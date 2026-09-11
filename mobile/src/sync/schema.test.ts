@@ -23,6 +23,7 @@ describe('local-first sync schema', () => {
     expect(isSyncableSetting('close_notification_id')).toBe(false);
     expect(isSyncableSetting('notification_permission_requested')).toBe(false);
     expect(isSyncableSetting('timer_notification:entry-id')).toBe(false);
+    expect(isSyncableSetting('timer_runtime:entry-id')).toBe(false);
     expect(isSyncableSetting('ai_provider')).toBe(true);
     expect(isSyncableSetting('ai_model')).toBe(true);
     expect(isSyncableSetting('analysis_range_weeks')).toBe(true);

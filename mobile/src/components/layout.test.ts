@@ -4,6 +4,7 @@ import { accessibleTabBarHeight } from './layout';
 
 describe('accessibleTabBarHeight', () => {
   it('keeps the minimum touch-friendly content height and adds the Android safe inset', () => {
+    expect(accessibleTabBarHeight(1, 0)).toBe(64);
     expect(accessibleTabBarHeight(1, 24)).toBe(88);
   });
 

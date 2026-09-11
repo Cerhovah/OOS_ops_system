@@ -6,18 +6,48 @@
 
 ## Unreleased
 
+### P5 Today-first redesign implementation — 2026-09-12
+
+- `0.6.0(12)` 소스 후보에서 오늘 목록을 첫 화면에 계정→항목으로 노출하고 항목 행→compact action sheet→타이머/직접 기록 흐름을 구현했다.
+- 열린 `entries` 행과 로컬 전용 `timer_runtime:{entryId}` 상태를 결합해 실행·일시정지·재개·언제든 종료를 추가했다. 중지 시 누적 active 시간만 분으로 저장하고 runtime 설정은 같은 transaction에서 제거한다.
+- 다른 항목을 시작하거나 재개할 때 현재 실행으로 돌아가거나 일시정지 후 전환하도록 했고, 타이머 중 직접 기록은 현재 타이머가 계속 흐른다는 중립 안내를 거친다.
+- 기존 Figma 초안은 보존하고 `P5 Approved · Foundations/Components/Screens`에 Light/Dark 토큰, 핵심 컴포넌트 5종, 승인 상태 9개를 편집 가능한 구조로 추가했다.
+- active/paused 다중 기기 동기화, 서버 schema/payload/RPC 변경, 원격 EAS APK와 기존 데이터 설치는 수행하지 않았다.
+
+### P5 Today-first redesign approval — 2026-09-12
+
+- 첫 화면에 계정→항목 오늘 목록을 즉시 노출하고 행 선택 뒤 compact action sheet에서 시작 또는 직접 기록을 고르는 흐름을 승인했다.
+- 단일 로컬 타이머의 실행·일시정지·재개·부족해도 종료, 경과·남은 또는 signed 초과 표시, 종료 뒤 오늘/기록 동시 반영을 P5 계약으로 확정했다.
+- active timer의 다중 기기 동기화와 server schema/payload/RPC 호환은 P6로 분리하고, 계약 변경 전에 사용자에게 서버 준비 사항을 알리도록 고정했다.
+- Tiimo를 주 레퍼런스로 유지하고 timespent와 Equinox+를 각각 계획 진입과 완료 복귀의 제한적 보조 레퍼런스로 확정했다. 기존 Figma 정적 4화면은 legacy 비교용으로 보존한다.
+- Figma 연결을 `Pro / Full`로 재확인했으며 추가 결제·재연결은 필요하지 않다.
+
+### Current-state documentation reset — 2026-09-09
+
+- 미구현 기능과 출시 일정을 정의하던 계획·질문·예산·상용화 사전 문서를 제거했다.
+- SPEC, README, AGENTS와 검증·결정 문서를 현재 구현과 이미 수행한 증빙만 남도록 정리했다.
+- 코드, dependency, SQLite, Supabase, 기기 설치 상태와 과거 구현 증빙은 변경하지 않았다.
+- Mobbin 호출이 정상임을 재확인하고 최신 Tiimo 9화면 흐름을 대조했다. Figma는 연결됐지만 `Starter / View` 좌석이라 네이티브 캔버스 쓰기 요건을 충족하지 않는다는 진단을 기록했다.
+
+### Phase 6-1 implementation — 2026-09-08
+
+- 더보기를 안정된 id/route/capability 설정으로 기능·관리·시스템 9개 진입점에 나누고 시간과 알림·항목·계정·기록·AI 설정을 각각 전용 화면으로 옮겼다.
+- 오늘 선택·저장된 항목 불러오기·직접 기록·항목 관리·기록 원장을 계정→항목 계층으로 바꾸고, 기록에 계정별 소계와 보존된 계획이 없는 과거 날짜의 `계획 미보존`을 유지했다.
+- `주간`을 `지표`로 바꾸고 날짜 선택 달력, 기록 점, 2026 공식 공휴일 이름, 선택 날짜 한 건 상세, `주간보기`와 달력 접기를 추가했다. 개인 일정/OAuth/runtime 공휴일 API는 추가하지 않았다.
+- `계획`을 `주간 시간 분배`로 바꾸고 공통 정수 분 parser와 `분`·`시간` formatter를 입력→저장→집계 경계에 연결했다.
+- Galaxy 기종 상수 대신 safe-area inset·글꼴 배율로 탭 높이와 본문 하단 여백을 계산하도록 바꿨다.
+- SQLite schema/repository 쓰기/sync/server/타이머 계약은 변경하지 않았다. Android 개발 빌드 핵심 화면과 3-button 하단 safe-area를 통과하고 기존 personal standalone 설치를 복구했다.
+
 ### Phase 5 completed — 2026-09-06
 
-- P5 시각 설계 전에 Mobbin의 출시 모바일 앱 연속 flow 하나를 주 레퍼런스로 확인하고 Figma OOS 4화면으로 번역하는 선행 게이트를 완료했다. 데이터·sync·P6 기능 경계는 바꾸지 않았다.
-- Figma MCP와 Mobbin ChatGPT 플러그인 설치를 확인했다. Mobbin 전용 callable 도구는 현재 Codex 작업에 노출되지 않았지만, 확인한 Tiimo flow와 합성 데이터 Figma 4화면을 기준으로 P5를 완료했다.
-- Mobbin의 Tiimo `Completing a task` 5화면을 P5 주 레퍼런스로 확정하고 Quiet Routine 번역 규칙을 추가했다. TIDE·Opal은 비교 후보로만 남기고 P6 countdown·하위 작업·진행률·게임화는 P5에서 제외했다.
+- P5 시각 설계 전에 Mobbin의 출시 모바일 앱 연속 flow 하나를 주 레퍼런스로 확인하고 Figma OOS 4화면으로 번역했다. 데이터·sync 계약은 바꾸지 않았다.
+- 당시 Figma MCP와 Mobbin ChatGPT 플러그인 설치를 확인했으나 Mobbin callable 도구가 노출되지 않아, 확인한 Tiimo 링크와 합성 데이터 Figma 4화면만 기준으로 사용했다.
+- Mobbin의 Tiimo `Completing a task` 5화면을 P5 주 레퍼런스로 정하고 Quiet Routine 번역 규칙을 추가했다. 하위 작업·진행률·게임화는 제외했다.
 - theme/token과 공용 UI, 오늘·기록 2탭, TaskSheet, P5 경과 TimerView, 날짜별 기록 원장, 기존 기능의 더보기 이동을 구현했다.
 - 자동 전체 게이트와 Android 개발 빌드 핵심 흐름·200% 글꼴·DB 원본 복원을 통과하고, 최종 `0.5.0(11)` personal standalone을 데이터 보존 설치해 Metro 독립 콜드 스타트와 기존 타이머 지속을 확인했다.
-- 첨부 사전 고려사항과 실제 Phase 4S 코드를 비교해 SPEC v0.5.3의 Phase 5~8 상세와 현재 완료 상태를 기록했다.
-- P5는 오늘/기록 2탭·할일 자동 시트·명시적 재열기 버튼·극단적 미니멀 UI, P6는 countdown/초과 측정·pause/복구·수동 시간·통합 원장으로 정의했다.
-- 사용자 답변에 따라 목표 도달은 알림 후 계속 측정, 종료에서 실제 시간 기록으로 확정했다. 수동 과거 기록을 3일 이내로 제한하지 않는다.
-- 전체 추가 지출 총액을 80,000원으로 확정했다. Android 공개 준비/배포/복구/유지보수를 P7~P8로 구체화했고 Q-016에서 첫 공개판을 계정·서버 없는 public-local로 확정했다.
-- 외부 앱 비교, 구현 감사, 예산 원장과 상세 AGENTS를 정비했다. 구형·중복 AC 문서 4개를 제거하고 기존 기록·계획·개인용 sync/AI를 보존하는 확장/제거 기준과 검증 계획을 연결했다.
+- P5는 오늘/기록 2탭, 할일 자동 시트, 명시적 재열기 버튼과 기존 경과 타이머를 구현했다.
+- 수동 과거 기록을 임의 기간으로 제한하지 않는 원칙을 유지했다.
+- 외부 앱 비교와 구현 감사를 기록하고 기존 기록·계획·개인용 sync/AI를 보존하는 기준을 적용했다.
 
 ### Added
 
@@ -78,7 +108,6 @@
 - 2026-08-20: Phase 1을 사용자 구현 승인 대기 상태로 명시하고 승인 후 작업 순서를 고정
 - 2026-08-20: 후속 Phase의 수용 기준 범위를 SPEC에 맞게 Phase 2 AC-19~AC-22, Phase 3 AC-23~AC-26, Phase 4 AC-27~AC-30으로 수정
 - 2026-08-20: README에 현재 문서 전용 상태, 실행·개발 빌드 절차의 적용 시점, 환경변수·비밀값 정책을 명시
-- 2026-08-20: FUTURE 후보에 ID·명세 근거·착수 조건을 추가하고 비목표와 분리
 - 2026-08-20: 사용자 결정값과 PLAN 승인·Phase 1 착수 상태 반영
 - 2026-08-20: 루트 관리 문서와 `mobile/` Expo 앱 분리, npm 단일 사용, EAS development build 우선 결정을 ADR-001로 확정
 - 2026-08-20: Phase 1 자동 구현 완료, EAS 로그인·Android development build·실기기 게이트 대기 상태로 변경

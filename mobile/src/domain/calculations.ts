@@ -173,15 +173,47 @@ export function remainingAvailableToday(
   return { rawMinutes, displayMinutes: Math.max(0, rawMinutes) };
 }
 
-export function formatMinutes(minutes: number): string {
+export type DurationInputUnit = 'minutes' | 'hours';
+
+export function parseDurationToMinutes(
+  value: string,
+  defaultUnit: DurationInputUnit = 'minutes',
+): number | null {
+  const normalized = value.trim().replace(/,/g, '');
+  if (!normalized) return null;
+
+  const hourMinuteMatch = normalized.match(/^([+-]?\d+(?:\.\d+)?)\s*시간(?:\s*(\d+(?:\.\d+)?)\s*분)?$/);
+  const minuteMatch = normalized.match(/^([+-]?\d+(?:\.\d+)?)\s*분$/);
+  let minutes: number;
+
+  if (hourMinuteMatch) {
+    minutes = Number(hourMinuteMatch[1]) * 60 + Number(hourMinuteMatch[2] ?? 0);
+  } else if (minuteMatch) {
+    minutes = Number(minuteMatch[1]);
+  } else if (/^[+-]?\d+(?:\.\d+)?$/.test(normalized)) {
+    minutes = Number(normalized) * (defaultUnit === 'hours' ? 60 : 1);
+  } else {
+    return null;
+  }
+
+  if (!Number.isFinite(minutes)) return null;
+  const rounded = Math.round(minutes);
+  return Math.abs(minutes - rounded) < Number.EPSILON * Math.max(1, Math.abs(minutes)) * 8
+    ? rounded
+    : null;
+}
+
+export function formatDurationKo(minutes: number): string {
   const sign = minutes < 0 ? '−' : '';
   const absolute = Math.abs(Math.round(minutes));
   const hours = Math.floor(absolute / 60);
   const remainder = absolute % 60;
-  if (hours === 0) return `${sign}${remainder}m`;
-  if (remainder === 0) return `${sign}${hours}h`;
-  return `${sign}${hours}h ${remainder}m`;
+  if (hours === 0) return `${sign}${remainder}분`;
+  if (remainder === 0) return `${sign}${hours}시간`;
+  return `${sign}${hours}시간 ${remainder}분`;
 }
+
+export const formatMinutes = formatDurationKo;
 
 export function aggregateKpi(values: readonly number[], aggregation: 'sum' | 'last' | 'max'): number {
   if (values.length === 0) return 0;

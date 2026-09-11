@@ -1,22 +1,41 @@
 # TESTPLAN
 
-현재 완료 판정은 Phase 5까지다. P6~P8은 미구현·미검증이며, 과거 통과 이력을 새 기능의 증빙으로 사용하지 않는다.
+현재 문서는 이미 수행한 검증 결과만 기록한다. 통과 이력을 구현되지 않은 동작의 증빙으로 사용하지 않는다.
 
-## Phase 5~8 최소 검증
+## 최소 검증 원칙
 
-- Phase 5: Mobbin의 Tiimo `Completing a task` 5화면과 Figma의 Quiet Routine OOS 4화면 채택/배제 기록을 먼저 확인한다. 그 뒤 typecheck/lint와 변경 화면의 테스트, Android 개발 빌드에서 `오늘의 할일 확인 → 선택/시작 → 종료 → 직접 기록 → 원장 확인`을 한 번 실행한다. P6 기능이 보이지 않아야 한다.
-- Phase 6: timer·날짜·SQLite 변경의 단위/저장/migration 보존 테스트와 server/client sync 계약 테스트를 실행한다. Android 개발 빌드에서 시간 복원, 일시정지/재개, 작업 전환, 목표 알림 뒤 계속 측정, 종료, 수동 기록을 각각 한 번 확인한다.
-- Phase 7: production 산출물의 새 설치·업데이트, 기존 기록 보존, export/restore, 공개 빌드의 개인 서버 설정 미포함을 확인한다.
-- Phase 8: 공개 전에는 시작·데이터 손실·보안 결함이 없는지 확인하고, 공개 지시 뒤 게시 상태·설치 링크·새 설치의 핵심 흐름을 확인한다.
+- 문서만 바꾸면 내부 링크와 `git diff --check`를 확인한다.
+- 일반 UI는 typecheck/lint와 관련 테스트, 데이터 변경은 관련 저장·migration 보존 테스트를 실행한다.
+- dependency/native/schema/sync 계약 변경이나 큰 기능 묶음 종료 때만 전체 `npm run verify`를 실행한다.
+- 작은 UI 수정마다 APK·원격 DB·전체 실기기 시나리오를 반복하지 않는다.
 
 실행 기록에는 실행일, source SHA, 앱 버전/versionCode, SQLite 버전, 기기/OS, 조건, 기대값/실제값, 증빙 위치와 재현 실패만 남긴다. 자동 검증은 합성 데이터, 실기기는 개인정보를 가린 증빙을 사용한다.
+
+## P5 Today-first 재설계 소스 후보 — 2026-09-12
+
+- 대상: `0.6.0(12)` 소스 후보, SQLite v6 유지. Figma `P5 Approved` 3개 페이지와 Today 로컬 timer runtime 구현을 포함한다.
+- 관련 검증: timer runtime, Today view model, 실제 SQLite repository, sync setting allowlist 4 files/17 tests와 TypeScript strict, ESLint 0을 먼저 통과했다.
+- 전체 자동: 40 files/238 tests, coverage statements 98.10% / branches 94.21% / functions 100% / lines 99.18%, Supabase 계약 2 files/8 tests를 통과했다.
+- Android 로컬 번들: 기존 설치 dependency 조합으로 Hermes 1,831 modules와 4.8MB `.hbc` export를 성공했다. 원격 EAS·APK·설치·사용자 데이터 변경은 수행하지 않았다.
+- 미통과 경계: Expo SDK 57의 당일 expected patch가 13개 package에서 설치본보다 한 단계 높아 `expo install --check`와 Doctor가 실패했다. 기능·테스트·번들 오류가 아니며, dependency/native 재정렬은 사용자 판단 전 수행하지 않는다.
+- 실기기: standalone 후보를 만들거나 설치하지 않았다. 현재 일상 사용 기준은 기존 `0.5.0(11)` personal release다.
+
+## Phase 6-1 구현·자동 게이트 — 2026-09-08
+
+- 구현: 설정 기반 더보기 9개 진입점과 전용 소유 화면, 계정→항목 그룹, 지표 달력·날짜 한 건/주간보기, 2026 공휴일 오프라인 asset·갱신 script, 기록 계정/항목 소계, 정수 분 parse·한국어 format, safe-area 기반 탭/본문 여백을 반영했다.
+- 경계: SQLite schema와 migration, repository 쓰기 의미, `mobile/src/services`, `mobile/src/sync`, `supabase`, 타이머 상태 계약은 변경하지 않았다. 날짜 귀속 편집·pause/resume·새 sync payload는 현재 구현에 없다.
+- 자동: 기능 변경 뒤 관련 7 files/35 tests를 먼저 통과했다. Expo `57.0.21`·Router `57.0.20`으로 당일 patch drift를 맞춘 최종 `npm run verify`에서 TypeScript/ESLint 0, 전체 39 files/232 tests, line coverage 98.97%, Supabase 계약 2 files/8 tests, dependency check, Doctor 21/21, Android Hermes 1,830 modules를 모두 통과했다.
+- 의존성: `react-native-calendars@1.1314.0`을 exact pin했다. MIT·순수 JS이며 production bundle에 포함됐다. `npm audit --omit=dev`는 moderate 15건, high/critical 0건이다.
+- 공휴일: KASI 2026 월력요항과 2026-04-30 개정 현행 공휴일 규정을 기준으로 2026 asset을 고정했다. 범위 밖 날짜는 추정하지 않으며 API service key·Google/기기 캘린더 권한은 앱 bundle에 없다.
+- Android: ADB `SM-S721N`, Android 16, navigation mode 0(3-button)에서 기존 development APK로 Metro bundle을 실행했다. `더보기 분리 → 지표 2026-09 달력 → 2026-09-07 한 날짜 상세/계획 미보존 → 주간보기 → 저장된 항목 불러오기 계정 그룹 → 기록 원장`과 navigation bar 위 주요 동작 여백을 확인했고 런타임 오류가 없었다. gesture의 0 inset과 큰 글씨 경계는 layout test로 확인했으며 기기 시스템 설정은 바꾸지 않았다.
+- 복구: 화면 확인은 읽기 동작만 수행했다. 검증 뒤 ADB reverse와 Metro를 종료하고 동일 서명의 `0.5.0(11)` personal standalone APK를 `adb install -r`로 복구해 launcher 실행을 확인했다.
 
 ## Phase 5 종료 게이트 — 2026-09-06 통과
 
 - 디자인 선행: Mobbin Tiimo `Completing a task` 5화면의 채택/배제 근거와 합성 데이터 Figma Quiet Routine 4화면을 기록했다.
 - 자동: `npm run verify` 종료 코드 0, TypeScript/ESLint 0, Vitest 37 files/225 tests, Supabase 계약 2 files/8 tests, coverage 99.07/94.93/100/100, Doctor 21/21, Android Hermes 1,499 modules를 통과했다.
 - 최소 재검증: 마지막 primary 대비 토큰 1줄 보정 뒤 typecheck, lint, layout 1 file/3 tests만 다시 통과했다. 이 UI 보정 때문에 전체 게이트를 반복하지 않았다.
-- 경계: `mobile/src/data`, `mobile/src/services`, `mobile/src/sync`, `supabase` 변경 0건이며 P6의 countdown·pause/resume·날짜 귀속 편집·sync 계약 변경을 포함하지 않았다.
+- 경계: `mobile/src/data`, `mobile/src/services`, `mobile/src/sync`, `supabase` 변경 0건이며 countdown·pause/resume·날짜 귀속 편집·sync 계약 변경을 포함하지 않았다.
 - 개발 빌드: EAS `f9ff3f21-45f2-4e1f-a682-06e3fe18d4c6`, 앱 `0.5.0(11)`을 SM-S721N(Android 16)에 데이터 보존 업데이트하고 핵심 흐름, 날짜 이동, 긴 목록/접근성, 200% 글꼴을 확인했다.
 - 데이터 보존: 앱 전용 SQLite DB/WAL/SHM을 검증 전에 복사해 해시를 대조했고, 임시 흐름 뒤 세 파일을 원본과 같은 해시로 복원했다. 사용자 데이터가 보이는 screenshot·UI dump와 임시 백업은 제거했다.
 - standalone: EAS personal `fa8d2cf2-478b-4b62-8afd-1302ab7721a9`를 `adb install -r`로 설치했다. embedded bundle·non-debuggable·Metro/ADB reverse 없는 콜드 스타트·기존 타이머 지속·release 오류 0을 확인했다.

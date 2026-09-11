@@ -1,4 +1,5 @@
 import type { Item, ItemInput, ItemSchedule, ItemType } from '@/types/domain';
+import { parseDurationToMinutes } from '@/domain/calculations';
 
 type ToggleValue = '0' | '1';
 
@@ -138,11 +139,17 @@ export function itemDraftFrom(
 }
 
 export function isItemDraftValid(draft: ItemDraft): boolean {
-  const numbers = [draft.levelMin, draft.levelTarget, draft.levelMax, draft.duration, draft.plannedValue]
+  const numbers = [draft.levelMin, draft.levelTarget, draft.levelMax]
     .filter((value) => value.trim() !== '')
     .map(Number);
+  const duration = draft.duration.trim() === '' ? 0 : parseDurationToMinutes(draft.duration);
+  const planned = draft.plannedValue.trim() === '' || draft.type !== 'time'
+    ? Number(draft.plannedValue || 0)
+    : parseDurationToMinutes(draft.plannedValue);
   return Boolean(draft.name.trim() && draft.accountId)
     && numbers.every(Number.isFinite)
+    && duration !== null && duration >= 0
+    && planned !== null && planned >= 0
     && (draft.startTime === '' || TIME_PATTERN.test(draft.startTime));
 }
 
@@ -157,10 +164,14 @@ export function itemInputFromDraft(item: Item | 'new', draft: ItemDraft): ItemIn
     levelMin: nullableNumber(draft.levelMin),
     levelTarget: nullableNumber(draft.levelTarget),
     levelMax: nullableNumber(draft.levelMax),
-    defaultDurationMin: nullableNumber(draft.duration),
+    defaultDurationMin: draft.duration.trim() === '' ? null : parseDurationToMinutes(draft.duration),
     countOnComplete: draft.countOnComplete === '1',
     weekdayMask: draft.weekdayMask,
-    plannedValue: nullableNumber(draft.plannedValue),
+    plannedValue: draft.plannedValue.trim() === ''
+      ? null
+      : draft.type === 'time'
+        ? parseDurationToMinutes(draft.plannedValue)
+        : nullableNumber(draft.plannedValue),
     startTime: draft.startTime || null,
     autoCreate: draft.weekdayMask > 0,
   };

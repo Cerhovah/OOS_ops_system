@@ -19,8 +19,9 @@ import {
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { accessibleTabBarHeight } from '@/components/layout';
 import { COLORS } from '@/theme/colors';
 import { tokens } from '@/theme/tokens';
 
@@ -29,14 +30,21 @@ import { adjustTime, setTimeHour, setTimeMinute, timeParts } from './time';
 export function Screen({
   children,
   refreshControl,
+  usesTabBar = false,
 }: {
   children: ReactNode;
   refreshControl?: ReactElement<RefreshControlProps>;
+  usesTabBar?: boolean;
 }) {
+  const { fontScale } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const bottomPadding = usesTabBar
+    ? accessibleTabBarHeight(fontScale, insets.bottom) + tokens.space.md
+    : insets.bottom + tokens.space.xl;
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView
-        contentContainerStyle={styles.screen}
+        contentContainerStyle={[styles.screen, { paddingBottom: bottomPadding }]}
         keyboardShouldPersistTaps="handled"
         refreshControl={refreshControl}>
         {children}
@@ -327,7 +335,7 @@ export const textStyles = StyleSheet.create({
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: COLORS.background },
-  screen: { paddingHorizontal: tokens.space.md, paddingTop: tokens.space.lg, paddingBottom: 112, gap: tokens.space.lg },
+  screen: { paddingHorizontal: tokens.space.md, paddingTop: tokens.space.lg, gap: tokens.space.lg },
   headingWrap: { gap: tokens.space.xxs },
   heading: { color: COLORS.text, fontSize: tokens.type.heading, fontWeight: '800', letterSpacing: -0.5 },
   subtitle: { color: COLORS.muted, fontSize: tokens.type.caption, lineHeight: 19 },

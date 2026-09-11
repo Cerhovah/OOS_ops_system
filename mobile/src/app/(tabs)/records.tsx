@@ -5,7 +5,7 @@ import { Alert, StyleSheet, Text, View } from 'react-native';
 import { AppButton, Field, Heading, LoadingView, Screen, Section, Sheet, StatusBanner, textStyles } from '@/components/ui';
 import { DEFAULT_DAY_END_TIME } from '@/constants/app';
 import { useApp } from '@/context/app-context';
-import { addDays, dateKey, formatMinutes } from '@/domain/calculations';
+import { addDays, dateKey, formatMinutes, parseDurationToMinutes } from '@/domain/calculations';
 import { LedgerRow, MetricHero, PlanActualDelta, FixedActionBar } from '@/features/today/today-components';
 import { buildTodayViewModel } from '@/features/today/today-view-model';
 import { buildRecordsViewModel } from '@/features/records/records-view-model';
@@ -17,7 +17,6 @@ export default function RecordsScreen() {
   const [selectedDate, setSelectedDate] = useState(today);
   const [dateInput, setDateInput] = useState(today);
   const [datePickerVisible, setDatePickerVisible] = useState(false);
-  const [showDeleted, setShowDeleted] = useState(false);
   const [entryForm, setEntryForm] = useState<Entry | null>(null);
   const [entryValue, setEntryValue] = useState('');
   const [entryNote, setEntryNote] = useState('');
@@ -32,6 +31,14 @@ export default function RecordsScreen() {
   const todayViewModel = useMemo(
     () => buildTodayViewModel(app.snapshot, today, new Date(), app.snapshot.settings.day_end_time ?? DEFAULT_DAY_END_TIME),
     [app.snapshot, today],
+  );
+  const accountGroups = useMemo(
+    () => [...new Set(model.entries.map((row) => `${row.accountId}:${row.accountName}`))],
+    [model.entries],
+  );
+  const activeAccounts = useMemo(
+    () => app.snapshot.accounts.filter((account) => !account.deletedAt && !account.archived),
+    [app.snapshot.accounts],
   );
 
   if (app.loading) return <LoadingView />;
@@ -58,7 +65,9 @@ export default function RecordsScreen() {
 
   async function saveEntry() {
     if (!entryForm) return;
-    const value = entryForm.type === 'event' && entryValue.trim() === '' ? null : Number(entryValue);
+    const value = entryForm.type === 'event' && entryValue.trim() === ''
+      ? null
+      : entryForm.type === 'time' ? parseDurationToMinutes(entryValue) : Number(entryValue);
     if (value !== null && !Number.isFinite(value)) {
       Alert.alert('입력 확인', '숫자를 입력하십시오.');
       return;
@@ -68,7 +77,7 @@ export default function RecordsScreen() {
   }
 
   function requestDelete(entry: Entry) {
-    Alert.alert('기록 삭제', '삭제한 기록은 삭제 기록 보기에서 복구할 수 있습니다.', [
+    Alert.alert('기록 삭제', '삭제한 기록은 더보기의 기록 관리에서 복구할 수 있습니다.', [
       { text: '취소', style: 'cancel' },
       {
         text: '삭제',
@@ -87,7 +96,9 @@ export default function RecordsScreen() {
 
   async function saveManualRecord() {
     if (!manualItem) return;
-    const amount = manualItem.type === 'event' && manualAmount.trim() === '' ? null : Number(manualAmount);
+    const amount = manualItem.type === 'event' && manualAmount.trim() === ''
+      ? null
+      : manualItem.type === 'time' ? parseDurationToMinutes(manualAmount) : Number(manualAmount);
     if (amount !== null && !Number.isFinite(amount)) {
       Alert.alert('입력 확인', '숫자를 입력하십시오.');
       return;
@@ -98,7 +109,7 @@ export default function RecordsScreen() {
 
   return (
     <>
-      <Screen>
+      <Screen usesTabBar>
         <View style={styles.header}>
           <Heading subtitle={formatDateLabel(selectedDate)}>기록</Heading>
           <AppButton label="더보기" variant="plain" onPress={() => router.push('/more')} />
@@ -115,9 +126,19 @@ export default function RecordsScreen() {
         ) : null}
         <Section title="원장">
           {model.entries.length === 0 ? <Text style={textStyles.body}>이 날짜에 기록이 없습니다.</Text> : null}
-          {model.entries.map((row) => (
-            <LedgerRow key={row.entry.id} title={row.itemName} value={row.value} description={row.description} onPress={() => openEntry(row.entry)} />
-          ))}
+          {accountGroups.map((accountKey) => {
+            const [accountId] = accountKey.split(':');
+            const rows = model.entries.filter((row) => row.accountId === accountId);
+            return (
+              <View key={accountKey} style={styles.accountGroup}>
+                <Text style={textStyles.title}>{rows[0]?.accountName}</Text>
+                {rows.map((row) => (
+                  <LedgerRow key={row.entry.id} title={row.itemName} value={row.value} description={row.description} onPress={() => openEntry(row.entry)} />
+                ))}
+                <Text style={textStyles.muted}>계정 소계 {formatMinutes(rows.reduce((total, row) => total + (row.entry.durationMin ?? 0), 0))}</Text>
+              </View>
+            );
+          })}
           {model.entries.length > 0 ? <Text style={textStyles.number}>날짜 소계 {formatMinutes(model.actualMinutes)}</Text> : null}
         </Section>
         {selectedDate === today ? (
@@ -128,18 +149,6 @@ export default function RecordsScreen() {
         ) : (
           <AppButton label="오늘로 이동" onPress={() => moveToDate(today)} style={styles.fullAction} />
         )}
-        <Section
-          title="삭제 기록"
-          action={<AppButton label={showDeleted ? '접기' : `${model.deletedEntries.length}개 보기`} variant="plain" onPress={() => setShowDeleted((value) => !value)} />}>
-          {showDeleted ? (
-            model.deletedEntries.length === 0 ? <Text style={textStyles.body}>이 날짜의 삭제 기록이 없습니다.</Text> : model.deletedEntries.map((row) => (
-              <View key={row.entry.id} style={styles.deletedRow}>
-                <LedgerRow title={row.itemName} value={row.value} description={row.description} />
-                <AppButton label="복구" variant="secondary" onPress={() => void app.restoreEntry(row.entry.id).catch(() => undefined)} disabled={app.busy} />
-              </View>
-            ))
-          ) : null}
-        </Section>
       </Screen>
 
       <Sheet visible={datePickerVisible} title="날짜 선택" onClose={() => setDatePickerVisible(false)}>
@@ -149,8 +158,8 @@ export default function RecordsScreen() {
       </Sheet>
 
       <Sheet visible={entryForm !== null} title="기록 수정" onClose={() => setEntryForm(null)}>
-        <Text style={textStyles.muted}>P5에서는 기록 시간과 메모만 수정합니다. 날짜 귀속 변경은 P6에서 제공합니다.</Text>
-        <Field label="값" value={entryValue} onChangeText={setEntryValue} keyboardType="decimal-pad" />
+        <Text style={textStyles.muted}>기록 값과 메모를 수정합니다. 삭제한 기록은 기록 관리에서 복구할 수 있습니다.</Text>
+        <Field label={entryForm?.type === 'time' ? '시간(분)' : '값'} value={entryValue} onChangeText={setEntryValue} keyboardType="decimal-pad" />
         <Field label="메모" value={entryNote} onChangeText={setEntryNote} multiline />
         <AppButton label="수정 저장" onPress={() => void saveEntry().catch(() => undefined)} disabled={app.busy} />
         {entryForm ? <AppButton label="삭제" variant="danger" onPress={() => requestDelete(entryForm)} disabled={app.busy} /> : null}
@@ -158,14 +167,23 @@ export default function RecordsScreen() {
 
       <Sheet visible={manualPicker} title="직접 기록" onClose={() => setManualPicker(false)}>
         <Text style={textStyles.muted}>기록할 항목을 고르십시오.</Text>
-        {app.snapshot.items.filter((item) => !item.deletedAt && !item.archived).map((item) => (
-          <AppButton key={item.id} label={item.name} variant="secondary" onPress={() => openManualRecord(item)} />
-        ))}
+        {activeAccounts.map((account) => {
+          const items = app.snapshot.items.filter((item) => !item.deletedAt && !item.archived && item.accountId === account.id);
+          if (items.length === 0) return null;
+          return (
+            <View key={account.id} style={styles.accountGroup}>
+              <Text style={textStyles.title}>{account.name}</Text>
+              {items.map((item) => (
+                <AppButton key={item.id} label={item.name} variant="secondary" onPress={() => openManualRecord(item)} />
+              ))}
+            </View>
+          );
+        })}
       </Sheet>
 
       <Sheet visible={manualItem !== null} title={manualItem ? `${manualItem.name} 직접 기록` : '직접 기록'} onClose={() => setManualItem(null)}>
         <Field
-          label={manualItem?.type === 'event' ? '값(선택)' : '값'}
+          label={manualItem?.type === 'time' ? '시간(분)' : manualItem?.type === 'event' ? '값(선택)' : '값'}
           value={manualAmount}
           onChangeText={setManualAmount}
           keyboardType="decimal-pad"
@@ -208,5 +226,5 @@ const styles = StyleSheet.create({
   dateNav: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 8 },
   actionItem: { flexGrow: 1, minWidth: 132 },
   fullAction: { alignSelf: 'stretch' },
-  deletedRow: { gap: 8, paddingBottom: 12 },
+  accountGroup: { gap: 8, paddingBottom: 12 },
 });

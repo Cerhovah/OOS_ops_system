@@ -1,6 +1,9 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
-import { ActivityRepository } from '@/data/app-repository/activity-repository';
+import {
+  ActivityRepository,
+  type TimerRuntimeUpdate,
+} from '@/data/app-repository/activity-repository';
 import { CatalogRepository } from '@/data/app-repository/catalog-repository';
 import { MaintenanceRepository } from '@/data/app-repository/maintenance-repository';
 import { PlanningRepository } from '@/data/app-repository/planning-repository';
@@ -38,12 +41,20 @@ export class AppRepository {
     return this.activity.addTodayItem(today, itemId);
   }
 
-  startTimer(item: Item): Promise<string> {
-    return this.activity.startTimer(item);
+  startTimer(
+    item: Item,
+    runtimeValue?: string,
+    pausedRuntimeUpdates: readonly TimerRuntimeUpdate[] = [],
+  ): Promise<string> {
+    return this.activity.startTimer(item, runtimeValue, pausedRuntimeUpdates);
   }
 
   stopTimer(entryId: string, durationMinutes: number): Promise<void> {
     return this.activity.stopTimer(entryId, durationMinutes);
+  }
+
+  updateTimerRuntimes(updates: readonly TimerRuntimeUpdate[]): Promise<void> {
+    return this.activity.updateTimerRuntimes(updates);
   }
 
   createEntry(item: Item, amount: number | null, note: string | null = null): Promise<void> {

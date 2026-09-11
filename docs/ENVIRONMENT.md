@@ -122,6 +122,8 @@ set EAS_NO_VCS=
 
 현재 보존 artifact는 `C:\Users\skljh\Downloads\OOS-Ops-0.5.0-build11-personal-final.apk`, SHA-256은 `E5AEDD98A849614F98189908259F4FCDD14AAC99CD5E168B939F3FE27DEB3422`이다. native rollback은 동일 EAS Android keystore를 유지한 채 알려진 정상 commit을 더 높은 `versionCode`로 다시 빌드하고 `adb install -r` 또는 스토어 업데이트로 설치한다. SQLite migration은 전진형이므로 오래된 낮은 versionCode APK를 강제 downgrade하지 않는다.
 
+`0.6.0(12)` Today-first 소스 후보는 현재 설치 dependency로 Android Hermes export에 성공했다. 다만 Expo SDK 57 expected patch 기준으로 13개 Expo package가 한 patch 낮다. `npx expo install --fix`에 준하는 정렬은 package-lock과 native build 입력을 바꾸므로, 사용자 승인 뒤 한 번에 갱신하고 전체 verify·새 standalone build·데이터 보존 업데이트 설치를 연속 검증한다.
+
 ## Phase 2 Supabase 개발 환경
 
 EAS development 환경의 공개 URL/publishable key를 ignore된 로컬 파일로 가져온다. 값은 터미널·문서에 출력하지 않는다.
@@ -210,11 +212,19 @@ Windows 긴 경로는 OS에서 `LongPathsEnabled=1`, 이 저장소의 로컬 Git
 ## Phase 5 환경·종료 산출물 (2026-09-06)
 
 - Node.js `24.19.0`, npm `11.17.0`, Expo CLI `57.0.22`, EAS 계정 연결을 확인했다. `npm run deps:check`와 `npm run doctor`는 각각 종료 코드 0, Doctor 21/21이다.
-- Figma MCP는 연결돼 있다. Starter 일반 쓰기 호출 한도에 걸린 뒤 추가 결제 없이 합성 데이터 로컬 캡처 경로를 사용해 `OOS Ops — Phase 5 Reference UI`의 [4화면 node 13:2](https://www.figma.com/design/Be9DsWkov1vg3ptUFPpj6F?node-id=13-2)를 완성했다. 캡처 임시 파일은 제거했고 앱 runtime에는 Figma 의존성이 없다.
-- Mobbin Pro 63,000원/3개월 결제와 ChatGPT 플러그인 설치를 확인했다. 권한 화면에는 `Allow low-risk actions`가 표시되지만 현재 Codex 작업에는 Mobbin 전용 호출 도구가 노출되지 않는다. 이미 확인한 Tiimo flow를 기준으로 사용하며 앱 runtime에 Mobbin 연동을 추가하지 않는다.
+- Figma MCP 연결은 정상이며 2026-09-12 인증 결과는 `이준혁의 팀`의 `Pro / Full` 좌석이다. 기존 [4화면 node 13:2](https://www.figma.com/design/Be9DsWkov1vg3ptUFPpj6F?node-id=13-2)는 과거 쓰기 제한 뒤 HTML capture로 만든 정적 산출물이므로 비교용으로 보존하고 새 네이티브 재설계와 분리한다.
+- Mobbin 월 구독과 전용 호출 도구가 정상이다. 2026-09-09 최신 [Tiimo `Completing a task` 9화면](https://mobbin.com/flows/5b4c73db-d619-4f47-a666-5663d1b65ce3)을 실제 조회했다. Mobbin/Figma를 앱 runtime dependency로 추가하지 않는다.
 - ADB Platform-Tools와 SM-S721N(Android 16) 연결을 사용해 `com.oosops.app`만 설치·실행·로그 확인했다. 다른 앱이나 기기 개인 데이터는 조사하지 않았다.
 - 로컬 JDK와 Android SDK 환경 변수는 준비되지 않았다. P5는 EAS development build를 기준으로 진행하므로 차단 항목이 아니며, 로컬 Gradle 빌드가 실제로 필요해질 때만 설치한다.
 - 기존 React Native `Modal` adapter가 접근성·스크롤·Android back 요구를 충족해 새 native bottom-sheet dependency는 추가하지 않았다.
 - development build `f9ff3f21-45f2-4e1f-a682-06e3fe18d4c6`, fingerprint `2d19dc65c8fb455462b2960a2d8d4e08e7a19363`, APK SHA-256 `E58044F2994683F04282965FB756D58F296D8D38BD8B8F53F9FA091FF73E5955`에서 Phase 5 핵심 흐름을 확인했다.
 - 최종 personal build `fa8d2cf2-478b-4b62-8afd-1302ab7721a9`는 위 보존 artifact와 같고, embedded bundle·non-debuggable·Metro/ADB reverse 독립 실행과 기존 데이터 보존을 확인했다.
-- P6에서 schema나 sync payload를 바꾸기 전에는 서버 migration, RPC allowlist/protocol version fence, RLS, client/server 계약 테스트, 배포 순서와 구버전 앱 영향을 먼저 준비하고 사용자에게 알린다. Phase 5에서는 서버를 변경하지 않았다.
+- 해당 UI 변경에서는 schema, sync payload, 서버를 변경하지 않았다.
+
+## Phase 6-1 환경 (2026-09-08)
+
+- Expo `57.0.21`, Expo Router `57.0.20`, React Native `0.86.3`으로 호환 검사를 맞췄다. `react-native-calendars@1.1314.0`은 exact pin한 MIT 순수 JS 의존성이므로 P6-1용 새 native binary가 필수는 아니다.
+- 공휴일 asset은 앱 실행 중 네트워크를 쓰지 않는다. 공식 API로 갱신할 때만 개발 셸에 `DATA_GO_KR_SERVICE_KEY`를 저장소 밖 환경변수로 두고 `npm run holidays:generate -- 2026 2027`처럼 필요한 연도를 명시한다. 키는 `.env`, JSON asset, 로그, 앱 bundle에 넣지 않는다.
+- 현재 저장소 asset은 2026년만 지원한다. 지원 범위 밖에서도 달력과 로컬 기록은 정상 동작하며 공휴일 이름만 표시하지 않는다.
+- ADB `37.0.1`과 SM-S721N 연결을 확인했다. 로컬 JDK/Android SDK는 계속 미설치이며 기존 development client+Metro와 EAS 빌드 흐름에는 차단 항목이 아니다.
+- `npm audit --omit=dev`는 moderate 15건, high/critical 0건이다. 호환 계약을 깨는 강제 수정을 하지 않으며 기존 ADR-004 검토 원칙을 유지한다.
