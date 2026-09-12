@@ -108,7 +108,7 @@ set EAS_NO_VCS=
 
 현재 Windows 저장소 경로의 대괄호 때문에 기본 EAS 로컬 git archive가 실패하므로 이 경로에서만 `EAS_NO_VCS=1`을 사용한다. 대괄호 없는 경로에서는 먼저 기본 명령을 사용한다. PowerShell에서는 build 전 `$env:EAS_NO_VCS = '1'`, build 후 `Remove-Item Env:EAS_NO_VCS`로 같은 범위를 적용한다.
 
-현재 연결된 프로젝트는 `@ljh951206/oos-ops`, project ID는 `a0b6c215-c87a-40ff-b749-b715d1ed9352`다. Phase 5용 `0.5.0(11)` development build `f9ff3f21-45f2-4e1f-a682-06e3fe18d4c6`에서 핵심 UI 흐름을 확인했고, 일상 사용용 `0.5.0(11)` personal build `fa8d2cf2-478b-4b62-8afd-1302ab7721a9`를 SM-S721N에 데이터 보존 업데이트로 설치했다. 이후에도 native dependency·권한·config plugin을 바꾸면 새 binary가 필요하다. 비용·계정 플랜·자격증명 선택이 나타나면 임의로 진행하지 않는다.
+현재 연결된 프로젝트는 `@ljh951206/oos-ops`, project ID는 `a0b6c215-c87a-40ff-b749-b715d1ed9352`다. Expo SDK 57 patch 정렬 소스의 backup helper development build `1ccfb2da-eb2b-41b4-985b-5fdb98fb3509`로 SQLite DB/WAL/SHM을 추출했고, 일상 사용용 `0.6.0(12)` personal build `769d5e3e-6df8-49ae-9994-11458c7fe8a4`를 SM-S721N에 데이터 보존 업데이트로 설치했다. 이후에도 native dependency·권한·config plugin을 바꾸면 새 binary가 필요하다. 비용·계정 플랜·자격증명 선택이 나타나면 임의로 진행하지 않는다.
 
 development client는 JavaScript를 받기 위해 Metro가 필요하다. `personal` profile은 developer launcher 없이 release APK와 embedded JavaScript bundle을 생성한다. 2026-09-06 설치본은 non-debuggable, `assets/index.android.bundle` 포함, Metro 8081 listener와 ADB reverse가 없는 상태에서 launcher cold start를 확인했다. USB는 설치·로그 확인에만 사용됐고 실행 의존성이 아니다.
 
@@ -120,9 +120,9 @@ npx eas-cli@23.2.0 build --platform android --profile personal --non-interactive
 set EAS_NO_VCS=
 ```
 
-현재 보존 artifact는 `C:\Users\skljh\Downloads\OOS-Ops-0.5.0-build11-personal-final.apk`, SHA-256은 `E5AEDD98A849614F98189908259F4FCDD14AAC99CD5E168B939F3FE27DEB3422`이다. native rollback은 동일 EAS Android keystore를 유지한 채 알려진 정상 commit을 더 높은 `versionCode`로 다시 빌드하고 `adb install -r` 또는 스토어 업데이트로 설치한다. SQLite migration은 전진형이므로 오래된 낮은 versionCode APK를 강제 downgrade하지 않는다.
+현재 보존 artifact는 `C:\Users\skljh\Downloads\OOS-Ops-0.6.0-build12-personal.apk`, SHA-256은 `7F1F0CEC62FAE557ED1C830FF749648E44F9215180F4ED8F83AC7395589A3FF1`이다. 설치 전 SQLite DB/WAL/SHM 백업은 `C:\Users\skljh\Downloads\OOS-Ops-user-data-backup-20260912-1132`에 보존한다. native rollback은 동일 EAS Android keystore를 유지한 채 알려진 정상 commit을 더 높은 `versionCode`로 다시 빌드하고 `adb install -r` 또는 스토어 업데이트로 설치한다. SQLite migration은 전진형이므로 오래된 낮은 versionCode APK를 강제 downgrade하지 않는다.
 
-`0.6.0(12)` Today-first 소스 후보는 현재 설치 dependency로 Android Hermes export에 성공했다. 다만 Expo SDK 57 expected patch 기준으로 13개 Expo package가 한 patch 낮다. `npx expo install --fix`에 준하는 정렬은 package-lock과 native build 입력을 바꾸므로, 사용자 승인 뒤 한 번에 갱신하고 전체 verify·새 standalone build·데이터 보존 업데이트 설치를 연속 검증한다.
+`0.6.0(12)` Today-first 소스는 Expo SDK 57 expected patch 기준의 13개 Expo package를 정렬했고 clean `npm ci`, 전체 verify, Expo dependency check, Doctor 21/21, personal standalone 빌드와 데이터 보존 실기기 검증을 통과했다. 기능 코드·SQLite schema·Supabase/sync 계약은 이 정렬에서 변경하지 않았다.
 
 ## Phase 2 Supabase 개발 환경
 

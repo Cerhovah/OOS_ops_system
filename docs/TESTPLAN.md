@@ -11,14 +11,16 @@
 
 실행 기록에는 실행일, source SHA, 앱 버전/versionCode, SQLite 버전, 기기/OS, 조건, 기대값/실제값, 증빙 위치와 재현 실패만 남긴다. 자동 검증은 합성 데이터, 실기기는 개인정보를 가린 증빙을 사용한다.
 
-## P5 Today-first 재설계 소스 후보 — 2026-09-12
+## P5 Today-first `0.6.0(12)` standalone 종료 게이트 — 2026-09-12 통과
 
-- 대상: `0.6.0(12)` 소스 후보, SQLite v6 유지. Figma `P5 Approved` 3개 페이지와 Today 로컬 timer runtime 구현을 포함한다.
-- 관련 검증: timer runtime, Today view model, 실제 SQLite repository, sync setting allowlist 4 files/17 tests와 TypeScript strict, ESLint 0을 먼저 통과했다.
-- 전체 자동: 40 files/238 tests, coverage statements 98.10% / branches 94.21% / functions 100% / lines 99.18%, Supabase 계약 2 files/8 tests를 통과했다.
-- Android 로컬 번들: 기존 설치 dependency 조합으로 Hermes 1,831 modules와 4.8MB `.hbc` export를 성공했다. 원격 EAS·APK·설치·사용자 데이터 변경은 수행하지 않았다.
-- 미통과 경계: Expo SDK 57의 당일 expected patch가 13개 package에서 설치본보다 한 단계 높아 `expo install --check`와 Doctor가 실패했다. 기능·테스트·번들 오류가 아니며, dependency/native 재정렬은 사용자 판단 전 수행하지 않는다.
-- 실기기: standalone 후보를 만들거나 설치하지 않았다. 현재 일상 사용 기준은 기존 `0.5.0(11)` personal release다.
+- 소스 경계: 기준점 `3c7eb78`을 보존하고 그 자식 `7733ff6`에서 Expo SDK 57이 요구한 13개 direct dependency와 lockfile만 호환 patch로 정렬했다. 기능 코드, SQLite v6 schema/migration, Supabase/sync 계약 diff는 0건이다.
+- clean 자동 게이트: `mobile/node_modules` clean install인 `npm ci` 뒤 `npm run verify` 종료 코드 0. TypeScript/ESLint 0, 40 files/238 tests, coverage statements 98.10% / branches 94.21% / functions 100% / lines 99.18%, Supabase 계약 2 files/8 tests, Expo dependency check, Doctor 21/21, Android Hermes 1,832 modules와 4.8MB `.hbc`를 통과했다.
+- artifact: EAS personal `769d5e3e-6df8-49ae-9994-11458c7fe8a4`, `com.oosops.app`, `0.6.0(12)`, SDK 57, 기존 remote keystore, internal APK. 로컬 APK는 `C:\Users\skljh\Downloads\OOS-Ops-0.6.0-build12-personal.apk`, 106,595,693 bytes, SHA-256 `7F1F0CEC62FAE557ED1C830FF749648E44F9215180F4ED8F83AC7395589A3FF1`이며 embedded `assets/index.android.bundle`을 포함한다.
+- 데이터 보존: 기기에는 예상 문서와 달리 이미 과거 `0.6.0(12)` personal이 설치돼 있었다. versionCode 11 강제 downgrade 대신 동일 versionCode·서명의 EAS development helper `1ccfb2da-eb2b-41b4-985b-5fdb98fb3509`를 실행하지 않은 채 교체하고, `oos-ops.db`/WAL/SHM을 `C:\Users\skljh\Downloads\OOS-Ops-user-data-backup-20260912-1132`에 추출해 기기 원본과 로컬 SHA-256 일치를 확인했다.
+- 설치: 새 personal APK의 `adb install -r`가 성공했고 `firstInstallTime`은 2026-08-23 그대로 유지됐다. 설치본은 `0.6.0(12)`, non-debuggable이며 같은 서명 체계가 아니면 거부되는 update install을 통과했다.
+- 실기기: SM-S721N(Galaxy S24 FE), Android 16/API 36에서 Metro/ADB reverse 없이 cold start `COLD`를 확인했다. Today 목록 → 시작 → 일시정지 → 앱 force-stop/cold start 상태 복원 → 재개 → 다른 타이머 전환 → 실행 중 15분 직접 기록 → 두 타이머 종료 → Today 합계 18분·항목별 반영 → 기록 원장 계획/실제/차이와 직접 기록 반영을 확인했다.
+- 기존 sync: 로그인 세션을 유지했고 수동 `지금 동기화` 뒤 마지막 동기화 시각이 갱신되고 전송 대기 0건임을 확인했다. 서버 schema/RPC/RLS/payload는 변경하지 않았다.
+- 로그/개인정보: release fatal/ReactNativeJS/SQLite 오류 0. `ashmem` deprecated 시스템 메시지 1건은 앱 오류가 아니다. 사용자 데이터가 보이는 screenshot·UI dump는 저장소에 넣지 않고 검증 후 제거했다.
 
 ## Phase 6-1 구현·자동 게이트 — 2026-09-08
 
@@ -234,5 +236,6 @@ Q-010 승인 뒤 `ai-analysis` Edge Function v2를 `verify_jwt=true`로 배포�
 | 2026-09-04 | app 0.4.0(7) source on 0.2.0(3) development client, `ai-analysis` v2 | SM-S721N(Galaxy S24 FE), Android 16/API 36 | TP-AC-27~30 | **Phase 4 통과** | 19 files/83 tests, doctor 21/21, Android export 1,447; 6개 모드·§5.7 네 질문을 포함한 실세션 9건, 입력 25,026·출력 7,271토큰·추정 $0.137304, 제안 적용/무시, outbox 0, 원격 계획 2·라인 28 확인 |
 | 2026-09-04 | EAS `ce72a92f-6fe5-456f-9a48-d9863788abaf` / [build page](https://expo.dev/accounts/ljh951206/projects/oos-ops/builds/ce72a92f-6fe5-456f-9a48-d9863788abaf), app 0.4.1(8) | SM-S721N(Galaxy S24 FE), Android 16/API 36 예정 | TP-R-01~08 / AC-31~35 | **자동·원격·CI·build 통과/실기기 대기** | `FINISHED`, fingerprint `0fd3776c2e02c5cfa31162fe208d1c9c59685526`, APK SHA-256 `BE1B577B1212F9B6D4D051A602062BAA38034C29D5AB2472E87D7DE5308C39B7` |
 | 2026-09-06 | EAS development `f9ff3f21-45f2-4e1f-a682-06e3fe18d4c6` + [personal `fa8d2cf2-478b-4b62-8afd-1302ab7721a9`](https://expo.dev/accounts/ljh951206/projects/oos-ops/builds/fa8d2cf2-478b-4b62-8afd-1302ab7721a9), app 0.5.0(11) | SM-S721N(Galaxy S24 FE), Android 16/API 36 | Phase 5 §17.5 | **Phase 5 통과** | 핵심 흐름 1회, 날짜 이동·200% 글꼴, DB/WAL/SHM 원본 복원, personal 데이터 보존 설치·Metro 독립 콜드 스타트·오류 0. 최종 APK SHA-256 `E5AEDD98A849614F98189908259F4FCDD14AAC99CD5E168B939F3FE27DEB3422` |
+| 2026-09-12 | EAS [personal `769d5e3e-6df8-49ae-9994-11458c7fe8a4`](https://expo.dev/accounts/ljh951206/projects/oos-ops/builds/769d5e3e-6df8-49ae-9994-11458c7fe8a4) + development backup helper `1ccfb2da-eb2b-41b4-985b-5fdb98fb3509`, app 0.6.0(12) | SM-S721N(Galaxy S24 FE), Android 16/API 36 | P5 Today-first standalone 종료 게이트 | **통과** | clean verify·dependency check·Doctor 통과, DB/WAL/SHM 해시 일치 백업, 데이터 보존 update install, cold start·pause 복원·타이머 전환·직접 기록·원장·기존 sync 통과. APK SHA-256 `7F1F0CEC62FAE557ED1C830FF749648E44F9215180F4ED8F83AC7395589A3FF1` |
 
-과거 build URL은 expiration 이후 만료될 수 있지만 로컬 APK와 이미 설치된 앱이 삭제되는 것은 아니다. 현재 개인용 APK는 `C:\Users\skljh\Downloads\OOS-Ops-0.5.0-build11-personal-final.apk`에 보존했으며, 휴대폰에도 같은 `0.5.0(11)` standalone이 설치돼 있다.
+과거 build URL은 expiration 이후 만료될 수 있지만 로컬 APK와 이미 설치된 앱이 삭제되는 것은 아니다. 현재 개인용 APK는 `C:\Users\skljh\Downloads\OOS-Ops-0.6.0-build12-personal.apk`에 보존했으며, 휴대폰에도 같은 `0.6.0(12)` standalone이 설치돼 있다.

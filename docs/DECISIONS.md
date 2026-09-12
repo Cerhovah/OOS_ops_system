@@ -78,6 +78,13 @@
 - 도구 경로 `@expo/config-plugins -> xcode@3.0.1 -> uuid@7.0.3`의 advisory는 caller-supplied buffer를 받는 UUID v3/v5/v6에 해당한다. 현재 xcode/ngrok 경로는 `v4()`만 호출하고 Android 실행 번들에는 포함되지 않으므로 도달 가능한 앱 취약점으로 보지 않는다.
 - 따라서 검증되지 않은 major override와 Expo SDK를 낮추는 `npm audit fix --force`는 적용하지 않는다. Expo Router가 호환 수정판을 내면 우선 갱신하고 전체 게이트와 deep-link 회귀를 다시 수행한다.
 
+#### 2026-09-12 재검토
+
+- Expo SDK 57 expected patch 13개 정렬 뒤 `npm audit --omit=dev`는 15 moderate와 1 high를 보고했다.
+- moderate는 기존 `expo-router -> query-string -> decode-uri-component`와 Expo/Xcode 도구의 `uuid` 경로다. high `js-yaml@4.3.1`은 ESLint 및 Expo CLI/`@expo/xcpretty` 빌드 도구 경로이며 앱 실행 번들에서 확인된 입력 경로가 아니다.
+- npm의 제안은 SDK 57 호환 patch 범위를 벗어난 breaking downgrade/major 교체를 포함한다. 요청 범위와 전체 verify·Doctor 통과 상태를 보존하기 위해 `audit fix --force`와 검증되지 않은 override를 적용하지 않는다.
+- Expo가 호환 수정판을 제공하면 같은 clean gate, deep-link와 standalone 검증 경계에서 다시 평가한다.
+
 ### ADR-005 — EAS 프로젝트 연결과 Windows 빌드 아카이브 방식
 
 - 날짜: 2026-08-20

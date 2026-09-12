@@ -1,7 +1,7 @@
 # OOS Ops 제품·현재 구현·승인 설계 명세
 
 - 기준일: 2026-09-12
-- 소스 후보 버전: `0.6.0`, Android `versionCode 12`; 현재 설치 기준선은 `0.5.0(11)` personal release
+- 현재 버전과 설치 기준선: `0.6.0`, Android `versionCode 12`, personal release
 - 로컬 데이터베이스: SQLite schema v6
 - 범위: 검증된 현재 구현과 사용자가 승인한 다음 UI/UX 구현 계약을 구분해 기술한다. 승인되지 않은 출시 일정과 후속 기능은 이 문서의 범위가 아니다.
 
@@ -56,13 +56,13 @@ OOS Ops는 사용자가 직접 계획과 실제 시간을 기록하고, 계정·
 
 #### 3.2.1 현재 구현
 
-- 현재 날짜와 실행 상태를 먼저 보여주며, 저장된 항목은 계정→항목 계층으로 불러온다.
-- 항목 선택, 저장된 항목 불러오기, 직접 기록 진입을 제공한다.
-- 현재 목록은 `오늘의 할일 확인` sheet 뒤에 있고 시간형 항목을 누르면 즉시 시작한다.
-- 실행 중에는 항목명, `경과 시간`, 큰 시간 숫자, 종료 동작을 표시한다. 자동 종료, 일시정지·재개, 목표 기반 남은 시간은 아직 없다.
-- 화면 갱신 tick은 전체 snapshot 새로고침이나 DB 쓰기를 유발하지 않는다.
+- 앱을 열면 현재 날짜와 오늘 실제/남은 계획 다음에 계정→항목 오늘 목록을 바로 보여준다.
+- 항목 행은 현재 실제, 계획 기준 남은 시간과 실행 상태를 표시하고, 행을 누르면 action sheet에서 타이머 시작 또는 직접 기록을 고른다.
+- 동시에 흐르는 타이머는 하나다. 실행 중에는 일시정지·종료, 일시정지 중에는 다시 시작·종료를 제공하며 다른 항목 전환은 기존 실행을 일시정지한 뒤 명시적으로 시작한다.
+- 실행·일시정지 상태는 로컬 `timer_runtime:{entryId}` 설정으로 앱 재시작 뒤 복원하고, 종료 시 기존 SQLite entry와 같은 transaction에서 정리한다.
+- 화면 갱신 tick은 전체 snapshot 새로고침이나 DB 쓰기를 유발하지 않는다. 타이머 자동 종료와 active/paused 상태의 서버 동기화는 아직 없다.
 
-#### 3.2.2 승인된 P5 재설계 계약
+#### 3.2.2 구현·검증된 P5 재설계 계약
 
 - 앱을 열면 별도 진입 버튼이나 빈 실행 placeholder 없이 오늘 목록을 첫 화면에 즉시 보여준다.
 - 상단에는 현재 날짜, 오늘 실제 시간, 오늘 계획의 남은 시간을 간결하게 표시한다.
@@ -164,7 +164,7 @@ OOS Ops는 사용자가 직접 계획과 실제 시간을 기록하고, 계정·
 - Node.js `24.19.x`, npm `11.17.x`, Expo SDK `57`, React Native `0.86.3`, React `19.2.3`을 사용한다.
 - npm과 `package-lock.json`만 사용하고 Expo CLI는 `npx expo`로 실행한다.
 - 앱 코드는 `mobile/`, 서버 코드는 `supabase/`, 문서는 `docs/`에 둔다.
-- 현재 일상 사용 기준은 서명된 `0.5.0(11)` personal release다. 새 Today-first 구현은 `0.6.0(12)` 소스 후보이며 standalone 실기기 판정 전에는 기준선을 대체하지 않는다.
+- 현재 일상 사용 기준은 서명된 `0.6.0(12)` personal release다. 기준 소스는 `3c7eb78`의 기능 구현과 그 자식 `7733ff6`의 Expo SDK 57 patch 정렬이며, SQLite schema와 Supabase/sync 계약은 바뀌지 않았다.
 - ADB 자동화는 사용자가 연결·디버깅을 승인한 기기에서 이 앱의 설치·실행·로그·화면 확인에만 사용한다.
 
 ## 7. 디자인 근거의 현재 판정
@@ -189,11 +189,11 @@ OOS Ops는 사용자가 직접 계획과 실제 시간을 기록하고, 계정·
 ## 9. 현재 검증 기준선
 
 - Phase 1, 2, 4, 4R, 4S, 5의 완료 증빙을 보존한다.
-- 현재 작업 트리의 6-1 변경은 TypeScript/ESLint, 39 files/232 tests, Supabase 계약 테스트, Expo dependency check, Doctor 21/21, Android Hermes bundle을 통과했다.
+- Phase 6-1 기능과 P5 Today-first 구현을 포함한 현재 소스는 TypeScript/ESLint, 40 files/238 tests, Supabase 계약 2 files/8 tests, Expo dependency check, Doctor 21/21, Android Hermes bundle을 통과했다.
 - SM-S721N(Android 16)에서 더보기 분리, 지표 달력과 단일 날짜 상세, 주간보기, 계정→항목 불러오기, 기록 원장, 3-button navigation safe-area를 확인했다.
-- 화면 검증 후 데이터가 보존된 `0.5.0(11)` personal standalone을 복구해 launcher 실행을 확인했다.
-- `0.6.0(12)` Today-first 소스 후보는 TypeScript/ESLint, 40 files/238 tests, Supabase 계약 2 files/8 tests와 Android Hermes 1,831 modules export를 통과했다.
-- Expo SDK 57 expected patch보다 13개 설치 package가 한 patch 낮아 dependency check와 Doctor 1항목은 미통과다. 패키지 정렬과 그에 따른 새 native/standalone 검증은 사용자 판단 전 수행하지 않는다.
+- Expo SDK 57이 요구한 13개 direct dependency를 호환 patch로 정렬한 뒤 clean `npm ci`와 전체 `npm run verify`를 통과했다. Android Hermes export는 1,832 modules와 4.8MB `.hbc`다.
+- EAS personal `769d5e3e-6df8-49ae-9994-11458c7fe8a4`로 `0.6.0(12)` standalone을 만들고, DB/WAL/SHM 해시 일치 백업 뒤 SM-S721N(Android 16)에 데이터 보존 update install했다.
+- Metro/ADB reverse 없는 cold start, Today 시작·일시정지·재시작 복원·재개·타이머 전환·직접 기록·종료·합계/원장 반영과 기존 수동 sync 전송 대기 0건을 확인했다.
 - 이 기준선은 현재 구현의 증거이며 미구현 동작을 암시하거나 승인하지 않는다.
 
 ## 10. 현재 비범위

@@ -6,6 +6,13 @@
 
 ## Unreleased
 
+### P5 Today-first personal qualification — 2026-09-12
+
+- Expo SDK 57이 요구한 13개 patch dependency만 일괄 정렬하고 기능 코드·SQLite v6·Supabase/sync 계약은 유지했다.
+- clean install 전체 자동 게이트, Expo dependency check, Doctor 21/21과 새 `0.6.0(12)` personal standalone 빌드를 통과했다.
+- 기존 사용자 DB/WAL/SHM을 해시 대조 백업한 뒤 데이터 보존 업데이트 설치하고, cold start부터 일시정지 복원·타이머 전환·직접 기록·종료·원장·기존 sync까지 실기기 흐름을 통과했다.
+- 현재 일상 사용 기준선을 `0.5.0(11)`에서 동일 applicationId/signing의 `0.6.0(12)` personal release로 올렸다.
+
 ### P5 Today-first redesign implementation — 2026-09-12
 
 - `0.6.0(12)` 소스 후보에서 오늘 목록을 첫 화면에 계정→항목으로 노출하고 항목 행→compact action sheet→타이머/직접 기록 흐름을 구현했다.
