@@ -6,6 +6,14 @@
 
 ## Unreleased
 
+### P5 public-readiness visual refinement — 2026-09-13
+
+- Tiimo의 Today 행 밀도, timespent의 따뜻한 중립 그룹 표면·캡슐 내비게이션, Equinox+의 절제된 단색 위계를 역할별로 혼합했다.
+- 포화 파랑 실행 면과 갈색 일시정지 면을 저채도 잉크 바이올렛 한 계열과 중립 상태로 바꾸고, 계정별 항목 카드를 하나의 그룹 표면·행 구분선으로 압축했다.
+- 하단 탭을 시스템 inset까지 채우는 전체 폭 직사각형에서 safe-area 위의 2분할 캡슐로 바꾸고 큰 글씨 높이와 본문 footprint를 별도로 계산한다.
+- 더보기의 반복 `열기` 버튼을 전체 행 터치와 단일 chevron으로 바꿔 관리 화면의 시각 소음을 줄였다.
+- 기능 흐름, SQLite v6, Supabase/sync 계약은 변경하지 않았다. Figma 재조회에서는 legacy `P5 Quiet Routine`만 확인되어 과거 승인 페이지 추가 기록을 현재 디자인 증빙으로 사용하지 않는다.
+
 ### P5 Today-first personal qualification — 2026-09-12
 
 - Expo SDK 57이 요구한 13개 patch dependency만 일괄 정렬하고 기능 코드·SQLite v6·Supabase/sync 계약은 유지했다.

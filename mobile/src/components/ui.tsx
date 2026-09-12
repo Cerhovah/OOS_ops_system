@@ -21,7 +21,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { accessibleTabBarHeight } from '@/components/layout';
+import { accessibleTabBarFootprint } from '@/components/layout';
 import { COLORS } from '@/theme/colors';
 import { tokens } from '@/theme/tokens';
 
@@ -39,10 +39,10 @@ export function Screen({
   const { fontScale } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const bottomPadding = usesTabBar
-    ? accessibleTabBarHeight(fontScale, insets.bottom) + tokens.space.md
+    ? accessibleTabBarFootprint(fontScale, insets.bottom)
     : insets.bottom + tokens.space.xl;
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <SafeAreaView style={styles.safe} edges={usesTabBar ? ['top'] : []}>
       <ScrollView
         contentContainerStyle={[styles.screen, { paddingBottom: bottomPadding }]}
         keyboardShouldPersistTaps="handled"
@@ -335,19 +335,19 @@ export const textStyles = StyleSheet.create({
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: COLORS.background },
-  screen: { paddingHorizontal: tokens.space.md, paddingTop: tokens.space.lg, gap: tokens.space.lg },
+  screen: { paddingHorizontal: tokens.space.md, paddingTop: tokens.space.md, gap: 18 },
   headingWrap: { gap: tokens.space.xxs },
-  heading: { color: COLORS.text, fontSize: tokens.type.heading, fontWeight: '800', letterSpacing: -0.5 },
+  heading: { color: COLORS.text, fontSize: tokens.type.heading, fontWeight: '800', letterSpacing: -0.7, lineHeight: 34 },
   subtitle: { color: COLORS.muted, fontSize: tokens.type.caption, lineHeight: 19 },
   timeValue: { color: COLORS.text, fontSize: 30, fontWeight: '800', textAlign: 'center', fontVariant: ['tabular-nums'] },
   section: { gap: tokens.space.xs },
-  sectionHeader: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  sectionTitle: { color: COLORS.text, fontSize: 18, fontWeight: '700' },
-  card: { backgroundColor: COLORS.surface, borderColor: COLORS.border, borderRadius: tokens.radius.card, borderWidth: 1, padding: tokens.space.md, gap: tokens.space.xs },
+  sectionHeader: { minHeight: 40, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  sectionTitle: { color: COLORS.text, fontSize: 17, fontWeight: '700', letterSpacing: -0.2 },
+  card: { backgroundColor: COLORS.surfaceRaised, borderRadius: tokens.radius.card, padding: tokens.space.md, gap: tokens.space.xs },
   button: { minHeight: tokens.hitTarget, minWidth: tokens.hitTarget, borderRadius: tokens.radius.control, paddingHorizontal: tokens.space.md, alignItems: 'center', justifyContent: 'center' },
   button_primary: { backgroundColor: COLORS.accent },
-  button_secondary: { backgroundColor: COLORS.surface, borderColor: COLORS.border, borderWidth: 1 },
-  button_danger: { backgroundColor: COLORS.dangerSoft, borderColor: COLORS.danger, borderWidth: 1 },
+  button_secondary: { backgroundColor: COLORS.surfaceSubtle },
+  button_danger: { backgroundColor: COLORS.dangerSoft },
   button_plain: { backgroundColor: 'transparent' },
   buttonText: { fontSize: 15, fontWeight: '700', textAlign: 'center' },
   buttonText_primary: { color: COLORS.inverse },
@@ -358,20 +358,20 @@ const styles = StyleSheet.create({
   disabled: { opacity: 0.45 },
   fieldWrap: { gap: 6 },
   label: { color: COLORS.text, fontSize: 14, fontWeight: '600' },
-  input: { minHeight: tokens.hitTarget, borderRadius: tokens.radius.control, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.surface, color: COLORS.text, paddingHorizontal: tokens.space.sm, fontSize: tokens.type.body },
+  input: { minHeight: tokens.hitTarget, borderRadius: tokens.radius.control, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.surfaceRaised, color: COLORS.text, paddingHorizontal: tokens.space.sm, fontSize: tokens.type.body },
   multiline: { minHeight: 96, paddingTop: 12, textAlignVertical: 'top' },
   choiceRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  choice: { minHeight: 44, borderRadius: 22, borderWidth: 1, borderColor: COLORS.border, paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center' },
-  choiceSelected: { backgroundColor: COLORS.accentSoft, borderColor: COLORS.accent },
+  choice: { minHeight: tokens.hitTarget, borderRadius: tokens.radius.pill, backgroundColor: COLORS.surfaceSubtle, paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center' },
+  choiceSelected: { backgroundColor: COLORS.accentSoft },
   choiceText: { color: COLORS.text, fontSize: 14 },
   choiceTextSelected: { color: COLORS.accent, fontWeight: '700' },
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'flex-end' },
-  sheet: { maxHeight: '92%', backgroundColor: COLORS.background, borderTopLeftRadius: 24, borderTopRightRadius: 24 },
+  overlay: { flex: 1, backgroundColor: COLORS.overlay, justifyContent: 'flex-end' },
+  sheet: { maxHeight: '92%', backgroundColor: COLORS.surface, borderTopLeftRadius: 28, borderTopRightRadius: 28 },
   sheetFull: { height: '100%', maxHeight: '100%', borderTopLeftRadius: 0, borderTopRightRadius: 0 },
-  sheetHeader: { minHeight: 64, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: tokens.space.xs, paddingHorizontal: tokens.space.md, borderBottomColor: COLORS.border, borderBottomWidth: 1 },
+  sheetHeader: { minHeight: 64, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: tokens.space.xs, paddingHorizontal: tokens.space.md },
   sheetTitle: { flex: 1, color: COLORS.text, fontSize: 20, fontWeight: '800' },
   sheetContent: { padding: tokens.space.md, paddingBottom: tokens.space.xl, gap: tokens.space.sm },
-  sheetFooter: { flexDirection: 'row', flexWrap: 'wrap', gap: tokens.space.xs, padding: tokens.space.md, borderTopColor: COLORS.border, borderTopWidth: 1 },
+  sheetFooter: { flexDirection: 'row', flexWrap: 'wrap', gap: tokens.space.xs, padding: tokens.space.md, backgroundColor: COLORS.surface },
   banner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, backgroundColor: COLORS.warningSoft, borderRadius: 10, paddingLeft: 12 },
   bannerText: { flex: 1, color: COLORS.warning, fontSize: 14, lineHeight: 20 },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, backgroundColor: COLORS.background },

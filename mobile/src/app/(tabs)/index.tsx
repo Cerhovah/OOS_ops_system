@@ -20,6 +20,7 @@ import {
   type TimerSessionViewModel,
   type TodayItemViewModel,
 } from '@/features/today/today-view-model';
+import { COLORS } from '@/theme/colors';
 import { tokens } from '@/theme/tokens';
 import type { Entry, Item, ItemInput, ItemType } from '@/types/domain';
 
@@ -196,11 +197,13 @@ export default function TodayScreen() {
           />
         ) : null}
         <View style={styles.listHeader}>
-          <Text accessibilityRole="header" style={textStyles.title}>오늘 목록</Text>
-          <View style={styles.listActions}>
-            <AppButton label="항목 불러오기" variant="plain" onPress={() => { setItemSearch(''); setSheetMode('add-existing'); }} />
-            <AppButton label="직접 기록" variant="plain" onPress={() => setSheetMode('manual-items')} />
-          </View>
+          <Text accessibilityRole="header" style={styles.listTitle}>오늘 할 일</Text>
+          {viewModel.accountGroups.length > 0 ? (
+            <View style={styles.listActions}>
+              <AppButton label="불러오기" variant="plain" onPress={() => { setItemSearch(''); setSheetMode('add-existing'); }} />
+              <AppButton label="직접 기록" variant="plain" onPress={() => setSheetMode('manual-items')} />
+            </View>
+          ) : null}
         </View>
         {viewModel.accountGroups.map((group) => (
           <TodayAccountSection key={group.accountId} group={group} onItemPress={setSelectedItem} />
@@ -209,7 +212,10 @@ export default function TodayScreen() {
           <View style={styles.emptyState}>
             <Text style={textStyles.title}>오늘 표시할 항목이 없습니다.</Text>
             <Text style={textStyles.muted}>저장된 항목을 불러오거나 새 항목을 만든 뒤 바로 기록할 수 있습니다.</Text>
-            <AppButton label="항목 불러오기" variant="secondary" onPress={() => setSheetMode('add-existing')} />
+            <View style={styles.emptyActions}>
+              <AppButton label="항목 불러오기" variant="secondary" onPress={() => setSheetMode('add-existing')} style={styles.emptyAction} />
+              <AppButton label="직접 기록" variant="plain" onPress={() => setSheetMode('manual-items')} style={styles.emptyAction} />
+            </View>
           </View>
         ) : null}
       </Screen>
@@ -384,9 +390,12 @@ function formatTodayLabel(now: Date): string {
 }
 
 const styles = StyleSheet.create({
-  listHeader: { gap: tokens.space.xs },
-  listActions: { flexDirection: 'row', flexWrap: 'wrap', gap: tokens.space.xxs },
-  emptyState: { gap: tokens.space.sm, borderRadius: tokens.radius.card, padding: tokens.space.md },
+  listHeader: { minHeight: tokens.hitTarget, gap: tokens.space.xxs },
+  listTitle: { color: COLORS.text, fontSize: 17, fontWeight: '800', letterSpacing: -0.2 },
+  listActions: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'flex-end', gap: 0 },
+  emptyState: { gap: tokens.space.sm, borderRadius: tokens.radius.card, backgroundColor: COLORS.surfaceRaised, padding: tokens.space.md },
+  emptyActions: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: tokens.space.xs },
+  emptyAction: { flexGrow: 1 },
   accountChoices: { gap: tokens.space.xs },
   recordChip: { flexGrow: 1 },
   itemGroup: { gap: tokens.space.xs },

@@ -9,15 +9,25 @@ import { AppProvider } from '@/context/app-context';
 import { SyncProvider } from '@/context/sync-context';
 import { migrateDatabase } from '@/data/migrations';
 import { observeNotificationNavigation } from '@/services/notifications';
+import { COLORS } from '@/theme/colors';
 
 export { ErrorBoundary } from 'expo-router';
 
 function Navigation() {
   useEffect(() => observeNotificationNavigation(), []);
   return (
-    <Stack screenOptions={{ headerBackTitle: '뒤로' }}>
+    <Stack
+      screenOptions={{
+        headerBackTitle: '뒤로',
+        headerShadowVisible: false,
+        headerStyle: { backgroundColor: COLORS.background },
+        headerTintColor: COLORS.text,
+        headerTitle: '',
+        headerTitleStyle: { fontWeight: '700' },
+        contentStyle: { backgroundColor: COLORS.background },
+      }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="more" options={{ title: '더보기' }} />
+      <Stack.Screen name="more" options={{ title: '' }} />
       <Stack.Screen name="week" options={{ title: '지표' }} />
       <Stack.Screen name="projects" options={{ title: '프로젝트' }} />
       <Stack.Screen name="plan" options={{ title: '주간 시간 분배' }} />

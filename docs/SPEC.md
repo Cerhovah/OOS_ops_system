@@ -154,6 +154,7 @@ OOS Ops는 사용자가 직접 계획과 실제 시간을 기록하고, 계정·
 ## 5. UI와 접근성
 
 - 화면은 safe-area inset과 글꼴 배율에 따라 하단 여백과 탭 높이를 계산한다. 특정 Galaxy 픽셀 상수를 사용하지 않는다.
+- 하단 두 탭은 시스템 내비게이션과 하나의 두꺼운 띠로 합쳐 보이지 않도록 안전영역 위의 독립된 2분할 캡슐로 표시한다. 본문은 캡슐 높이·하단 offset·여백을 합한 footprint만큼 비운다.
 - 주요 터치 대상은 최소 48dp를 기준으로 한다.
 - 큰 글씨, TalkBack 의미, dark mode, 키보드, Android back, Reduce Motion 경계를 보존한다.
 - 긴 계정·항목명과 숫자를 임의로 잘라 정보 손실을 만들지 않는다.
@@ -172,6 +173,9 @@ OOS Ops는 사용자가 직접 계획과 실제 시간을 기록하고, 계정·
 - 주 레퍼런스는 Mobbin의 [Tiimo `Completing a task`](https://mobbin.com/flows/5b4c73db-d619-4f47-a666-5663d1b65ce3)다. 오늘 목록 노출, 항목 맥락의 시작→실행→종료 연속성만 채택한다.
 - 보조 레퍼런스는 [timespent `Creating a recurring plan`](https://mobbin.com/flows/4b25d929-de2b-4d37-a017-03c13d9f23fb)의 계획 진입 명료성과 [Equinox+ `Completed daily activities`](https://mobbin.com/flows/e5c30bf9-efe1-4346-a86e-fcecfbc35e4f)의 완료 뒤 목록 복귀 패턴이다.
 - 브랜드 색, 캐릭터, 카피, 화면 조합을 복제하지 않는다. OOS의 계정→항목, 숫자·단위 노출, 비판단 문구, 로컬 기록 원장을 우선한다.
+- 시각 혼합은 역할을 고정한다. Tiimo에서는 첫 화면의 행 중심 정보 밀도와 실행 맥락 연속성, timespent에서는 따뜻한 중립 배경·그룹형 표면·캡슐 내비게이션, Equinox+에서는 절제된 단색 위계와 완료 후 목록 복귀만 채택한다.
+- 색상은 따뜻한 무채색 배경과 저채도 잉크 바이올렛 한 계열을 기본으로 한다. 실행 상태는 작은 표시·텍스트·얕은 tint로만 강조하며, 일시정지는 경고색이나 큰 갈색 면이 아니라 중립 표면과 상태 문구로 구분한다.
+- 화면마다 독립 카드 테두리를 반복하지 않는다. Today 항목은 계정별 그룹 표면 안의 행과 구분선으로 묶고, 현재 실행만 별도 표면으로 올린다. 터치 영역 48dp와 긴 이름·큰 글씨 대응은 밀도 축소와 함께 유지한다.
 - 기존 Figma `Quiet Routine` 4화면은 비교용 legacy로 보존한다. 직접 시작 sheet, 빈 Today placeholder, pause/remaining이 없는 Timer는 승인안에서 폐기한다. Records ledger의 날짜 이동, 계획·실제·signed 차이, 원장 구조는 계정 소계를 더해 유지한다.
 - 편집 가능한 새 Figma 화면·토큰·컴포넌트는 기존 legacy와 분리해 구축하고 합성 데이터만 사용한다.
 - 자세한 비교와 도구 상태는 `design-research.md`에 기록한다.

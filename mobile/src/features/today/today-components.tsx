@@ -14,11 +14,15 @@ import { tokens } from '@/theme/tokens';
 import type { Item } from '@/types/domain';
 
 export function TodaySummary({ plannedMinutes, actualMinutes }: { plannedMinutes: number; actualMinutes: number }) {
+  const remainingMinutes = Math.max(0, plannedMinutes - actualMinutes);
   return (
-    <View style={styles.todaySummary}>
-      <Text style={styles.todaySummaryText}>
-        오늘 기록 {formatMinutes(actualMinutes)} · 남은 계획 {formatMinutes(Math.max(0, plannedMinutes - actualMinutes))}
-      </Text>
+    <View
+      accessible
+      accessibilityLabel={`오늘 기록 ${formatMinutes(actualMinutes)}, 남은 계획 ${formatMinutes(remainingMinutes)}`}
+      style={styles.todaySummary}>
+      <SummaryMetric label="오늘 기록" value={formatMinutes(actualMinutes)} />
+      <View style={styles.summaryDivider} />
+      <SummaryMetric label="남은 계획" value={formatMinutes(remainingMinutes)} />
     </View>
   );
 }
@@ -38,16 +42,31 @@ export function TodayAccountSection({
           {formatMinutes(group.actualMinutes)} / {formatMinutes(group.plannedMinutes)}
         </Text>
       </View>
-      {group.items.map((item) => (
-        <TodayItemRow key={item.candidate.item.id} model={item} onPress={() => onItemPress(item)} />
-      ))}
+      <View style={styles.accountList}>
+        {group.items.map((item, index) => (
+          <TodayItemRow
+            key={item.candidate.item.id}
+            model={item}
+            isLast={index === group.items.length - 1}
+            onPress={() => onItemPress(item)}
+          />
+        ))}
+      </View>
     </View>
   );
 }
 
-export function TodayItemRow({ model, onPress }: { model: TodayItemViewModel; onPress: () => void }) {
+export function TodayItemRow({
+  model,
+  onPress,
+  isLast = false,
+}: {
+  model: TodayItemViewModel;
+  onPress: () => void;
+  isLast?: boolean;
+}) {
   const state = model.session?.runtime.status ?? 'idle';
-  const action = state === 'running' ? '실행 중' : state === 'paused' ? '다시 시작' : '열기';
+  const action = state === 'running' ? '실행 중' : state === 'paused' ? '일시정지' : '보기';
   return (
     <Pressable
       accessibilityRole="button"
@@ -57,15 +76,25 @@ export function TodayItemRow({ model, onPress }: { model: TodayItemViewModel; on
         styles.todayItem,
         state === 'running' && styles.todayItemRunning,
         state === 'paused' && styles.todayItemPaused,
+        isLast && styles.todayItemLast,
         pressed && styles.pressed,
       ]}>
+      <View style={[
+        styles.itemStateMark,
+        state === 'running' && styles.itemStateMarkRunning,
+        state === 'paused' && styles.itemStateMarkPaused,
+      ]} />
       <View style={styles.todayItemCopy}>
         <Text style={styles.taskName} numberOfLines={2}>{model.candidate.item.name}</Text>
-        <Text style={[textStyles.muted, state === 'running' && styles.activeMeta]} numberOfLines={2}>
+        <Text style={textStyles.muted} numberOfLines={2}>
           {model.summary}
         </Text>
       </View>
-      <Text style={[styles.todayItemAction, state === 'running' && styles.activeMeta]}>{action}</Text>
+      <Text style={[
+        styles.todayItemAction,
+        state === 'running' && styles.activeMeta,
+        state === 'paused' && styles.pausedMeta,
+      ]}>{action}</Text>
     </Pressable>
   );
 }
@@ -98,14 +127,19 @@ export function CurrentSessionCard({
       : `계획보다 ${formatMinutes(Math.abs(remaining))} 더 기록`;
   return (
     <View style={[styles.sessionCard, session.runtime.status === 'paused' && styles.sessionCardPaused]}>
-      <Text style={[styles.sessionStatus, session.runtime.status === 'paused' && styles.pausedMeta]}>{statusLabel}</Text>
+      <View style={styles.sessionMetaRow}>
+        <View style={styles.sessionStatusWrap}>
+          <View style={[styles.sessionDot, session.runtime.status === 'paused' && styles.sessionDotPaused]} />
+          <Text style={[styles.sessionStatus, session.runtime.status === 'paused' && styles.pausedMeta]}>{statusLabel}</Text>
+        </View>
+        <Text style={styles.sessionRemaining}>{remainingLabel}</Text>
+      </View>
       <Text accessibilityRole="header" style={styles.sessionItem} numberOfLines={2}>
         {accountName} · {session.item.name}
       </Text>
       <Text accessibilityLabel={`경과 시간 ${formatTimer(elapsed)}`} style={styles.sessionTimer}>
         {formatTimer(elapsed)}
       </Text>
-      <Text style={textStyles.muted}>{remainingLabel}</Text>
       <View style={styles.sessionActions}>
         <View style={styles.sessionSecondaryAction}>
           <AppButton
@@ -223,6 +257,15 @@ function MetricColumn({ label, value }: { label: string; value: string }) {
   );
 }
 
+function SummaryMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={styles.summaryMetric}>
+      <Text style={styles.summaryLabel}>{label}</Text>
+      <Text style={styles.summaryValue}>{value}</Text>
+    </View>
+  );
+}
+
 function useTimerElapsed(runtime: TimerRuntime): number {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -243,32 +286,45 @@ function formatTimer(milliseconds: number): string {
 }
 
 const styles = StyleSheet.create({
-  todaySummary: { minHeight: tokens.hitTarget, justifyContent: 'center', borderRadius: tokens.radius.control, backgroundColor: COLORS.surface, paddingHorizontal: tokens.space.sm },
-  todaySummaryText: { color: COLORS.muted, fontSize: tokens.type.caption, fontWeight: '600', fontVariant: ['tabular-nums'] },
-  accountGroup: { gap: tokens.space.xs },
-  accountHeader: { minHeight: 32, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: tokens.space.sm },
-  accountTitle: { flex: 1, color: COLORS.text, fontSize: tokens.type.caption, fontWeight: '700' },
+  todaySummary: { minHeight: 62, flexDirection: 'row', alignItems: 'center', borderRadius: tokens.radius.card, backgroundColor: COLORS.surfaceRaised, paddingHorizontal: tokens.space.md },
+  summaryMetric: { flex: 1, gap: 3 },
+  summaryLabel: { color: COLORS.muted, fontSize: 12, fontWeight: '600' },
+  summaryValue: { color: COLORS.text, fontSize: tokens.type.body, fontWeight: '800', fontVariant: ['tabular-nums'] },
+  summaryDivider: { width: 1, height: 28, marginHorizontal: tokens.space.sm, backgroundColor: COLORS.border },
+  accountGroup: { gap: 6 },
+  accountHeader: { minHeight: 30, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: tokens.space.sm, paddingHorizontal: tokens.space.xxs },
+  accountTitle: { flex: 1, color: COLORS.text, fontSize: tokens.type.caption, fontWeight: '800', letterSpacing: -0.1 },
   accountSubtotal: { color: COLORS.muted, fontSize: tokens.type.caption, fontVariant: ['tabular-nums'] },
-  todayItem: { minHeight: 72, flexDirection: 'row', alignItems: 'center', gap: tokens.space.sm, borderColor: COLORS.border, borderWidth: 1, borderRadius: tokens.radius.card, backgroundColor: COLORS.surface, paddingVertical: tokens.space.sm, paddingHorizontal: tokens.space.md },
-  todayItemRunning: { borderColor: COLORS.accent, backgroundColor: COLORS.accentSoft },
-  todayItemPaused: { borderColor: COLORS.warning, backgroundColor: COLORS.warningSoft },
+  accountList: { borderRadius: tokens.radius.card, backgroundColor: COLORS.surfaceRaised, overflow: 'hidden' },
+  todayItem: { minHeight: 66, flexDirection: 'row', alignItems: 'center', gap: tokens.space.sm, borderBottomColor: COLORS.border, borderBottomWidth: StyleSheet.hairlineWidth, paddingVertical: 10, paddingHorizontal: tokens.space.sm },
+  todayItemLast: { borderBottomWidth: 0 },
+  todayItemRunning: { backgroundColor: COLORS.accentSoft },
+  todayItemPaused: { backgroundColor: COLORS.surfaceSubtle },
+  itemStateMark: { width: 3, height: 28, borderRadius: 2, backgroundColor: 'transparent' },
+  itemStateMarkRunning: { backgroundColor: COLORS.accent },
+  itemStateMarkPaused: { backgroundColor: COLORS.muted },
   todayItemCopy: { flex: 1, gap: tokens.space.xxs },
-  taskName: { flex: 1, color: COLORS.text, fontSize: tokens.type.body, fontWeight: '700', lineHeight: 23 },
+  taskName: { flex: 1, color: COLORS.text, fontSize: tokens.type.body, fontWeight: '700', lineHeight: 22, letterSpacing: -0.2 },
   todayItemAction: { color: COLORS.muted, fontSize: tokens.type.caption, fontWeight: '700' },
-  activeMeta: { color: COLORS.accent },
-  pausedMeta: { color: COLORS.warning },
+  activeMeta: { color: COLORS.accentStrong },
+  pausedMeta: { color: COLORS.muted },
   pressed: { opacity: 0.7 },
-  sessionCard: { gap: tokens.space.sm, borderRadius: tokens.radius.card, backgroundColor: COLORS.accentSoft, padding: tokens.space.md },
-  sessionCardPaused: { backgroundColor: COLORS.warningSoft },
-  sessionStatus: { color: COLORS.accent, fontSize: tokens.type.caption, fontWeight: '700' },
+  sessionCard: { gap: 10, borderLeftWidth: 3, borderLeftColor: COLORS.accent, borderRadius: tokens.radius.card, backgroundColor: COLORS.surfaceRaised, padding: tokens.space.md },
+  sessionCardPaused: { borderLeftColor: COLORS.muted },
+  sessionMetaRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: tokens.space.xs },
+  sessionStatusWrap: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  sessionDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: COLORS.accent },
+  sessionDotPaused: { backgroundColor: COLORS.muted },
+  sessionStatus: { color: COLORS.accentStrong, fontSize: tokens.type.caption, fontWeight: '700' },
+  sessionRemaining: { flexShrink: 1, color: COLORS.muted, fontSize: tokens.type.caption, textAlign: 'right', fontVariant: ['tabular-nums'] },
   sessionItem: { color: COLORS.text, fontSize: tokens.type.body, fontWeight: '700', lineHeight: 23 },
-  sessionTimer: { color: COLORS.text, fontSize: 44, lineHeight: 52, fontWeight: '800', fontVariant: ['tabular-nums'], letterSpacing: -1.5 },
+  sessionTimer: { color: COLORS.text, fontSize: 38, lineHeight: 46, fontWeight: '800', fontVariant: ['tabular-nums'], letterSpacing: -1.3 },
   sessionActions: { flexDirection: 'row', gap: tokens.space.xs },
   sessionSecondaryAction: { flex: 2 },
   sessionPrimaryAction: { flex: 3 },
   metricHero: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: tokens.space.xs, paddingVertical: tokens.space.sm },
   metricValue: { color: COLORS.text, fontSize: tokens.type.body, fontWeight: '700', fontVariant: ['tabular-nums'] },
-  metricRow: { flexDirection: 'row', borderTopColor: COLORS.border, borderTopWidth: 1, borderBottomColor: COLORS.border, borderBottomWidth: 1, paddingVertical: tokens.space.md },
+  metricRow: { flexDirection: 'row', borderRadius: tokens.radius.card, backgroundColor: COLORS.surfaceRaised, paddingVertical: 14, paddingHorizontal: tokens.space.xs },
   metricColumn: { flex: 1, alignItems: 'center', gap: tokens.space.xxs },
   metricColumnValue: { color: COLORS.text, fontSize: tokens.type.body, fontWeight: '700', fontVariant: ['tabular-nums'] },
   ledgerRow: { minHeight: tokens.hitTarget, flexDirection: 'row', alignItems: 'center', gap: tokens.space.md, paddingVertical: tokens.space.sm, borderBottomColor: COLORS.border, borderBottomWidth: 1 },
@@ -277,8 +333,8 @@ const styles = StyleSheet.create({
   choiceWrap: { gap: tokens.space.xs },
   choiceLabel: { color: COLORS.text, fontSize: tokens.type.caption, fontWeight: '600' },
   choiceRow: { flexDirection: 'row', flexWrap: 'wrap', gap: tokens.space.xs },
-  choice: { minHeight: tokens.hitTarget, borderColor: COLORS.border, borderWidth: 1, borderRadius: tokens.radius.pill, justifyContent: 'center', paddingHorizontal: tokens.space.sm },
-  choiceSelected: { backgroundColor: COLORS.accentSoft, borderColor: COLORS.accent },
+  choice: { minHeight: tokens.hitTarget, backgroundColor: COLORS.surfaceSubtle, borderRadius: tokens.radius.pill, justifyContent: 'center', paddingHorizontal: tokens.space.sm },
+  choiceSelected: { backgroundColor: COLORS.accentSoft },
   choiceText: { color: COLORS.text, fontSize: tokens.type.caption },
   choiceTextSelected: { color: COLORS.accent, fontWeight: '700' },
   actionBar: { flexDirection: 'row', flexWrap: 'wrap', gap: tokens.space.xs, paddingTop: tokens.space.sm },
