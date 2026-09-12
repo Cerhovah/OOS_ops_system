@@ -11,6 +11,15 @@
 
 실행 기록에는 실행일, source SHA, 앱 버전/versionCode, SQLite 버전, 기기/OS, 조건, 기대값/실제값, 증빙 위치와 재현 실패만 남긴다. 자동 검증은 합성 데이터, 실기기는 개인정보를 가린 증빙을 사용한다.
 
+## P5 공개 준비 UI 재정비 게이트 — 2026-09-13 통과
+
+- 소스/경계: `3a07c41`, `0.6.0(12)`, SQLite v6. Today-first 동작은 유지하고 Tiimo의 오늘 목록·맥락 연속성, timespent의 웜 뉴트럴·그룹형 표면·캡슐 내비게이션, Equinox+의 절제된 단색 위계를 혼합했다. SQLite schema/migration, repository 쓰기, Supabase/sync 계약 변경은 0건이다.
+- 자동 게이트: `npm run verify` 종료 코드 0. TypeScript/ESLint 0, 40 files/238 tests, coverage statements 98.10% / branches 94.21% / functions 100% / lines 99.18%, Supabase 계약 2 files/8 tests, Expo dependency check, Doctor 21/21, Android Hermes 1,832 modules와 4.8MB `.hbc`를 통과했다.
+- 실기기 조건: 승인된 SM-S721N(Galaxy S24 FE), Android 16/API 36, 1080×2340, override density 540, font scale 1.15, 시스템 dark mode에서 동일 applicationId/signing의 development helper와 ADB reverse로 확인했다.
+- 시각 결과: Today 요약/빈 상태의 그룹 위계, 기록의 날짜 선택·계획/실제/차이·고정 행동, 시스템 3-button navigation 위에 분리된 2분할 캡슐 탭, 더보기의 테마 일치 back header·중복 제목 제거·그룹형 행을 확인했다. 기기 화면의 FPS/톱니 오버레이는 Android 개발자 도구이며 앱 구성요소가 아니다.
+- 데이터/런타임: 화면 이동만 수행했고 기록·계획·동기화 데이터는 만들거나 수정하지 않았다. 연속 강제종료/Metro 재연결 중 development client에서 SQLite `database is locked` 오버레이가 1회 발생했으나 4초 완전 종료 후 단일 재실행에서는 재현되지 않았고 정상 화면을 확인했다. 데이터 초기화나 migration 재실행은 하지 않았다.
+- 제한: Expo web preview는 기존 `expo-sqlite/web/worker.ts`의 `wa-sqlite.wasm` 해석 실패로 렌더 전에 중단됐다. Android 공개판 대상 번들·실기기 결과에는 영향이 없으며, 새 personal standalone APK는 이 UI 게이트에 포함하지 않는다.
+
 ## P5 Today-first `0.6.0(12)` standalone 종료 게이트 — 2026-09-12 통과
 
 - 소스 경계: 기준점 `3c7eb78`을 보존하고 그 자식 `7733ff6`에서 Expo SDK 57이 요구한 13개 direct dependency와 lockfile만 호환 patch로 정렬했다. 기능 코드, SQLite v6 schema/migration, Supabase/sync 계약 diff는 0건이다.
