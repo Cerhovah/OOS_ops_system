@@ -1,6 +1,6 @@
 # OOS Ops 제품·현재 구현·승인 설계 명세
 
-- 기준일: 2026-09-12
+- 기준일: 2026-09-13
 - 현재 버전과 설치 기준선: `0.6.0`, Android `versionCode 12`, personal release
 - 로컬 데이터베이스: SQLite schema v6
 - 범위: 검증된 현재 구현과 사용자가 승인한 다음 UI/UX 구현 계약을 구분해 기술한다. 승인되지 않은 출시 일정과 후속 기능은 이 문서의 범위가 아니다.
@@ -154,11 +154,12 @@ OOS Ops는 사용자가 직접 계획과 실제 시간을 기록하고, 계정·
 ## 5. UI와 접근성
 
 - 화면은 safe-area inset과 글꼴 배율에 따라 하단 여백과 탭 높이를 계산한다. 특정 Galaxy 픽셀 상수를 사용하지 않는다.
-- 하단 두 탭은 시스템 내비게이션과 하나의 두꺼운 띠로 합쳐 보이지 않도록 안전영역 위의 독립된 2분할 캡슐로 표시한다. 본문은 캡슐 높이·하단 offset·여백을 합한 footprint만큼 비운다.
-- 주요 터치 대상은 최소 48dp를 기준으로 한다.
+- 하단 두 탭은 OOS가 소유하는 compact 2탭 구조다. 시스템 내비게이션과 시각적으로 분리하고 safe-area 위에 두되, 화면 폭을 차지하는 큰 floating widget이나 두꺼운 이중 바처럼 보이지 않게 한다. 정확한 표면·높이·offset은 승인 Figma와 기기 검수에서 정하고 특정 상용 앱의 탭을 복제하지 않는다.
+- 주요 터치 대상은 최소 48dp를 기준으로 한다. 이는 hit area 규칙이며 보이는 아이콘·pill·버튼 높이를 48dp로 키우라는 뜻이 아니다. compact control은 전체 행 press target 또는 투명한 hitSlop으로 충족한다.
 - 큰 글씨, TalkBack 의미, dark mode, 키보드, Android back, Reduce Motion 경계를 보존한다.
 - 긴 계정·항목명과 숫자를 임의로 잘라 정보 손실을 만들지 않는다.
 - `TaskSheet`, `TimerView`, `LedgerRow`, `ChoiceChips`, `PlanActualDelta`, `MetricHero`, `FixedActionBar` 등 의미 부품은 DB/Auth/API를 직접 가져오지 않는다.
+- Light는 따뜻한 저채도 표면의 주 시각 승인안으로, Dark는 같은 의미 토큰을 사용한 별도 상태로 각각 설계·검수한다. 시스템 dark mode에서 우연히 렌더된 화면을 Light 승인안의 대체 증빙으로 사용하지 않는다.
 
 ## 6. 빌드와 환경
 
@@ -168,17 +169,21 @@ OOS Ops는 사용자가 직접 계획과 실제 시간을 기록하고, 계정·
 - 현재 일상 사용 기준은 서명된 `0.6.0(12)` personal release다. 기준 소스는 `3c7eb78`의 기능 구현과 그 자식 `7733ff6`의 Expo SDK 57 patch 정렬이며, SQLite schema와 Supabase/sync 계약은 바뀌지 않았다.
 - ADB 자동화는 사용자가 연결·디버깅을 승인한 기기에서 이 앱의 설치·실행·로그·화면 확인에만 사용한다.
 
-## 7. 디자인 근거의 현재 판정
+## 7. 디자인 근거와 구현 선행 게이트
 
-- 주 레퍼런스는 Mobbin의 [Tiimo `Completing a task`](https://mobbin.com/flows/5b4c73db-d619-4f47-a666-5663d1b65ce3)다. 오늘 목록 노출, 항목 맥락의 시작→실행→종료 연속성만 채택한다.
-- 보조 레퍼런스는 [timespent `Creating a recurring plan`](https://mobbin.com/flows/4b25d929-de2b-4d37-a017-03c13d9f23fb)의 계획 진입 명료성과 [Equinox+ `Completed daily activities`](https://mobbin.com/flows/e5c30bf9-efe1-4346-a86e-fcecfbc35e4f)의 완료 뒤 목록 복귀 패턴이다.
+- 아래 역할과 `P5 Visual v2` 범위는 2026-09-13 Phase 0 승인 후보며 implementation gate 승인 전에는 구현 근거로 사용할 수 없다.
+- 레퍼런스는 하나의 평균 스타일로 섞지 않고 역할을 고정한다.
+  - 시각 기준: Mobbin의 [timespent `Creating a recurring plan`](https://mobbin.com/flows/4b25d929-de2b-4d37-a017-03c13d9f23fb)에서 표면 위계, 간격 밀도, 타이포 위계, 행 처리와 컨트롤의 시각 무게만 채택한다.
+  - 상호작용 기준: [Tiimo `Completing a task`](https://mobbin.com/flows/5b4c73db-d619-4f47-a666-5663d1b65ce3)에서 오늘 목록이 첫 화면에 보이고 선택→실행→종료 뒤 같은 맥락으로 돌아오는 연속성만 채택한다. 2026-09-13 재조회된 [완료 보조 흐름](https://mobbin.com/flows/35e4e630-7681-4ad3-a704-9e4b1b3797e5)은 완료 뒤 같은 목록으로 돌아오는 동작만 교차 확인한다.
+  - 보조 기준: [Equinox+ `Completed daily activities`](https://mobbin.com/flows/e5c30bf9-efe1-4346-a86e-fcecfbc35e4f)에서 기록의 날짜→그룹→상세 위계와 절제된 dark mode만 채택한다.
+- timespent 화면 아래의 검은 띠는 Mobbin 표식이므로 디자인에 포함하지 않는다. 그 위의 흰색 분할 pill은 실제 앱 UI지만 OOS 2탭의 크기·위치·그림자를 그대로 복제하지 않는다. OOS 내비게이션은 안전영역, 현재 2탭 정보 구조와 첫 화면 밀도에 맞춘 독립 제품 규칙이다.
 - 브랜드 색, 캐릭터, 카피, 화면 조합을 복제하지 않는다. OOS의 계정→항목, 숫자·단위 노출, 비판단 문구, 로컬 기록 원장을 우선한다.
-- 시각 혼합은 역할을 고정한다. Tiimo에서는 첫 화면의 행 중심 정보 밀도와 실행 맥락 연속성, timespent에서는 따뜻한 중립 배경·그룹형 표면·캡슐 내비게이션, Equinox+에서는 절제된 단색 위계와 완료 후 목록 복귀만 채택한다.
-- 색상은 따뜻한 무채색 배경과 저채도 잉크 바이올렛 한 계열을 기본으로 한다. 실행 상태는 작은 표시·텍스트·얕은 tint로만 강조하며, 일시정지는 경고색이나 큰 갈색 면이 아니라 중립 표면과 상태 문구로 구분한다.
-- 화면마다 독립 카드 테두리를 반복하지 않는다. Today 항목은 계정별 그룹 표면 안의 행과 구분선으로 묶고, 현재 실행만 별도 표면으로 올린다. 터치 영역 48dp와 긴 이름·큰 글씨 대응은 밀도 축소와 함께 유지한다.
-- 기존 Figma `Quiet Routine` 4화면은 비교용 legacy로 보존한다. 직접 시작 sheet, 빈 Today placeholder, pause/remaining이 없는 Timer는 승인안에서 폐기한다. Records ledger의 날짜 이동, 계획·실제·signed 차이, 원장 구조는 계정 소계를 더해 유지한다.
-- 편집 가능한 새 Figma 화면·토큰·컴포넌트는 기존 legacy와 분리해 구축하고 합성 데이터만 사용한다.
-- 자세한 비교와 도구 상태는 `design-research.md`에 기록한다.
+- 색상은 따뜻한 무채색 Light 표면과 한 계열의 저채도 accent를 기본으로 한다. 실행 상태는 작은 표시·텍스트·얕은 tint로만 강조하며, 일시정지는 경고색이나 큰 색면이 아니라 상태 문구와 중립 표면으로 구분한다. Dark는 Equinox+의 절제를 참고하되 별도 토큰 모드로 검수한다.
+- 화면마다 독립 카드 테두리를 반복하지 않는다. Today 항목은 계정별 그룹 표면 안의 compact row와 구분선으로 묶고, 현재 실행만 한 단계 올린다. 보이는 컨트롤을 키우지 않고도 48dp hit area, 긴 이름과 큰 글씨를 보존한다.
+- 기존 Figma `P5 Quiet Routine`과 `P5 Approved · Foundations/Components/Screens`는 모두 비교용 legacy다. 후자는 편집 가능한 변수·컴포넌트를 포함하지만 잘린 계정 목록, 불완전한 컴포넌트 표본, 현재 계약과 다른 4탭과 낮은 시각 완성도로 인해 구현 source of truth 승인을 철회한다.
+- 새 source of truth는 같은 파일의 별도 `P5 Visual v2` 페이지다. 핵심 승인 frame은 Today 기본, 항목 선택, running, paused, Records이며, 전환 충돌·실행 중 직접 기록·no-plan/over-plan·긴 이름/큰 글씨·Light/Dark를 edge variant로 함께 정의한다. 합성 데이터만 사용한다.
+- 각 frame은 코드 착수 전 Figma design context와 screenshot을 함께 확인하고, 사용자 승인과 읽기 전용 시각 검수를 통과해야 한다. 구현 뒤에는 같은 상태의 기기 screenshot을 승인 Figma와 나란히 비교한다. 고정 유사도 수치 하나로 시각 합격을 대신하지 않는다.
+- `design/p5-visual-v2.gate.json`의 implementation gate가 승인되기 전에는 P5 Visual v2 앱 코드와 개발 빌드를 시작하지 않는다. 자세한 절차와 현재 차이는 `design/P5_VISUAL_PIPELINE.md`와 `design-research.md`에 둔다.
 
 ## 8. 최소 검증 원칙
 
@@ -188,6 +193,8 @@ OOS Ops는 사용자가 직접 계획과 실제 시간을 기록하고, 계정·
 - dependency, native, schema, sync 계약을 바꾸거나 큰 기능 묶음을 종료할 때만 전체 `npm run verify`를 실행한다.
 - 작은 UI 수정마다 APK, 원격 DB, 전체 실기기 시나리오를 반복하지 않는다.
 - 실기기 확인은 변경된 핵심 흐름을 한 번 확인하고 build/OS/기기와 실제 결과만 기록한다.
+- 대규모 시각 변경은 Mobbin 역할표 → high-fidelity Figma → frame별 design context/screenshot → 읽기 전용 시각 검수 → 화면 단위 구현 → 합성 데이터 기기 비교 순서로 진행한다. Figma 승인 전에는 코드·APK 검증을 반복하지 않는다.
+- screenshot 자동 비교는 환경·폰트·테마를 고정한 합성 데이터 테스트의 drift 탐지 보조수단이다. 개인용 실기기 데이터를 초기화하지 않으며 수치 일치만으로 UX·접근성 승인을 대체하지 않는다.
 - 데이터 손실 가능성, 승인하지 않은 과금·공개, 불변조건 충돌이 생기면 해당 범위만 멈추고 사용자에게 구체적으로 보고한다.
 
 ## 9. 현재 검증 기준선
@@ -198,7 +205,7 @@ OOS Ops는 사용자가 직접 계획과 실제 시간을 기록하고, 계정·
 - Expo SDK 57이 요구한 13개 direct dependency를 호환 patch로 정렬한 뒤 clean `npm ci`와 전체 `npm run verify`를 통과했다. Android Hermes export는 1,832 modules와 4.8MB `.hbc`다.
 - EAS personal `769d5e3e-6df8-49ae-9994-11458c7fe8a4`로 `0.6.0(12)` standalone을 만들고, DB/WAL/SHM 해시 일치 백업 뒤 SM-S721N(Android 16)에 데이터 보존 update install했다.
 - Metro/ADB reverse 없는 cold start, Today 시작·일시정지·재시작 복원·재개·타이머 전환·직접 기록·종료·합계/원장 반영과 기존 수동 sync 전송 대기 0건을 확인했다.
-- 이 기준선은 현재 구현의 증거이며 미구현 동작을 암시하거나 승인하지 않는다.
+- 이 기준선은 기능·데이터 보존의 증거다. 2026-09-13 현재 시각 방향의 공개 승인에는 사용하지 않으며, 새 `P5 Visual v2` 디자인과 구현·기기 비교가 끝날 때까지 현재 UI를 공개 가능 디자인으로 판정하지 않는다.
 
 ## 10. 현재 비범위
 

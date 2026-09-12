@@ -14,7 +14,7 @@
 
 ## Windows 10/11 x64
 
-아래 `npm run verify`는 새 환경 복구 또는 Phase 종료용 전체 기준선이다. 일반 UI 변경에는 루트 `AGENTS.md`와 SPEC §10.3의 최소 검증 원칙(typecheck/lint와 관련 테스트)을 우선 적용하며, 매 편집마다 전체 검증이나 APK 빌드를 반복하지 않는다.
+아래 `npm run verify`는 새 환경 복구 또는 Phase 종료용 전체 기준선이다. 일반 UI 변경에는 루트 `AGENTS.md`와 SPEC §8의 최소 검증 원칙(typecheck/lint와 관련 테스트)을 우선 적용하며, 매 편집마다 전체 검증이나 APK 빌드를 반복하지 않는다.
 
 필수 설치:
 
@@ -228,3 +228,14 @@ Windows 긴 경로는 OS에서 `LongPathsEnabled=1`, 이 저장소의 로컬 Git
 - 현재 저장소 asset은 2026년만 지원한다. 지원 범위 밖에서도 달력과 로컬 기록은 정상 동작하며 공휴일 이름만 표시하지 않는다.
 - ADB `37.0.1`과 SM-S721N 연결을 확인했다. 로컬 JDK/Android SDK는 계속 미설치이며 기존 development client+Metro와 EAS 빌드 흐름에는 차단 항목이 아니다.
 - `npm audit --omit=dev`는 moderate 15건, high/critical 0건이다. 호환 계약을 깨는 강제 수정을 하지 않으며 기존 ADR-004 검토 원칙을 유지한다.
+
+## P5 Visual v2 디자인 환경 (2026-09-13)
+
+- Figma 계정 `이준혁의 팀`은 `Pro / Full`이고 파일 `Be9DsWkov1vg3ptUFPpj6F`의 읽기·쓰기와 local variable/component 조회가 된다. 추가 결제나 재연결은 필요하지 않다.
+- Mobbin 전용 도구로 timespent `Creating a recurring plan`, Tiimo 완료 흐름, Equinox+ `Completed daily activities`의 실제 screenshot을 다시 조회했다. 만료되는 image URL이나 상용 앱 screenshot은 저장소에 복사하지 않는다.
+- Claude 웹의 기존 `Quiet Routine UX 검수` Cowork는 완료 상태이고 세션 활동 패널에서 Figma connector 1개를 확인했다. 새 시각 검수자는 `.claude/agents/oos-visual-reviewer.md`로 읽기 전용 정의했고 Cowork 입력은 `design/CLAUDE_COWORK_REVIEW_PROMPT.md`에 고정했다.
+- 사용자 로컬 `C:\Users\skljh\AppData\Local\OOSDesignTools`에 checksum을 확인한 Temurin `17.0.20+101`과 Maestro CLI `2.10.0`을 설치했다. 시스템 PATH는 바꾸지 않았고 user 환경과 `mobile/scripts/run-maestro.ps1`에서 analytics·AI 분석 알림을 비활성화한다. Java 경로는 runner 프로세스 안에서만 설정한다.
+- 공식 [Maestro Windows 설치 문서](https://docs.maestro.dev/getting-started/installing-maestro/windows)는 Java 17 이상을 요구한다. `assertScreenshot`은 제공되지만 고정 match 수치를 제품 승인으로 사용하지 않고, 승인된 합성 데이터 환경의 drift 탐지에만 사용한다.
+- 공식 [Expo EAS Maestro 예시](https://docs.expo.dev/eas/workflows/examples/e2e-tests/)의 원격 job은 alpha·빌드 비용·GitHub 연결 경계가 있어 이번 로컬 준비 범위에는 추가하지 않았다.
+- ADB `R5CY31QP08W`는 연결됐고 `com.oosops.app`이 설치돼 있다. 화면이 잠긴 상태라 개인 데이터 screenshot은 수집하지 않았다. 개인용 실기기에서 Maestro `clearState`를 실행하지 않는다.
+- 디자인 gate는 `npm run design:status`로 읽고, `npm run design:gate -- --stage implementation`은 새 Figma와 사용자·Claude 승인이 기록되기 전 의도적으로 실패한다.

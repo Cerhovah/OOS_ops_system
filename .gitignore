@@ -13,6 +13,9 @@ web-build/
 *.orig.*
 coverage/
 *.log
+mobile/.maestro/screenshots/
+mobile/.maestro/debug-output/
+mobile/.maestro/test-output/
 .DS_Store
 Thumbs.db
 .idea/

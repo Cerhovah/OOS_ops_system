@@ -51,6 +51,9 @@
     "test:supabase-contracts": "vitest run --root .. --config mobile/vitest.config.mts supabase/functions/_shared/analysis-request.test.ts supabase/tests/security-hardening.test.ts",
     "deps:check": "expo install --check",
     "doctor": "expo-doctor .",
+    "design:status": "node scripts/check-design-gate.mjs --stage status",
+    "design:gate": "node scripts/check-design-gate.mjs",
+    "maestro": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run-maestro.ps1",
     "holidays:generate": "node scripts/generate-holidays.mjs",
     "bundle:android": "expo export --platform android --output-dir dist",
     "verify": "npm run typecheck && npm run lint && npm run test:coverage && npm run test:supabase-contracts && npm run deps:check && npm run doctor && npm run bundle:android"

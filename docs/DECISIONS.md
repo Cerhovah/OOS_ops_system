@@ -384,7 +384,7 @@
 ### ADR-031 — 세 레퍼런스의 역할 제한 혼합과 단일 저채도 강조색
 
 - 날짜: 2026-09-13
-- 상태: 승인 / UI 구현
+- 상태: 대체 — ADR-032
 - 맥락: P5 기능 흐름은 승인 계약을 충족했지만 큰 제목·요약·실행 카드·개별 항목 카드·직사각형 하단 탭이 누적되고, 실행 파랑과 일시정지 갈색이 큰 면으로 경쟁해 미니멀한 공개 화면 기준에 미달했다.
 - 결정: Tiimo의 행 중심 Today 흐름, timespent의 따뜻한 중립 배경·그룹 표면·캡슐 내비게이션, Equinox+의 절제된 단색 위계를 역할별로 혼합한다. Light/Dark 모두 저채도 잉크 바이올렛 한 계열만 강조색으로 쓰고 paused는 경고색에서 중립 상태로 바꾼다. 계정별 항목은 하나의 그룹 표면과 구분선으로 묶고, 현재 실행만 별도 표면과 작은 상태 표시로 강조한다. 하단 탭은 safe-area와 글꼴 배율을 분리 계산한 떠 있는 2분할 캡슐로 만든다.
 - 대안: 기존 포화 파랑·갈색 상태 카드 유지, 세 앱의 브랜드 색과 외형을 직접 복제, 시스템 inset을 포함한 전체 폭 직사각형 탭 유지.
@@ -393,6 +393,19 @@
 - 되돌림/재검토 조건: 200% 글꼴에서 탭 label이 잘리거나 실제 기기에서 캡슐이 시스템 내비게이션과 겹치면 기능·데이터 코드 없이 tab height/offset/footprint만 재조정한다.
 - 관련 불변조건/AC: SPEC §2.1~2.14, §3.2, §5, §7, §8
 - 대체 관계: ADR-030의 기능 흐름은 유지하고 시각 계약만 구체화한다. ADR-025의 전체 폭 하단 탭 외형은 대체한다.
+
+### ADR-032 — reference-first Figma source와 단계형 시각 게이트
+
+- 날짜: 2026-09-13
+- 상태: 제안 / Phase 0 환경 준비, 사용자 승인 대기
+- 맥락: ADR-031 구현은 기능·데이터 회귀를 통과했지만 큰 floating capsule, 반복 control, 약한 계정/항목 위계가 상용 공개판 수준에 미달했다. 기존 `P5 Approved` Figma도 잘린 frame과 4탭 충돌이 있어 코드의 신뢰 가능한 입력이 아니었다.
+- 결정: timespent를 surface·spacing·typography·row·control의 시각 master, Tiimo를 Today→실행→종료 연속성의 interaction master, Equinox+를 Records/dark 보조로 역할 고정한다. 내비게이션은 OOS 소유의 compact 2탭으로 별도 설계한다. 새 `P5 Visual v2` high-fidelity Figma를 사용자와 읽기 전용 Claude가 승인한 뒤에만 코드로 옮기고, 구현 뒤 같은 상태의 합성 데이터 기기 screenshot을 대조한다. `docs/design/p5-visual-v2.gate.json`과 dependency 없는 검사 script로 단계 상태를 명시한다.
+- 대안: 현재 코드 토큰을 다시 Figma로 복사, 세 레퍼런스를 추상적으로 평균, Figma 없이 화면 코드를 반복 수정, pixel 유사도 수치 하나로 승인.
+- 근거: 시각 기준과 상호작용 기준을 분리하면 브랜드 복제 없이 일관된 화면 문법을 유지할 수 있다. Figma-first 승인과 frame별 context/screenshot은 구현자의 자의적 번역을 줄이며, 단계 gate는 빌드 비용과 회귀 검증을 디자인 확정 뒤로 미룬다.
+- 결과 및 위험: 기존 기능, SQLite v6, Supabase/sync 계약은 변하지 않는다. 기존 `P5 Approved` 페이지는 이력으로 남지만 source of truth가 아니다. local Maestro는 합성 데이터 drift 탐지에만 쓰고 analytics를 끄며 개인 실기기에서 `clearState`를 금지한다. 새 Figma가 승인되기 전에는 개발 빌드를 만들지 않는다.
+- 되돌림/재검토 조건: 실제 Figma 시안에서 timespent의 시각 문법이 OOS 계정→항목 밀도나 Android 접근성과 충돌하면 reference 역할을 사용자에게 다시 제시한다. 자동 screenshot은 폰트·OS 차이로 불안정하면 보조 증빙으로만 유지한다.
+- 관련 불변조건/AC: SPEC §2.13~2.14, §3.2, §5, §7, §8
+- 대체 관계: ADR-031의 시각 master와 floating capsule 결정을 대체한다. ADR-030의 P5 기능 흐름과 P5/P6 server 경계는 유지한다.
 
 ## 기록 형식
 

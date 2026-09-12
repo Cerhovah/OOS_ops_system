@@ -3,7 +3,7 @@
 ## 기본 역할
 
 이 저장소에서 Claude Code의 기본 역할은 사용자가 구현을 명시하지 않는 한 독립 검수자다.
-OOS UI/UX 전용 검수는 프로젝트 agent `.claude/agents/oos-ux-reviewer.md`를 우선 사용한다.
+OOS 기능 흐름 검수는 프로젝트 agent `.claude/agents/oos-ux-reviewer.md`, reference→Figma→기기 시각 대조는 `.claude/agents/oos-visual-reviewer.md`를 사용한다.
 
 ## 읽기 순서
 

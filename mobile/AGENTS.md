@@ -13,6 +13,7 @@
 - `src/app/`: route와 화면 조합. 오늘/기록 두 탭, 보조 기능 Stack, auth/notification URL·뒤로 가기 보존.
 - `src/features/`: controller·view-model·draft. refresh로 입력을 덮지 않는다.
 - `src/components/`, `src/theme/`: 의미 부품/토큰. DB/Auth/API import 금지. sheet의 focus/back/keyboard/safe-area 공통 처리.
+- 대규모 시각 변경은 `../docs/design/P5_VISUAL_PIPELINE.md`의 Figma-first 순서와 `npm run design:gate -- --stage implementation`을 통과한 frame만 구현한다. Figma legacy 화면이나 현재 코드 토큰을 새 디자인의 출발점으로 삼지 않는다.
 - `src/domain/`: 순수 시간/날짜/집계. now/clock을 전달받아 테스트한다.
 - `src/data/`: SQL/transaction/migration/row validation. 최신 row/revision 확인, SQL에 사용자 값 보간 금지.
 - `src/services/`: 알림/auth/export/sync adapter. 직렬 queue/보상 취소 유지, 비밀값 UI 전달 금지.
@@ -25,5 +26,6 @@
 - rendering tick으로 전체 AppSnapshot refresh나 DB 쓰기를 하지 않는다.
 - records 페이지의 계정·항목 소계와 날짜 합계를 혼동하지 않는다.
 - 새 핵심 화면은 48dp, 200% 글씨, dark, TalkBack, Reduce Motion, 키보드 상태를 변경 범위에 맞게 확인한다.
+- 48dp는 hit area 규칙이며 보이는 컨트롤 높이 규칙이 아니다. compact row·icon은 전체 행 press target 또는 hitSlop으로 충족한다.
 - 일반 UI는 typecheck/lint와 관련 테스트, 데이터·동기화 변경은 관련 단위·저장·migration 보존·계약 테스트를 실행한다.
 - 실제 타이머·알림·설치는 큰 기능 묶음 종료 시 Android development build에서 핵심 흐름을 한 번 확인하고 build/OS/기기를 기록한다.

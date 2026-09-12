@@ -11,7 +11,17 @@
 
 실행 기록에는 실행일, source SHA, 앱 버전/versionCode, SQLite 버전, 기기/OS, 조건, 기대값/실제값, 증빙 위치와 재현 실패만 남긴다. 자동 검증은 합성 데이터, 실기기는 개인정보를 가린 증빙을 사용한다.
 
-## P5 공개 준비 UI 재정비 게이트 — 2026-09-13 통과
+## P5 Visual v2 환경 프리플라이트 — 2026-09-13
+
+- 범위: 디자인 연결·도구·gate만 확인했다. 앱 기능 코드, dependency, SQLite schema, Supabase/sync 계약과 설치 앱 데이터는 변경하지 않았고 개발 빌드를 시작하지 않았다.
+- Figma: `Pro / Full`; 파일에서 legacy 1페이지와 기존 `P5 Approved` 3페이지, Light/Dark variable 30개, text style 6개, component set 5개, 상태 frame 9개를 read-only 조회했다. screenshot에서 Today row clipping, Components 표본 누락, 4탭 계약 충돌을 확인해 구현 source 승인을 철회했다.
+- Mobbin: timespent `4b25d929-de2b-4d37-a017-03c13d9f23fb`, Tiimo 완료 흐름, Equinox+ `e5c30bf9-efe1-4346-a86e-fcecfbc35e4f` 실제 이미지를 조회했다. timespent의 최하단 검은 띠는 Mobbin 표식이고 그 위의 흰 pill은 앱 UI임을 구분했다.
+- Claude: 기존 Cowork 검수 결과와 세션의 Figma connector 1개를 읽기 전용으로 확인했다. 새 visual reviewer 정의는 파일·Figma·외부 상태 수정 도구를 허용하지 않는다.
+- 로컬 도구: Temurin `17.0.20+101`, Maestro CLI `2.10.0`을 checksum 검증 뒤 격리 설치하고 runner에서 analytics를 비활성화했다. `npm run maestro -- --version`과 `npm run design:status`를 대상으로 확인한다.
+- 기기: ADB `R5CY31QP08W`, `SM-S721N`, Android 16, 1080×2340, density 540, font scale 1.15, 3-button navigation. 잠금 상태라 앱 screenshot과 개인 데이터 조작은 하지 않았다.
+- 기대 gate: `npm run design:gate -- --stage implementation`은 `P5 Visual v2` page/frame과 사용자·Claude 승인 전 실패해야 한다. 이 실패는 환경 오류가 아니라 개발 빌드를 막는 의도된 상태다.
+
+## P5 UI 기능·자동 회귀 게이트 — 2026-09-13 통과 (시각 승인 아님)
 
 - 소스/경계: `3a07c41`, `0.6.0(12)`, SQLite v6. Today-first 동작은 유지하고 Tiimo의 오늘 목록·맥락 연속성, timespent의 웜 뉴트럴·그룹형 표면·캡슐 내비게이션, Equinox+의 절제된 단색 위계를 혼합했다. SQLite schema/migration, repository 쓰기, Supabase/sync 계약 변경은 0건이다.
 - 자동 게이트: `npm run verify` 종료 코드 0. TypeScript/ESLint 0, 40 files/238 tests, coverage statements 98.10% / branches 94.21% / functions 100% / lines 99.18%, Supabase 계약 2 files/8 tests, Expo dependency check, Doctor 21/21, Android Hermes 1,832 modules와 4.8MB `.hbc`를 통과했다.

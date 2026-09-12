@@ -6,7 +6,15 @@
 
 ## Unreleased
 
-### P5 public-readiness visual refinement — 2026-09-13
+### P5 Visual v2 design environment — 2026-09-13
+
+- 기존 P5 기능·SQLite v6·Supabase/sync 계약을 유지하고, 앱 코딩·개발 빌드 전에 reference→high-fidelity Figma→읽기 전용 검수→코드→기기 비교의 단계형 디자인 gate를 추가했다.
+- timespent는 시각 master, Tiimo는 interaction master, Equinox+는 Records/Dark 보조, 하단 오늘·기록 2탭은 OOS 소유로 두는 Phase 0 승인 후보를 정리했다.
+- Figma의 기존 `P5 Approved` 페이지가 실제 존재함을 재확인했지만 잘린 목록, 불완전한 컴포넌트 표본, 4탭 충돌과 낮은 완성도로 구현 승인을 철회했다. 새 source of truth는 별도 `P5 Visual v2`다.
+- Figma `Pro / Full`, Mobbin 호출, Claude Cowork의 Figma connector를 확인하고, 로컬 checksum 검증 JDK 17·Maestro runner와 read-only Claude visual reviewer를 준비했다. 개인 기기 초기화와 개인 screenshot 외부 전송은 금지한다.
+- 이전 public-readiness 시각 변경은 기능 기준선으로만 유지하며 새 Figma·기기 대조 전에는 공개 시각 승인으로 간주하지 않는다.
+
+### P5 public-readiness visual refinement — 2026-09-13 (P5 Visual v2로 대체)
 
 - Tiimo의 Today 행 밀도, timespent의 따뜻한 중립 그룹 표면·캡슐 내비게이션, Equinox+의 절제된 단색 위계를 역할별로 혼합했다.
 - 포화 파랑 실행 면과 갈색 일시정지 면을 저채도 잉크 바이올렛 한 계열과 중립 상태로 바꾸고, 계정별 항목 카드를 하나의 그룹 표면·행 구분선으로 압축했다.
