@@ -171,7 +171,7 @@ OOS Ops는 사용자가 직접 계획과 실제 시간을 기록하고, 계정·
 
 ## 7. 디자인 근거와 구현 선행 게이트
 
-- 아래 역할과 `P5 Visual v2` 범위는 2026-09-13 Phase 0 승인 후보며 implementation gate 승인 전에는 구현 근거로 사용할 수 없다.
+- 아래 역할과 `P5 Visual v2` 범위는 2026-09-13 사용자가 승인한 Phase 0 디자인 계약이다. Figma 설계 근거로 사용할 수 있지만, implementation gate 전체가 통과하기 전에는 앱 코드와 개발 빌드의 구현 근거로 사용할 수 없다.
 - 레퍼런스는 하나의 평균 스타일로 섞지 않고 역할을 고정한다.
   - 시각 기준: Mobbin의 [timespent `Creating a recurring plan`](https://mobbin.com/flows/4b25d929-de2b-4d37-a017-03c13d9f23fb)에서 표면 위계, 간격 밀도, 타이포 위계, 행 처리와 컨트롤의 시각 무게만 채택한다.
   - 상호작용 기준: [Tiimo `Completing a task`](https://mobbin.com/flows/5b4c73db-d619-4f47-a666-5663d1b65ce3)에서 오늘 목록이 첫 화면에 보이고 선택→실행→종료 뒤 같은 맥락으로 돌아오는 연속성만 채택한다. 2026-09-13 재조회된 [완료 보조 흐름](https://mobbin.com/flows/35e4e630-7681-4ad3-a704-9e4b1b3797e5)은 완료 뒤 같은 목록으로 돌아오는 동작만 교차 확인한다.

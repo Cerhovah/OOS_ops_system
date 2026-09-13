@@ -1,6 +1,6 @@
 # Claude Cowork P5 Visual v2 검수 프롬프트
 
-아래 본문은 `P5 Visual v2` Figma core frame이 만들어진 뒤 OOS 프로젝트 Cowork에 전달한다. 대괄호 항목은 실제 node URL로 바꾸고 개인 데이터 screenshot은 첨부하지 않는다.
+아래 본문은 `P5 Visual v2`의 pre-implementation 검수용이다. node URL은 2026-09-13 완성한 합성 데이터 frame으로 고정했으며 개인 데이터 screenshot은 첨부하지 않는다.
 
 ```text
 OOS 전용 읽기 전용 시각 검수자 oos-visual-reviewer로 행동하세요.
@@ -18,14 +18,14 @@ Reference 역할:
 - Navigation: OOS 소유의 오늘·기록 2탭
 
 검수 Figma:
-- Today default: [NODE_URL]
-- Item actions: [NODE_URL]
-- Timer running: [NODE_URL]
-- Timer paused: [NODE_URL]
-- Records: [NODE_URL]
-- Edge variants: [NODE_URLS]
+- Today default: https://www.figma.com/design/Be9DsWkov1vg3ptUFPpj6F/OOS-Ops?node-id=59-4
+- Item actions: https://www.figma.com/design/Be9DsWkov1vg3ptUFPpj6F/OOS-Ops?node-id=60-53
+- Timer running: https://www.figma.com/design/Be9DsWkov1vg3ptUFPpj6F/OOS-Ops?node-id=60-344
+- Timer paused: https://www.figma.com/design/Be9DsWkov1vg3ptUFPpj6F/OOS-Ops?node-id=60-412
+- Records: https://www.figma.com/design/Be9DsWkov1vg3ptUFPpj6F/OOS-Ops?node-id=61-2
+- Edge variants: https://www.figma.com/design/Be9DsWkov1vg3ptUFPpj6F/OOS-Ops?node-id=41-7
 
-구현 뒤 검수라면 같은 상태·viewport·theme의 합성 데이터 앱 screenshot도 함께 제공합니다. 없으면 pre-implementation review라고 명시하세요.
+이번에는 앱 코드와 빌드를 시작하지 않은 pre-implementation review입니다. Figma screenshot과 Mobbin 원본 flow를 대조하고, Figma ↔ 앱 차이는 `해당 없음 — 구현 전`으로 적으세요. 구현 뒤에는 같은 상태·viewport·theme의 합성 데이터 앱 screenshot을 별도 세션에 함께 제공합니다.
 
 다음 형식으로만 답하세요.
 1. 검수 종류: pre-implementation / implementation
@@ -37,3 +37,13 @@ Reference 역할:
 
 고정 pixel 일치율로 합격시키지 말고, 문제가 없으면 억지로 만들지 마세요. 기능 범위를 넓히거나 P6 server/sync 변경을 제안하지 마세요.
 ```
+
+## 첫 실행 결과 — 2026-09-13
+
+- 세션: `https://claude.ai/cowork/cse_01F8g9hP6UdCEZVZTYSgc6dQ`
+- 판정: `pre-implementation / 조건부 승인 / Blocker 없음`
+- High: 큰 글씨에서 `N시간 M분 남음` 우측 수치 말줄임. Today Row trailing을 2줄·88px로 만들고 edge specimen을 `2시간 12분\n남음`으로 재검증했다.
+- Medium: paused가 텍스트 외에는 running과 비슷함. paused timer 숫자를 semantic secondary text로 낮췄다.
+- Medium: Today의 `+12분` 의미가 불명확함. 같은 무채색을 유지하며 `+12분 초과`로 보완했다.
+- Low: switch conflict 시트의 합성 항목명이 배경 실행 항목과 달랐다. 구현에서도 동적 현재 항목명을 사용하도록 시트 설명을 `현재 기록을 일시정지하고 이 항목을 시작합니다.`로 고쳤다.
+- 제한: Cowork 프로젝트에 저장소 폴더가 연결되지 않아 Claude는 SPEC 문구를 직접 열지 못했다. Codex가 동일 변경 뒤 SPEC §2·§3.2·§5·§7·§8과 재대조했고 제품·SQLite·P6 sync 계약 변경은 없음을 확인했다.

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "feature": "P5 Visual v2",
-  "status": "phase0_ready",
+  "status": "approved",
   "scope": {
     "appId": "com.oosops.app",
     "platform": "android",
@@ -28,27 +28,27 @@
   "figma": {
     "fileKey": "Be9DsWkov1vg3ptUFPpj6F",
     "sourcePageName": "P5 Visual v2",
-    "sourcePageId": null,
+    "sourcePageId": "41:2",
     "coreFrames": {
-      "todayDefault": null,
-      "itemActions": null,
-      "timerRunning": null,
-      "timerPaused": null,
-      "records": null
+      "todayDefault": "59:4",
+      "itemActions": "60:53",
+      "timerRunning": "60:344",
+      "timerPaused": "60:412",
+      "records": "61:2"
     },
     "edgeFrames": {
-      "switchConflict": null,
-      "directRecordWhileRunning": null,
-      "noPlanOverPlan": null,
-      "longNameLargeText": null,
-      "dark": null
+      "switchConflict": "63:4",
+      "directRecordWhileRunning": "63:428",
+      "noPlanOverPlan": "63:489",
+      "longNameLargeText": "65:2",
+      "dark": "65:52"
     }
   },
   "approvals": {
-    "referenceRoles": false,
-    "figmaHighFidelity": false,
-    "claudeReadOnlyVisualReview": false,
-    "userFigmaApproval": false,
+    "referenceRoles": true,
+    "figmaHighFidelity": true,
+    "claudeReadOnlyVisualReview": true,
+    "userFigmaApproval": true,
     "deviceComparison": false
   },
   "privacy": {

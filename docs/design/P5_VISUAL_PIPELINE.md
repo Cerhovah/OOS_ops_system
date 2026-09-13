@@ -4,7 +4,7 @@
 
 ## 현재 판정
 
-- 상태: `Phase 0 ready / implementation blocked`
+- 상태: `Figma·Claude·사용자 승인 완료 / implementation allowed / release device comparison 대기`
 - 앱 기능 코드·SQLite schema·Supabase/sync 계약: 변경하지 않음
 - 개발 빌드: 시작하지 않음
 - Figma: `Pro / Full`, 파일 `Be9DsWkov1vg3ptUFPpj6F` 읽기·쓰기 가능
@@ -15,7 +15,7 @@
 
 `P5 Approved · Foundations/Components/Screens`는 파일 안에 실제 존재하지만 구현 source of truth가 아니다. 계정 그룹의 자식이 잘리고, 컴포넌트 표본이 불완전하며, 현재 제품 계약과 다른 4탭이 포함되고, 상용 공개판 수준의 밀도·위계가 검증되지 않았다.
 
-## 레퍼런스 역할 승인 후보
+## 승인된 레퍼런스 역할
 
 | 역할 | 근거 | 채택 | 배제 |
 |---|---|---|---|
@@ -26,7 +26,7 @@
 
 timespent 캡처의 최하단 검은 띠는 Mobbin 표식이다. 그 위의 흰색 분할 pill은 실제 timespent UI지만 OOS 내비게이션의 source of truth는 아니다.
 
-이 표는 Phase 0에서 검증된 제안이며 `p5-visual-v2.gate.json`의 `referenceRoles`가 승인되기 전에는 Figma 쓰기 작업에 사용하지 않는다.
+이 표는 2026-09-13 사용자가 승인했으며 `p5-visual-v2.gate.json`의 `referenceRoles`에 반영했다. Figma 설계에는 사용할 수 있지만 나머지 implementation gate가 끝나기 전에는 앱 코드를 바꾸지 않는다.
 
 ## source of truth 순서
 
@@ -39,15 +39,17 @@ timespent 캡처의 최하단 검은 띠는 Mobbin 표식이다. 그 위의 흰�
 
 현재 코드 토큰을 Figma로 복사한 뒤 다시 코드로 내리는 순환은 금지한다. 기존 토큰은 gap 분석의 입력일 뿐 새 시각 기준이 아니다.
 
-## Figma Phase 1 범위
+## Figma Phase 1 결과
 
-새 페이지 `P5 Visual v2`를 만들고 다음 순서로 구축한다.
+새 페이지 `P5 Visual v2`에 다음 순서로 구축했다.
 
 1. Foundations: Light master, Dark mode, type scale, spacing, radius, elevation, icon weight, visible control과 48dp hit area의 분리
 2. Components: App bar, account header, Today row, current session, compact action sheet, button hierarchy, ledger row, OOS 2-tab navigation
 3. Core frames: Today default, item actions, running, paused, Records
 4. Edge variants: switch conflict, direct record while running, no-plan/over-plan, long name/large text, Dark
 5. Prototype: Today → item actions → running → paused/resumed → end → Today/Records 반영
+
+Core frame node ID는 `p5-visual-v2.gate.json`에 고정했다. 모든 core/edge frame에서 같은 revision의 `get_design_context`와 screenshot을 수집했고, 누락 폰트 없음, 360×800 viewport, 56dp 앱 내비게이션과 24dp 시스템 안전 영역 분리, core prototype hit area 48dp 이상을 구조 검사했다.
 
 모든 데이터는 합성값을 사용한다. frame마다 auto-layout, scrolling frame, safe-area, 실제 text wrapping을 정의한다.
 
@@ -82,6 +84,6 @@ timespent 캡처의 최하단 검은 띠는 Mobbin 표식이다. 그 위의 흰�
 - golden 생성과 `assertScreenshot` 도입은 Figma 승인 뒤 별도 합성 데이터 emulator/test build에서만 한다.
 - EAS Maestro job은 alpha이며 원격 빌드·과금·GitHub 연결이 필요할 수 있으므로 이번 로컬 디자인 환경의 필수 조건이 아니다.
 
-## Phase 0 종료와 다음 승인점
+## 구현 승인과 다음 게이트
 
-Phase 0의 도구·연결·문서·검수 runner는 준비됐다. 다음 단계는 Figma 쓰기 작업이다. `P5 Visual v2` Foundations/Components/Core frames를 만든 뒤 screenshot을 사용자에게 먼저 보여주고, 승인 전에는 앱 코드와 개발 빌드로 넘어가지 않는다.
+Phase 0의 도구·연결·문서·검수 runner와 레퍼런스 역할, `P5 Visual v2` Foundations/Components/Core/Edge frame과 클릭 prototype이 승인됐다. Claude pre-implementation 검수는 blocker 없이 조건부 승인했으며, 숫자 말줄임·paused 구분·초과 의미·전환 시트 합성 문구 4건을 Figma에 최소 수정하고 같은 revision의 design context와 screenshot으로 재검증했다. 사용자의 전체 승인과 함께 implementation gate를 열었다. release gate는 구현 뒤 개인 정보가 외부로 나가지 않는 실기기 비교가 통과할 때 연다.

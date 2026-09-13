@@ -397,12 +397,12 @@
 ### ADR-032 — reference-first Figma source와 단계형 시각 게이트
 
 - 날짜: 2026-09-13
-- 상태: 제안 / Phase 0 환경 준비, 사용자 승인 대기
+- 상태: 승인 / implementation allowed, release device comparison 대기
 - 맥락: ADR-031 구현은 기능·데이터 회귀를 통과했지만 큰 floating capsule, 반복 control, 약한 계정/항목 위계가 상용 공개판 수준에 미달했다. 기존 `P5 Approved` Figma도 잘린 frame과 4탭 충돌이 있어 코드의 신뢰 가능한 입력이 아니었다.
 - 결정: timespent를 surface·spacing·typography·row·control의 시각 master, Tiimo를 Today→실행→종료 연속성의 interaction master, Equinox+를 Records/dark 보조로 역할 고정한다. 내비게이션은 OOS 소유의 compact 2탭으로 별도 설계한다. 새 `P5 Visual v2` high-fidelity Figma를 사용자와 읽기 전용 Claude가 승인한 뒤에만 코드로 옮기고, 구현 뒤 같은 상태의 합성 데이터 기기 screenshot을 대조한다. `docs/design/p5-visual-v2.gate.json`과 dependency 없는 검사 script로 단계 상태를 명시한다.
 - 대안: 현재 코드 토큰을 다시 Figma로 복사, 세 레퍼런스를 추상적으로 평균, Figma 없이 화면 코드를 반복 수정, pixel 유사도 수치 하나로 승인.
 - 근거: 시각 기준과 상호작용 기준을 분리하면 브랜드 복제 없이 일관된 화면 문법을 유지할 수 있다. Figma-first 승인과 frame별 context/screenshot은 구현자의 자의적 번역을 줄이며, 단계 gate는 빌드 비용과 회귀 검증을 디자인 확정 뒤로 미룬다.
-- 결과 및 위험: 기존 기능, SQLite v6, Supabase/sync 계약은 변하지 않는다. 기존 `P5 Approved` 페이지는 이력으로 남지만 source of truth가 아니다. local Maestro는 합성 데이터 drift 탐지에만 쓰고 analytics를 끄며 개인 실기기에서 `clearState`를 금지한다. 새 Figma가 승인되기 전에는 개발 빌드를 만들지 않는다.
+- 결과 및 위험: 기존 기능, SQLite v6, Supabase/sync 계약은 변하지 않는다. 기존 `P5 Approved` 페이지는 이력으로 남지만 source of truth가 아니다. Claude의 조건부 승인 4건을 Figma에 최소 수정하고 사용자가 전체 승인을 확정해 implementation gate를 열었다. local Maestro는 합성 데이터 drift 탐지에만 쓰고 analytics를 끄며 개인 실기기에서 `clearState`를 금지한다. release는 개인 screenshot 외부 전송 없이 실기기 대조 뒤에만 승인한다.
 - 되돌림/재검토 조건: 실제 Figma 시안에서 timespent의 시각 문법이 OOS 계정→항목 밀도나 Android 접근성과 충돌하면 reference 역할을 사용자에게 다시 제시한다. 자동 screenshot은 폰트·OS 차이로 불안정하면 보조 증빙으로만 유지한다.
 - 관련 불변조건/AC: SPEC §2.13~2.14, §3.2, §5, §7, §8
 - 대체 관계: ADR-031의 시각 master와 floating capsule 결정을 대체한다. ADR-030의 P5 기능 흐름과 P5/P6 server 경계는 유지한다.

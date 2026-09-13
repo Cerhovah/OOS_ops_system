@@ -21,6 +21,16 @@
 - 기기: ADB `R5CY31QP08W`, `SM-S721N`, Android 16, 1080×2340, density 540, font scale 1.15, 3-button navigation. 잠금 상태라 앱 screenshot과 개인 데이터 조작은 하지 않았다.
 - 기대 gate: `npm run design:gate -- --stage implementation`은 `P5 Visual v2` page/frame과 사용자·Claude 승인 전 실패해야 한다. 이 실패는 환경 오류가 아니라 개발 빌드를 막는 의도된 상태다.
 
+## P5 Visual v2 Figma 구축·승인 검수 — 2026-09-13
+
+- 범위: Figma 파일 `Be9DsWkov1vg3ptUFPpj6F`, 새 page `P5 Visual v2`(`41:2`)만 작성했다. legacy page, 앱 기능 코드, dependency, SQLite v6, Supabase/sync 계약, 설치 앱 데이터는 변경하지 않았다.
+- Foundations: primitive/semantic/dimension 변수 52개와 Web·Android·iOS code syntax, Noto Sans KR text style 9개, effect style 2개를 만들었다. semantic color는 raw 값이 아닌 primitive alias이며 Light/Dark 두 mode, scope 누락 0, broken alias 0을 확인했다.
+- Components: App Bar, Button, Today Row, Account Header, Current Session, Action Sheet, Ledger Row, Bottom Navigation을 local component/variant와 text property로 구성했다. component font 누락 0, 버튼·행·탭의 최소 interaction 높이 48dp 이상을 구조 검사했다.
+- Core: `Today / Default`(`59:4`), `Today / Item actions`(`60:53`), `Today / Running`(`60:344`), `Today / Paused`(`60:412`), `Records / Day`(`61:2`)을 360×800으로 만들고 7개 투명 hit target에 prototype reaction을 연결했다. 앱 navigation 56dp와 시스템 safe bottom 24dp를 분리했다.
+- Edge: switch conflict, running 중 direct record, no-plan/over-plan, long-name/large-text, Dark 5개 frame을 만들었다. 긴 이름은 제한된 행 폭에서 ellipsis를 쓰되 우측 핵심 수치는 2줄로 모두 보존하고, Dark는 semantic mode로 전환되며, 누락 font 0을 확인했다.
+- Claude: Cowork `cse_01F8g9hP6UdCEZVZTYSgc6dQ`가 Figma connector로 실제 6개 검수 대상을 읽고 `조건부 승인 / Blocker 없음`을 반환했다. High 1건(큰 글씨 숫자 말줄임), Medium 2건(paused 구분, 초과 의미), Low 1건(전환 시트 합성 문구)을 source Figma component/frame에 최소 수정했다.
+- 구현 입력: 수정 뒤 4개 영향 frame 모두에서 같은 revision의 `get_design_context`와 screenshot을 다시 수집했고 숫자 전체 노출, paused semantic secondary 색, `+12분 초과`, generic switch 문구를 구조·시각 대조했다. 사용자의 전체 승인과 함께 `npm run design:gate -- --stage implementation`을 열며, release gate의 device comparison은 앱 구현 뒤 수행한다.
+
 ## P5 UI 기능·자동 회귀 게이트 — 2026-09-13 통과 (시각 승인 아님)
 
 - 소스/경계: `3a07c41`, `0.6.0(12)`, SQLite v6. Today-first 동작은 유지하고 Tiimo의 오늘 목록·맥락 연속성, timespent의 웜 뉴트럴·그룹형 표면·캡슐 내비게이션, Equinox+의 절제된 단색 위계를 혼합했다. SQLite schema/migration, repository 쓰기, Supabase/sync 계약 변경은 0건이다.

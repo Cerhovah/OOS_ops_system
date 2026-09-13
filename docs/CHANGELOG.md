@@ -9,9 +9,11 @@
 ### P5 Visual v2 design environment — 2026-09-13
 
 - 기존 P5 기능·SQLite v6·Supabase/sync 계약을 유지하고, 앱 코딩·개발 빌드 전에 reference→high-fidelity Figma→읽기 전용 검수→코드→기기 비교의 단계형 디자인 gate를 추가했다.
-- timespent는 시각 master, Tiimo는 interaction master, Equinox+는 Records/Dark 보조, 하단 오늘·기록 2탭은 OOS 소유로 두는 Phase 0 승인 후보를 정리했다.
+- timespent는 시각 master, Tiimo는 interaction master, Equinox+는 Records/Dark 보조, 하단 오늘·기록 2탭은 OOS 소유로 두는 Phase 0 계약을 사용자 승인으로 확정하고 Figma Phase 1을 시작했다.
 - Figma의 기존 `P5 Approved` 페이지가 실제 존재함을 재확인했지만 잘린 목록, 불완전한 컴포넌트 표본, 4탭 충돌과 낮은 완성도로 구현 승인을 철회했다. 새 source of truth는 별도 `P5 Visual v2`다.
 - Figma `Pro / Full`, Mobbin 호출, Claude Cowork의 Figma connector를 확인하고, 로컬 checksum 검증 JDK 17·Maestro runner와 read-only Claude visual reviewer를 준비했다. 개인 기기 초기화와 개인 screenshot 외부 전송은 금지한다.
+- 새 `P5 Visual v2`에 52개 변수, 9개 텍스트·2개 effect style, 8개 로컬 component API, 5개 core frame, 5개 edge frame과 Today→선택→실행→일시정지/재개→종료→기록 clickable prototype을 만들었다.
+- Claude 읽기 전용 검수는 blocker 없이 조건부 승인했고, 큰 글씨 숫자 말줄임·paused 구분·초과 의미·전환 시트 합성 문구를 Figma source에 최소 수정했다. 재수집한 design context/screenshot과 사용자 전체 승인으로 구현 gate를 열었다.
 - 이전 public-readiness 시각 변경은 기능 기준선으로만 유지하며 새 Figma·기기 대조 전에는 공개 시각 승인으로 간주하지 않는다.
 
 ### P5 public-readiness visual refinement — 2026-09-13 (P5 Visual v2로 대체)
