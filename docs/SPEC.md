@@ -1,7 +1,7 @@
 # OOS Ops 제품·현재 구현·승인 설계 명세
 
 - 기준일: 2026-09-13
-- 현재 버전과 설치 상태: `0.7.0`, Android `versionCode 15`, 프로필 기능 구현·standalone 검증 중
+- 현재 버전과 설치 상태: `0.7.0`, Android `versionCode 15`, 프로필 기능·데이터 보존 standalone 검증 완료
 - 로컬 데이터베이스: SQLite schema v7
 - 범위: 검증된 현재 구현과 사용자가 승인한 다음 UI/UX 구현 계약을 구분해 기술한다. 승인되지 않은 출시 일정과 후속 기능은 이 문서의 범위가 아니다.
 
@@ -192,7 +192,7 @@ OOS Ops는 사용자가 직접 계획과 실제 시간을 기록하고, 계정·
 - Node.js `24.19.x`, npm `11.17.x`, Expo SDK `57`, React Native `0.86.3`, React `19.2.3`을 사용한다.
 - npm과 `package-lock.json`만 사용하고 Expo CLI는 `npx expo`로 실행한다.
 - 앱 코드는 `mobile/`, 서버 코드는 `supabase/`, 문서는 `docs/`에 둔다.
-- 현재 설치된 시각 후보는 서명된 `0.6.0(13)` personal standalone이다. 완전 검증된 기능·데이터 기준선은 `0.6.0(12)`와 기준 소스 `3c7eb78`, Expo SDK 57 patch 정렬 `7733ff6`이며, 이후 v2 시각 구현에서도 SQLite schema와 Supabase/sync 계약은 바뀌지 않았다.
+- 현재 설치본은 동일 applicationId와 기존 EAS 서명을 유지한 `0.7.0(15)` personal standalone이다. P5 Visual v3 기준선 위에 SQLite v7 local profile workspace만 추가했으며 Supabase/sync 계약은 바꾸지 않았다.
 - ADB 자동화는 사용자가 연결·디버깅을 승인한 기기에서 이 앱의 설치·실행·로그·화면 확인에만 사용한다.
 
 ## 7. 디자인 근거와 구현 선행 게이트
@@ -225,12 +225,11 @@ OOS Ops는 사용자가 직접 계획과 실제 시간을 기록하고, 계정·
 ## 9. 현재 검증 기준선
 
 - Phase 1, 2, 4, 4R, 4S, 5의 완료 증빙을 보존한다.
-- Phase 6-1 기능과 P5 Today-first 구현을 포함한 현재 소스는 TypeScript/ESLint, 40 files/238 tests, Supabase 계약 2 files/8 tests, Expo dependency check, Doctor 21/21, Android Hermes bundle을 통과했다.
-- SM-S721N(Android 16)에서 더보기 분리, 지표 달력과 단일 날짜 상세, 주간보기, 계정→항목 불러오기, 기록 원장, 3-button navigation safe-area를 확인했다.
-- Expo SDK 57이 요구한 13개 direct dependency를 호환 patch로 정렬한 뒤 clean `npm ci`와 전체 `npm run verify`를 통과했다. Android Hermes export는 1,832 modules와 4.8MB `.hbc`다.
-- EAS personal `769d5e3e-6df8-49ae-9994-11458c7fe8a4`로 `0.6.0(12)` standalone을 만들고, DB/WAL/SHM 해시 일치 백업 뒤 SM-S721N(Android 16)에 데이터 보존 update install했다.
-- Metro/ADB reverse 없는 cold start, Today 시작·일시정지·재시작 복원·재개·타이머 전환·직접 기록·종료·합계/원장 반영과 기존 수동 sync 전송 대기 0건을 확인했다.
-- 이 기준선은 기능·데이터 보존의 증거다. `0.6.0(13)` P5 Visual v2 standalone은 설치·비교 후보일 뿐 공개 시각 승인본이 아니다. 새 `P5 Visual v3` Figma와 구현·기기 비교가 끝날 때까지 현재 UI를 공개 가능 디자인으로 판정하지 않는다.
+- 현재 source `7194ace`는 TypeScript/ESLint 0, 40 files/242 tests, Supabase 계약 2 files/8 tests, Expo dependency check, Doctor 21/21과 Android Hermes bundle을 통과했다. 자격증명 ignore 보강은 `2f9ef10`에 분리했다.
+- `0.7.0(15)` personal standalone은 SDK 57, target SDK 36, 기존 applicationId와 EAS 서명을 유지하며 모든 Android ABI를 포함한다.
+- 기존 `0.6.0(14)`의 DB/WAL/SHM을 force-stop 상태에서 해시 백업한 뒤 SM-S721N(Android 16)에 데이터 보존 update install했다. 기존 14계정·9항목·32기록·2프로젝트·4주간계획은 보존됐다.
+- SQLite v7, `백업용 프로필`과 `연습용 프로필`, 연습용 4계정·4항목·일간/주간 상한, 실제 프로필 왕복 전환과 연습용 재활성화를 확인했다.
+- 최종 APK는 non-debuggable이며 Metro와 ADB reverse 없는 cold start와 Today의 4개 항목 표시를 통과했다. 프로필 소속의 다중 기기 동기화는 현재 비범위다.
 
 ## 10. 현재 비범위
 

@@ -11,6 +11,18 @@
 
 실행 기록에는 실행일, source SHA, 앱 버전/versionCode, SQLite 버전, 기기/OS, 조건, 기대값/실제값, 증빙 위치와 재현 실패만 남긴다. 자동 검증은 합성 데이터, 실기기는 개인정보를 가린 증빙을 사용한다.
 
+## v0.7 프로필 작업공간·standalone 종료 게이트 — 2026-09-13 통과
+
+- 소스/경계: 기능 source `7194ace`, 자격증명 ignore `2f9ef10`, `0.7.0(15)`, SQLite v7. local profile workspace와 반복 주간 상한만 추가했고 기존 Supabase schema/RPC/RLS와 `oos_sync_v1` payload는 변경하지 않았다.
+- 자동 게이트: 전체 `npm run verify` 종료 코드 0. TypeScript/ESLint 0, 40 files/242 tests, coverage statements 98.10% / branches 94.21% / functions 100% / lines 99.18%, Supabase 계약 2 files/8 tests, Expo dependency check, Doctor 21/21, Android Hermes 3,803 modules와 7MB bundle을 통과했다.
+- 빌드: EAS free Android quota가 2026-10-01까지 소진되어 원격 빌드는 생성하지 않았다. 공식 Android SDK 36/Build Tools 36.0.0/NDK 27.1.12297006와 기존 EAS keystore를 사용해 공백·대괄호 없는 `C:\oosb2f9` clean worktree에서 모든 ABI standalone을 로컬 빌드했다. 첫 두 시도는 제품 코드가 아니라 Windows CMake 경로 해석·길이 한계로 실패했고 짧은 경로에서 `BUILD SUCCESSFUL`을 확인했다.
+- artifact: `C:\Users\skljh\Downloads\OOS-Ops-0.7.0-build15-personal.apk`, 123,410,290 bytes, SHA-256 `E214F39E6532B4BFED36FBEE51CB35BD96A23CB0E09C43683008BFA5CC3AFC6A`. `com.oosops.app`, versionCode 15/versionName 0.7.0, min SDK 24, target/compile SDK 36, arm64-v8a/armeabi-v7a/x86/x86_64, APK Signature Scheme v2와 기존 signer를 확인했다.
+- 선행 백업: 기존 `0.6.0(14)`을 실행하지 않은 동일 서명 debuggable release helper로 update하고 force-stop 상태에서 `oos-ops.db`/WAL/SHM을 `C:\Users\skljh\Downloads\OOS-Ops-user-data-backup-before-0.7.0-20260913-232414-raw`과 ZIP에 보존했다. 세 파일은 626,688 / 4,218,912 / 32,768 bytes이며 SHA-256은 각각 `713E7857B71E268DD6693D0ECEBC218948A7614FDE1D3656C9973016A0C1F3D4`, `D711B0CEAB567E3D787E70D7FE46401139F8ED93CE8AC2151C49779F72469223`, `EA60DC98987AFA93FE999CADCE1183CBF4EAA0F30768F31B086FE34003682EF4`다. ZIP SHA-256은 `72824341A8AF712F1865956ABFA53838DF00386566772C52229F81DD92AF8E31`이다.
+- 보존 검사: update 전 user_version 6, accounts 14 / items 9 / entries 32 / item_schedules 3 / projects 2 / weekly_plans 4였다. migration 뒤 user_version 7, profiles 2, accounts 18 / items 13 / entries 32 / item_schedules 7 / projects 2 / weekly_plans 5였으므로 기존 행은 감소하지 않았다. 삭제 기록 2개와 삭제 항목 1개도 남았다.
+- 프로필 동작: 초기 활성값 `profile-practice`, `연습용 프로필` 계정 4·항목 4와 Today 4개 노출을 확인했다. 편입 240/1500분, 코디세이 미션 180/720분, 사업 180/1080분, 수익화 120/600분과 매일 반복 mask 127을 DB에서 확인했다. 실기기 UI에서 백업용(활성 계정 14·활성 항목 8)으로 변경한 뒤 연습용(4·4)으로 돌아와 현재 프로필을 연습용으로 남겼다.
+- 최종 설치: non-debug personal APK의 `adb install -r`가 성공했고 최초 설치일 2026-08-23 14:42:29를 유지했다. `run-as` 거부로 helper가 제거됐음을 확인했고 Metro/ADB reverse 없는 cold start 507ms, 앱 fatal/ReactNativeJS/SQLite migration 오류 0건, SM-S721N Android 16의 Today 항목과 system navigation 분리를 확인했다.
+- 증빙: 개인 데이터가 없는 연습용 Today 캡처는 `C:\Users\skljh\Downloads\OOS-Ops-0.7.0-build15-device.png`에만 보존했다. Figma·Mobbin·Claude·Git과 원격 분석 서비스로 전송하지 않았다.
+
 ## P5 Visual v3 구현·standalone 종료 게이트 — 2026-09-13 통과
 
 - 소스/경계: 구현 source `afdf196`, `0.6.0(14)`, SQLite v6. Today와 Records의 정보 구조·조작·표면만 변경했고 SQLite schema/migration, repository 저장 의미, Supabase schema/RPC/RLS/payload와 sync 계약은 변경하지 않았다.

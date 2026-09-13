@@ -249,3 +249,11 @@ Windows 긴 경로는 OS에서 `LongPathsEnabled=1`, 이 저장소의 로컬 Git
 - EAS development `1dbde3bb-3c8b-4e90-ad82-d4b0614b6606`과 personal `6a84d74e-249d-4133-8bb5-91fd31fb4f66`은 fingerprint `5e74445f419e5f1a95451474c5c597602cfa7b31`, 기존 remote keystore, `com.oosops.app`, `0.6.0(14)`, SDK 57을 사용했다.
 - 최종 standalone APK는 `C:\Users\skljh\Downloads\OOS-Ops-0.6.0-build14-personal.apk`다. SM-S721N Android 16에 `adb install -r`로 설치했으며 non-debuggable, 최초 설치일 2026-08-23 유지, Metro와 ADB reverse 없는 cold start를 확인했다.
 - update 전에 병합 검증한 복구 DB는 `C:\Users\skljh\Downloads\OOS-Ops-user-data-backup-20260913-214335`에, 최종 raw DB/WAL/SHM과 ZIP은 `C:\Users\skljh\Downloads\OOS-Ops-user-data-backup-20260913-220132-raw`에 있다. 개인 화면 캡처와 UI dump는 로컬 Temp에서만 확인했으며 외부 서비스나 저장소로 전송하지 않는다.
+
+## v0.7 프로필 standalone 환경 (2026-09-13)
+
+- 사용자 로컬 빌드 도구는 `C:\Users\skljh\AppData\Local\OOSBuild\jdk17\jdk-17.0.20.1+1`의 Temurin JDK 17과 `C:\Users\skljh\AppData\Local\Android\Sdk`의 Android SDK 36, Build Tools 36.0.0, NDK 27.1.12297006, CMake 3.22.1이다. 시스템 전역 PATH를 바꾸지 않고 빌드 프로세스 환경변수로만 사용한다.
+- 저장소 경로의 `[Git Repo]`와 Codex AppData 실제 경로는 React Native CMake의 소스 탐색·250자 제한을 일으키므로 Android local release는 공백·대괄호 없는 짧은 clean worktree에서 수행한다. 이번 검증 경로는 `C:\oosb2f9`, source `2f9ef10`이다.
+- 기존 EAS Android keystore는 `mobile/credentials.json`과 `mobile/credentials/android/keystore.jks`에 로컬 보관하며 두 경로는 Git에서 무시한다. 비밀번호는 로그·문서·커밋에 남기지 않는다. remote EAS build는 free Android quota 소진으로 만들지 않았다.
+- 현재 설치본과 artifact는 `C:\Users\skljh\Downloads\OOS-Ops-0.7.0-build15-personal.apk`, SHA-256 `E214F39E6532B4BFED36FBEE51CB35BD96A23CB0E09C43683008BFA5CC3AFC6A`다. `com.oosops.app`, `0.7.0(15)`, SDK 57, target SDK 36, 기존 signer, non-debuggable standalone이며 SM-S721N Android 16에 데이터 보존 update install했다.
+- 설치 전 raw DB/WAL/SHM과 ZIP은 `C:\Users\skljh\Downloads\OOS-Ops-user-data-backup-before-0.7.0-20260913-232414-raw`에 보존한다. 개인 데이터가 없는 최종 Today 캡처는 `C:\Users\skljh\Downloads\OOS-Ops-0.7.0-build15-device.png`다.

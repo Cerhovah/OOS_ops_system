@@ -437,7 +437,7 @@
 ### ADR-035 — 프로필은 로컬 작업공간으로 먼저 분리
 
 - 날짜: 2026-09-13
-- 상태: 승인 / 구현
+- 상태: 승인 / 구현·실기기 검증 완료
 - 맥락: 실제 사용을 위해 기존 복잡한 계정·항목 묶음을 보존하면서 4개의 실사용 항목만 보이는 별도 프로필이 필요하다. 프로필을 기존 sync payload에 곧바로 추가하면 server-first 원칙과 배포된 `oos_sync_v1` 계약을 위반한다.
 - 결정: SQLite v7에 local-only `profiles`와 account/project/weekly_plan의 `profile_id`, account의 `weekly_target_minutes`를 추가한다. 기존 행은 `백업용 프로필`, 새 4계정·4항목은 `연습용 프로필`로 귀속하고 연습용을 활성화한다. snapshot repository에서 활성 profile의 관계 graph만 노출한다. 삭제는 profile tombstone만 남기며 하위 데이터는 보존한다.
 - 전환 규칙: 실행 중 timer는 profile 변경과 같은 local transaction에서 pause한다. 앱 설정·인증·sync cursor·날짜별 돌아보기는 전역으로 유지한다.
