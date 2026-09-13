@@ -1,6 +1,6 @@
 const MIN_TAB_BAR_CONTENT_HEIGHT = 56;
-const TAB_BAR_BASE_HEIGHT = 40;
-const TAB_BAR_SCALE_ALLOWANCE = 12;
+const TAB_BAR_BASE_HEIGHT = 36;
+const TAB_BAR_SCALE_ALLOWANCE = 18;
 const TAB_BAR_SCREEN_GAP = 8;
 
 export function accessibleTabBarHeight(fontScale: number): number {

@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
+import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
-import { Alert, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AppBar, AppButton, Field, LoadingView, Screen, Section, Sheet, StatusBanner, textStyles } from '@/components/ui';
 import { useApp } from '@/context/app-context';
@@ -9,6 +10,7 @@ import { EntryRow, FixedActionBar, LedgerRow, PlanActualDelta } from '@/features
 import { buildRecordsViewModel, type LedgerEntryViewModel } from '@/features/records/records-view-model';
 import { COLORS } from '@/theme/colors';
 import { tokens } from '@/theme/tokens';
+import { FONTS } from '@/theme/typography';
 import type { Entry, Item } from '@/types/domain';
 
 export default function RecordsScreen() {
@@ -64,6 +66,7 @@ export default function RecordsScreen() {
     () => app.snapshot.accounts.filter((account) => !account.deletedAt && !account.archived),
     [app.snapshot.accounts],
   );
+  const selectedClosure = app.snapshot.closures.find((closure) => closure.date === selectedDate) ?? null;
 
   if (app.loading) return <LoadingView />;
 
@@ -133,20 +136,38 @@ export default function RecordsScreen() {
 
   return (
     <>
-      <Screen usesTabBar>
+      <Screen contentGap={tokens.space.sm} horizontalPadding={tokens.space.lg} topPadding={tokens.space.md} usesTabBar>
         <AppBar title="기록" meta="더보기" onMetaPress={() => router.push('/more')} />
         {app.error ? <StatusBanner message={app.error} onClose={app.clearError} /> : null}
         <View style={styles.dateNav}>
-          <AppButton label="이전" variant="plain" onPress={() => moveToDate(addDays(selectedDate, -1))} />
-          <AppButton label={formatDateNavLabel(selectedDate, today)} variant="plain" onPress={() => setDatePickerVisible(true)} style={styles.dateCenter} />
-          <AppButton label="다음" variant="plain" onPress={() => moveToDate(addDays(selectedDate, 1))} />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="이전 날짜"
+            onPress={() => moveToDate(addDays(selectedDate, -1))}
+            style={({ pressed }) => [styles.dateStep, pressed && styles.pressed]}>
+            <ChevronLeft color={COLORS.accentStrong} size={22} strokeWidth={1.8} />
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`${formatDateNavLabel(selectedDate, today)}, 날짜 선택`}
+            onPress={() => setDatePickerVisible(true)}
+            style={({ pressed }) => [styles.dateCenter, pressed && styles.pressed]}>
+            <Text style={styles.dateLabel}>{formatDateNavLabel(selectedDate, today)}</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="다음 날짜"
+            onPress={() => moveToDate(addDays(selectedDate, 1))}
+            style={({ pressed }) => [styles.dateStep, pressed && styles.pressed]}>
+            <ChevronRight color={COLORS.accentStrong} size={22} strokeWidth={1.8} />
+          </Pressable>
         </View>
         <PlanActualDelta planned={model.plannedMinutes} actual={model.actualMinutes} />
-        <Section title="항목별 기록">
+        <View style={styles.ledger}>
           {model.itemSummaries.length === 0 ? <Text style={textStyles.body}>이 날짜에 시간 기록이 없습니다.</Text> : null}
           {accountGroups.map((group) => {
             return (
-              <View key={group.key} style={styles.accountGroup}>
+              <View key={group.key} style={styles.ledgerGroup}>
                 <LedgerRow
                   title={group.accountName}
                   planned={group.plannedMinutes}
@@ -169,7 +190,7 @@ export default function RecordsScreen() {
               </View>
             );
           })}
-        </Section>
+        </View>
         {nonTimeEntries.length > 0 ? (
           <Section title="기타 기록">
             {nonTimeEntries.map((row) => (
@@ -177,10 +198,16 @@ export default function RecordsScreen() {
             ))}
           </Section>
         ) : null}
+        {selectedClosure?.note ? (
+          <View style={styles.dayNote}>
+            <Text style={styles.dayNoteLabel}>오늘 메모</Text>
+            <Text style={textStyles.body}>{selectedClosure.note}</Text>
+          </View>
+        ) : null}
         {selectedDate === today ? (
           <FixedActionBar>
             <View style={styles.actionItem}><AppButton label="직접 기록" onPress={() => setManualPicker(true)} style={styles.fullAction} /></View>
-            <View style={styles.actionItem}><AppButton label="오늘 종료" variant="secondary" onPress={() => router.push('/today/close')} style={styles.fullAction} /></View>
+            <View style={styles.actionItem}><AppButton label="오늘 돌아보기" variant="secondary" onPress={() => router.push('/today/close')} style={styles.fullAction} /></View>
           </FixedActionBar>
         ) : (
           <AppButton label="오늘로 이동" variant="plain" onPress={() => moveToDate(today)} style={styles.fullAction} />
@@ -223,7 +250,7 @@ export default function RecordsScreen() {
           const items = app.snapshot.items.filter((item) => !item.deletedAt && !item.archived && item.accountId === account.id);
           if (items.length === 0) return null;
           return (
-            <View key={account.id} style={styles.accountGroup}>
+            <View key={account.id} style={styles.pickerGroup}>
               <Text style={textStyles.title}>{account.name}</Text>
               {items.map((item) => (
                 <AppButton key={item.id} label={item.name} variant="secondary" onPress={() => openManualRecord(item)} />
@@ -265,6 +292,7 @@ function isDateKey(value: string): boolean {
 
 function formatDateNavLabel(value: string, today: string): string {
   const date = new Intl.DateTimeFormat('ko-KR', {
+    year: 'numeric',
     month: 'long',
     day: 'numeric',
     timeZone: 'Asia/Seoul',
@@ -273,9 +301,16 @@ function formatDateNavLabel(value: string, today: string): string {
 }
 
 const styles = StyleSheet.create({
-  dateNav: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderColor: COLORS.border, borderWidth: StyleSheet.hairlineWidth, borderRadius: tokens.radius.card, backgroundColor: COLORS.surface, paddingHorizontal: tokens.space.xxs },
-  dateCenter: { flex: 1 },
+  dateNav: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderColor: COLORS.border, borderWidth: StyleSheet.hairlineWidth, borderRadius: tokens.radius.card, backgroundColor: COLORS.surface },
+  dateStep: { width: tokens.hitTarget, height: tokens.hitTarget, alignItems: 'center', justifyContent: 'center' },
+  dateCenter: { flex: 1, minHeight: tokens.hitTarget, alignItems: 'center', justifyContent: 'center' },
+  dateLabel: { color: COLORS.text, fontFamily: FONTS.medium, fontSize: tokens.type.body, lineHeight: 22, fontVariant: ['tabular-nums'] },
+  pressed: { opacity: 0.7 },
+  ledger: { gap: tokens.space.sm },
   actionItem: { flexGrow: 1, minWidth: 132 },
   fullAction: { alignSelf: 'stretch' },
-  accountGroup: { gap: 10 },
+  ledgerGroup: { gap: 0, overflow: 'hidden', borderRadius: tokens.radius.card, backgroundColor: COLORS.surface },
+  pickerGroup: { gap: 10 },
+  dayNote: { gap: tokens.space.xxs, borderRadius: tokens.radius.card, backgroundColor: COLORS.surfaceSubtle, padding: tokens.space.sm },
+  dayNoteLabel: { color: COLORS.accentStrong, fontFamily: FONTS.medium, fontSize: tokens.type.caption, lineHeight: 18 },
 });

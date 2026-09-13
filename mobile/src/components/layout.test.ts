@@ -14,9 +14,9 @@ describe('accessibleTabBarHeight', () => {
   });
 
   it('grows enough for scaled labels without doubling the navigation slab', () => {
-    expect(accessibleTabBarHeight(1.5)).toBe(58);
-    expect(accessibleTabBarHeight(2)).toBe(64);
-    expect(accessibleTabBarFootprint(2, 24)).toBe(96);
+    expect(accessibleTabBarHeight(1.5)).toBe(63);
+    expect(accessibleTabBarHeight(2)).toBe(72);
+    expect(accessibleTabBarFootprint(2, 24)).toBe(104);
   });
 
   it('falls back safely for invalid dimensions', () => {

@@ -44,6 +44,7 @@ export interface TodayViewModel {
   /** @deprecated Use timerSessions or runningTimer for status-aware behavior. */
   runningTimers: TimerSessionViewModel[];
   runningTimer: TimerSessionViewModel | null;
+  currentTimer: TimerSessionViewModel | null;
   visibleItems: TodayItemViewModel[];
   accountGroups: TodayAccountGroupViewModel[];
   missingItems: Item[];
@@ -208,6 +209,7 @@ export function buildTodayViewModel(
     timerSessions,
     runningTimers: timerSessions,
     runningTimer: timerSessions.find((session) => session.runtime.status === 'running') ?? null,
+    currentTimer: selectCurrentTimerSession(timerSessions),
     visibleItems,
     accountGroups,
     missingItems: activeItems.filter((item) => !visibleIds.has(item.id)),
@@ -216,6 +218,23 @@ export function buildTodayViewModel(
     actualMinutes,
     available: remainingAvailableToday(now, dayEndTime, candidates, todayEntries),
   };
+}
+
+export function selectCurrentTimerSession(
+  sessions: readonly TimerSessionViewModel[],
+): TimerSessionViewModel | null {
+  const running = sessions.find((session) => session.runtime.status === 'running');
+  if (running) return running;
+  let latestPaused: TimerSessionViewModel | null = null;
+  for (const session of sessions) {
+    if (session.runtime.status !== 'paused') continue;
+    if (
+      latestPaused === null
+      || latestPaused.runtime.status !== 'paused'
+      || session.runtime.pausedAt > latestPaused.runtime.pausedAt
+    ) latestPaused = session;
+  }
+  return latestPaused;
 }
 
 export function searchMissingItems(

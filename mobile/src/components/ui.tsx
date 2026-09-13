@@ -30,10 +30,16 @@ import { adjustTime, setTimeHour, setTimeMinute, timeParts } from './time';
 
 export function Screen({
   children,
+  contentGap = 10,
+  horizontalPadding = tokens.space.md,
+  topPadding = 14,
   refreshControl,
   usesTabBar = false,
 }: {
   children: ReactNode;
+  contentGap?: number;
+  horizontalPadding?: number;
+  topPadding?: number;
   refreshControl?: ReactElement<RefreshControlProps>;
   usesTabBar?: boolean;
 }) {
@@ -45,7 +51,10 @@ export function Screen({
   return (
     <SafeAreaView style={styles.safe} edges={usesTabBar ? ['top'] : []}>
       <ScrollView
-        contentContainerStyle={[styles.screen, { paddingBottom: bottomPadding }]}
+        contentContainerStyle={[
+          styles.screen,
+          { gap: contentGap, paddingBottom: bottomPadding, paddingHorizontal: horizontalPadding, paddingTop: topPadding },
+        ]}
         keyboardShouldPersistTaps="handled"
         refreshControl={refreshControl}>
         {children}
@@ -364,7 +373,7 @@ export const textStyles = StyleSheet.create({
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: COLORS.background },
-  screen: { paddingHorizontal: tokens.space.md, paddingTop: 14, gap: 10 },
+  screen: {},
   headingWrap: { gap: tokens.space.xxs },
   heading: { color: COLORS.text, fontFamily: FONTS.bold, fontSize: tokens.type.heading, letterSpacing: -0.4, lineHeight: 32 },
   subtitle: { color: COLORS.muted, fontFamily: FONTS.regular, fontSize: tokens.type.caption, lineHeight: 18 },

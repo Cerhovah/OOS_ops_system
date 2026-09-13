@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { Account, AppSnapshot, Entry, Item, ItemSchedule } from '@/types/domain';
 
-import { buildTodayViewModel, searchMissingItems } from './today-view-model';
+import { buildTodayViewModel, searchMissingItems, selectCurrentTimerSession } from './today-view-model';
 
 const createdAt = '2026-09-01T00:00:00.000Z';
 const account: Account = {
@@ -125,5 +125,27 @@ describe('buildTodayViewModel', () => {
       }),
     ]);
     expect(searchMissingItems(result.missingItems, '다른')).toHaveLength(1);
+  });
+
+  it('keeps the running session on top and otherwise selects the most recently paused session', () => {
+    const itemA = item('a');
+    const itemB = item('b');
+    const pausedA = {
+      entry: entry('entry-a', itemA.id),
+      item: itemA,
+      runtime: { status: 'paused' as const, accumulatedMilliseconds: 1_000, pausedAt: '2026-09-07T05:00:00.000Z' },
+    };
+    const pausedB = {
+      entry: entry('entry-b', itemB.id),
+      item: itemB,
+      runtime: { status: 'paused' as const, accumulatedMilliseconds: 2_000, pausedAt: '2026-09-07T04:00:00.000Z' },
+    };
+    const runningB = {
+      ...pausedB,
+      runtime: { status: 'running' as const, accumulatedMilliseconds: 2_000, runningSince: '2026-09-07T06:00:00.000Z' },
+    };
+
+    expect(selectCurrentTimerSession([pausedB, pausedA])?.entry.id).toBe('entry-a');
+    expect(selectCurrentTimerSession([pausedA, runningB])?.entry.id).toBe('entry-b');
   });
 });

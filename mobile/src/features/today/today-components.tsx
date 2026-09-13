@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
+import { Check, NotebookPen, Pause, PencilLine, Play, Plus, type LucideIcon } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { AppButton, textStyles } from '@/components/ui';
@@ -14,78 +15,137 @@ import { tokens } from '@/theme/tokens';
 import { FONTS } from '@/theme/typography';
 import type { Item } from '@/types/domain';
 
-export function TodaySummary({ plannedMinutes, actualMinutes }: { plannedMinutes: number; actualMinutes: number }) {
-  const remainingMinutes = plannedMinutes - actualMinutes;
-  const remaining = remainingMinutes >= 0
-    ? formatMinutes(remainingMinutes)
-    : `+${formatMinutes(Math.abs(remainingMinutes))} 초과`;
+export function TodaySummary({ actualMinutes, itemCount }: { actualMinutes: number; itemCount: number }) {
+  const label = `오늘 ${formatMinutes(actualMinutes)} 기록 · ${itemCount}개 항목`;
   return (
     <View
       accessible
-      accessibilityLabel={`오늘 기록 ${formatMinutes(actualMinutes)}, 남은 계획 ${remaining}`}
+      accessibilityLabel={label}
       style={styles.todaySummary}>
-      <SummaryMetric label="기록" value={formatMinutes(actualMinutes)} />
-      <SummaryMetric label={remainingMinutes >= 0 ? '남음' : '차이'} value={remaining} align="right" />
+      <Text style={styles.todaySummaryText}>{label}</Text>
     </View>
   );
 }
 
 export function TodayAccountSection({
   group,
+  currentSessionId,
+  disabled,
+  onItemAction,
   onItemPress,
 }: {
   group: TodayAccountGroupViewModel;
+  currentSessionId: string | null;
+  disabled?: boolean;
+  onItemAction: (item: TodayItemViewModel) => void;
   onItemPress: (item: TodayItemViewModel) => void;
 }) {
-  const remaining = group.plannedMinutes - group.actualMinutes;
   const total = group.plannedMinutes === 0
-    ? group.actualMinutes > 0 ? `${formatMinutes(group.actualMinutes)} 기록` : '시간 계획 없음'
-    : remaining >= 0 ? `${formatMinutes(remaining)} 남음` : `+${formatMinutes(Math.abs(remaining))} 초과`;
+    ? '자유 기록'
+    : `${formatMinutes(group.actualMinutes)} / ${formatMinutes(group.plannedMinutes)}`;
   return (
     <View style={styles.accountGroup}>
       <View style={styles.accountHeader}>
-        <Text accessibilityRole="header" style={styles.accountTitle} numberOfLines={2}>{group.accountName}</Text>
-        <Text style={styles.accountSubtotal} numberOfLines={2}>{total}</Text>
+        <Text accessibilityRole="header" style={styles.accountTitle}>{group.accountName}</Text>
+        <Text style={styles.accountSubtotal}>{total}</Text>
       </View>
       <View style={styles.accountList}>
         {group.items.map((item) => (
-          <TodayItemRow key={item.candidate.item.id} model={item} onPress={() => onItemPress(item)} />
+          <TodayItemRow
+            key={item.candidate.item.id}
+            current={item.session?.entry.id === currentSessionId}
+            disabled={disabled}
+            model={item}
+            onActionPress={() => onItemAction(item)}
+            onPress={() => onItemPress(item)}
+          />
         ))}
       </View>
     </View>
   );
 }
 
-export function TodayItemRow({ model, onPress }: { model: TodayItemViewModel; onPress: () => void }) {
+export function TodayItemRow({
+  disabled = false,
+  current = false,
+  model,
+  onActionPress,
+  onPress,
+}: {
+  disabled?: boolean;
+  current?: boolean;
+  model: TodayItemViewModel;
+  onActionPress: () => void;
+  onPress: () => void;
+}) {
   const state = model.session?.runtime.status ?? 'idle';
+  const { fontScale } = useWindowDimensions();
+  const largeText = fontScale >= 1.6;
+  const item = model.candidate.item;
+  const timeItem = item.type === 'time';
+  const ActionIcon = timeItem && state === 'running'
+    ? Pause
+    : timeItem
+      ? Play
+      : item.type === 'completion'
+        ? Check
+        : item.type === 'count'
+          ? Plus
+          : PencilLine;
+  const actionLabel = timeItem
+    ? state === 'running' ? `${item.name} 일시정지` : state === 'paused' ? `${item.name} 다시 시작` : `${item.name} 시작`
+    : item.type === 'completion' || item.type === 'count' ? `${item.name} 1회 기록` : `${item.name} 값 입력`;
+  const elapsed = useTimerElapsed(model.session?.runtime ?? null);
+  const actualMinutes = model.actualMinutes + Math.round(elapsed / 60_000);
+  const metadata = timeItem
+    ? `오늘 ${formatMinutes(actualMinutes)}${state === 'running' ? ' · 기록 중' : state === 'paused' ? ' · 일시정지' : ''}`
+    : item.type === 'completion'
+      ? `완료형 · 오늘 ${model.summary}`
+      : item.type === 'count'
+        ? `횟수형 · 오늘 ${model.summary}`
+        : model.summary === '기록 없음'
+          ? item.type === 'event' ? '이벤트' : '수치형'
+          : `오늘 ${model.summary}`;
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`${model.candidate.item.name}, ${model.meta}, ${model.trailing}`}
-      onPress={onPress}
-      style={({ pressed }) => [styles.todayItem, pressed && styles.pressed]}>
-      <View style={[
-        styles.itemStateMark,
-        state === 'running' && styles.itemStateMarkRunning,
-        state === 'paused' && styles.itemStateMarkPaused,
-      ]} />
-      <View style={styles.todayItemCopy}>
-        <Text style={styles.taskName} numberOfLines={2}>{model.candidate.item.name}</Text>
-        <Text style={styles.taskMeta} numberOfLines={2}>{model.meta}</Text>
-      </View>
-      <Text style={[styles.todayItemTrailing, state === 'paused' && styles.pausedMeta]} numberOfLines={2}>
-        {model.trailing}
-      </Text>
-    </Pressable>
+    <View style={styles.todayItem}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${item.name}, ${metadata}, 상세와 직접 기록`}
+        onPress={onPress}
+        style={({ pressed }) => [styles.itemBody, pressed && styles.pressed]}>
+        <View style={[
+          styles.itemStateMark,
+          state === 'running' && styles.itemStateMarkRunning,
+          state === 'paused' && styles.itemStateMarkPaused,
+        ]} />
+        <View style={styles.todayItemCopy}>
+          <Text style={styles.taskName}>{item.name}</Text>
+          <Text style={styles.taskMeta} numberOfLines={largeText ? undefined : 1}>{metadata}</Text>
+        </View>
+      </Pressable>
+      {current ? <View style={styles.itemAction} /> : (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={actionLabel}
+          accessibilityState={{ disabled }}
+          disabled={disabled}
+          hitSlop={4}
+          onPress={onActionPress}
+          style={({ pressed }) => [styles.itemAction, pressed && styles.itemActionPressed]}>
+          <View style={ActionIcon === Play ? styles.playOptical : undefined}>
+            <ActionIcon color={state === 'paused' ? COLORS.muted : COLORS.accentStrong} size={22} strokeWidth={2} />
+          </View>
+        </Pressable>
+      )}
+    </View>
   );
 }
 
 export function CurrentSessionCard({
   session,
   accountName,
-  plannedValue,
+  accountLimitMinutes,
   priorActualMinutes,
-  todayActualMinutes,
   busy,
   onPause,
   onResume,
@@ -93,49 +153,69 @@ export function CurrentSessionCard({
 }: {
   session: TimerSessionViewModel;
   accountName: string;
-  plannedValue: number | null;
+  accountLimitMinutes: number;
   priorActualMinutes: number;
-  todayActualMinutes: number;
   busy: boolean;
   onPause: () => void;
   onResume: () => void;
   onStop: () => void;
 }) {
   const elapsed = useTimerElapsed(session.runtime);
-  const elapsedSeconds = Math.floor(elapsed / 1_000);
-  const remainingSeconds = plannedValue === null
-    ? null
-    : plannedValue * 60 - priorActualMinutes * 60 - elapsedSeconds;
+  const { fontScale } = useWindowDimensions();
+  const largeText = fontScale >= 1.6;
   const statusLabel = session.runtime.status === 'paused' ? '일시정지됨' : '기록 중';
-  const remainingLabel = remainingSeconds === null
-    ? '계획 없음'
-    : remainingSeconds >= 0
-      ? `${formatClockDuration(remainingSeconds)} 남음`
-      : `+${formatClockDuration(Math.abs(remainingSeconds))} 초과`;
-  const todayTotal = formatMinutes(todayActualMinutes + Math.round(elapsed / 60_000));
+  const todayTotal = formatMinutes(priorActualMinutes + Math.round(elapsed / 60_000));
+  const accountLimit = accountLimitMinutes > 0 ? `${formatMinutes(accountLimitMinutes)} 공용 상한` : '자유 기록';
   const paused = session.runtime.status === 'paused';
   return (
     <View style={[styles.sessionCard, paused && styles.sessionCardPaused]}>
       <Text style={[styles.sessionStatus, paused && styles.pausedMeta]}>{statusLabel}</Text>
-      <Text accessibilityRole="header" style={styles.sessionItem} numberOfLines={2}>
+      <Text accessibilityRole="header" style={styles.sessionItem} numberOfLines={largeText ? undefined : 2}>
         {accountName} · {session.item.name}
       </Text>
       <Text accessibilityLabel={`경과 시간 ${formatTimer(elapsed)}`} style={[styles.sessionTimer, paused && styles.sessionTimerPaused]}>
         {formatTimer(elapsed)}
       </Text>
-      <View style={styles.sessionMetrics}>
-        <Text style={styles.sessionRemaining} numberOfLines={2}>{remainingLabel}</Text>
-        <Text style={[styles.sessionRemaining, styles.textRight]} numberOfLines={2}>오늘 {todayTotal}</Text>
-      </View>
+      <Text style={styles.sessionRemaining}>오늘 {todayTotal} · {accountLimit}</Text>
       <View style={styles.sessionActions}>
         <View style={styles.sessionAction}>
           <AppButton label={paused ? '다시 시작' : '일시정지'} onPress={paused ? onResume : onPause} disabled={busy} />
         </View>
         <View style={styles.sessionAction}>
-          <AppButton label="기록 종료" variant="plain" onPress={onStop} disabled={busy} />
+          <AppButton
+            label="기록 종료"
+            variant="secondary"
+            onPress={onStop}
+            disabled={busy}
+            style={paused ? styles.pausedStopAction : undefined}
+          />
         </View>
       </View>
     </View>
+  );
+}
+
+export function TodayListAction({
+  kind,
+  label,
+  onPress,
+}: {
+  kind: 'add' | 'reflection';
+  label: string;
+  onPress: () => void;
+}) {
+  const Icon: LucideIcon = kind === 'add' ? Plus : NotebookPen;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      style={({ pressed }) => [styles.listAction, pressed && styles.pressed]}>
+      <View style={styles.listActionIcon}>
+        <Icon color={COLORS.accentStrong} size={20} strokeWidth={2} />
+      </View>
+      <Text style={styles.listActionLabel}>{label}</Text>
+    </Pressable>
   );
 }
 
@@ -157,7 +237,7 @@ export function PlanActualDelta({ planned, actual }: { planned: number | null; a
       style={styles.metricRow}>
       <MetricColumn label="계획" value={planned === null ? '미보존' : formatMinutes(planned)} />
       <MetricColumn label="실제" value={formatMinutes(actual)} />
-      <MetricColumn label="차이" value={delta === null ? '—' : signedMinutes(delta)} align="right" />
+      <MetricColumn label="차이" value={delta === null ? '—' : signedMinutes(delta)} />
     </View>
   );
 }
@@ -177,18 +257,23 @@ export function LedgerRow({ title, planned, actual, level, onPress }: {
     `실제 ${formatMinutes(actual)}`,
     `차이 ${delta === null ? '—' : signedMinutes(delta)}`,
   ];
-  const content = (
+  const accountTotal = planned === null
+    ? `실제 ${formatMinutes(actual)}`
+    : `${formatMinutes(actual)} / ${formatMinutes(planned)}`;
+  const content = level === 'account' ? (
     <>
-      <Text style={[styles.ledgerTitle, level === 'account' && styles.ledgerTitleAccount, stacked && styles.ledgerTitleStacked]} numberOfLines={stacked ? 3 : 2}>{title}</Text>
-      <View style={[styles.ledgerMetrics, stacked && styles.ledgerMetricsStacked]}>
-        {metrics.map((value) => <Text key={value} style={styles.ledgerMetric} numberOfLines={2}>{value}</Text>)}
-      </View>
+      <Text style={[styles.ledgerTitle, styles.ledgerTitleAccount]}>{title}</Text>
+      <Text style={styles.ledgerAccountTotal}>{accountTotal}</Text>
     </>
+  ) : (
+    <View style={styles.ledgerCopy}>
+      <Text style={styles.ledgerTitle} numberOfLines={stacked ? undefined : 2}>{title}</Text>
+      <Text style={styles.ledgerMetric} numberOfLines={stacked ? undefined : 2}>{metrics.join(' · ')}</Text>
+    </View>
   );
   const rowStyle = [
     styles.ledgerRow,
     level === 'account' ? styles.ledgerAccount : styles.ledgerItem,
-    stacked && styles.ledgerRowStacked,
   ];
   if (!onPress) return <View style={rowStyle}>{content}</View>;
   return (
@@ -269,24 +354,15 @@ function MetricColumn({ label, value, align = 'left' }: { label: string; value: 
   );
 }
 
-function SummaryMetric({ label, value, align = 'left' }: { label: string; value: string; align?: 'left' | 'right' }) {
-  return (
-    <View style={[styles.summaryMetric, align === 'right' && styles.alignRight]}>
-      <Text style={styles.summaryLabel}>{label}</Text>
-      <Text style={[styles.summaryValue, align === 'right' && styles.textRight]} numberOfLines={2}>{value}</Text>
-    </View>
-  );
-}
-
-function useTimerElapsed(runtime: TimerRuntime): number {
+function useTimerElapsed(runtime: TimerRuntime | null): number {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     setNow(Date.now());
-    if (runtime.status === 'paused') return undefined;
+    if (runtime === null || runtime.status === 'paused') return undefined;
     const interval = setInterval(() => setNow(Date.now()), 1_000);
     return () => clearInterval(interval);
   }, [runtime]);
-  return timerElapsedMilliseconds(runtime, new Date(now).toISOString());
+  return runtime === null ? 0 : timerElapsedMilliseconds(runtime, new Date(now).toISOString());
 }
 
 function formatTimer(milliseconds: number): string {
@@ -297,65 +373,61 @@ function formatTimer(milliseconds: number): string {
   return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
-function formatClockDuration(totalSeconds: number): string {
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return seconds === 0 ? formatMinutes(minutes) : `${formatMinutes(minutes)} ${seconds}초`;
-}
-
 function signedMinutes(value: number): string {
   if (value > 0) return `+${formatMinutes(value)}`;
   return formatMinutes(value);
 }
 
 const styles = StyleSheet.create({
-  todaySummary: { minHeight: 56, flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', borderRadius: tokens.radius.card, backgroundColor: COLORS.surfaceSubtle, paddingHorizontal: 14, paddingVertical: 10 },
-  summaryMetric: { flex: 1, gap: 2 },
-  summaryLabel: { color: COLORS.muted, fontFamily: FONTS.regular, fontSize: tokens.type.caption, lineHeight: 18 },
-  summaryValue: { color: COLORS.text, fontFamily: FONTS.medium, fontSize: tokens.type.body, lineHeight: 22, fontVariant: ['tabular-nums'] },
-  accountGroup: { gap: 10 },
-  accountHeader: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: tokens.space.sm, paddingHorizontal: tokens.space.xxs },
+  todaySummary: { minHeight: 44, justifyContent: 'center' },
+  todaySummaryText: { color: COLORS.text, fontFamily: FONTS.medium, fontSize: tokens.type.body, lineHeight: 22, fontVariant: ['tabular-nums'] },
+  accountGroup: { gap: 0, paddingBottom: tokens.space.xs },
+  accountHeader: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: tokens.space.sm, paddingLeft: 13 },
   accountTitle: { flex: 1, color: COLORS.text, fontFamily: FONTS.medium, fontSize: tokens.type.section, lineHeight: 24, letterSpacing: -0.2 },
-  accountSubtotal: { maxWidth: 140, color: COLORS.accentStrong, fontFamily: FONTS.regular, fontSize: tokens.type.caption, lineHeight: 18, textAlign: 'right', fontVariant: ['tabular-nums'] },
-  accountList: { gap: 10 },
-  todayItem: { minHeight: 68, flexDirection: 'row', alignItems: 'center', gap: 10, borderColor: COLORS.border, borderWidth: StyleSheet.hairlineWidth, borderRadius: tokens.radius.card, backgroundColor: COLORS.surface, paddingVertical: 10, paddingHorizontal: tokens.space.sm },
-  itemStateMark: { width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.muted },
+  accountSubtotal: { maxWidth: 148, color: COLORS.accentStrong, fontFamily: FONTS.regular, fontSize: tokens.type.caption, lineHeight: 18, textAlign: 'right', fontVariant: ['tabular-nums'] },
+  accountList: { gap: 0 },
+  todayItem: { minHeight: 60, flexDirection: 'row', alignItems: 'stretch', borderBottomColor: COLORS.border, borderBottomWidth: StyleSheet.hairlineWidth },
+  itemBody: { flex: 1, minHeight: 60, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  itemStateMark: { width: 3, alignSelf: 'stretch', marginVertical: 18, borderRadius: 2, backgroundColor: COLORS.surfaceSubtle },
   itemStateMarkRunning: { backgroundColor: COLORS.accent },
   itemStateMarkPaused: { backgroundColor: COLORS.borderStrong },
-  todayItemCopy: { flex: 1, minWidth: 0, gap: 2 },
+  todayItemCopy: { flex: 1, minWidth: 0, gap: 1 },
   taskName: { color: COLORS.text, fontFamily: FONTS.medium, fontSize: tokens.type.body, lineHeight: 22, letterSpacing: -0.1 },
   taskMeta: { color: COLORS.muted, fontFamily: FONTS.regular, fontSize: tokens.type.caption, lineHeight: 18 },
-  todayItemTrailing: { width: 88, flexShrink: 0, color: COLORS.accentStrong, fontFamily: FONTS.medium, fontSize: tokens.type.caption, lineHeight: 18, textAlign: 'right', fontVariant: ['tabular-nums'] },
+  itemAction: { width: tokens.hitTarget, height: tokens.hitTarget, alignItems: 'center', justifyContent: 'center' },
+  playOptical: { transform: [{ translateX: 1 }] },
+  itemActionPressed: { borderRadius: tokens.radius.pill, backgroundColor: COLORS.accentSoft },
   pausedMeta: { color: COLORS.muted },
   pressed: { opacity: 0.7 },
-  sessionCard: { gap: 8, borderColor: COLORS.border, borderWidth: StyleSheet.hairlineWidth, borderRadius: tokens.radius.card, backgroundColor: COLORS.accentSoft, padding: tokens.space.md },
-  sessionCardPaused: { backgroundColor: COLORS.surfaceSubtle },
+  sessionCard: { minHeight: 224, gap: 6, borderRadius: tokens.radius.card, backgroundColor: COLORS.accentSoft, paddingHorizontal: tokens.space.ml, paddingVertical: 18 },
+  sessionCardPaused: { borderColor: COLORS.border, borderWidth: StyleSheet.hairlineWidth, backgroundColor: COLORS.surfaceSubtle },
   sessionStatus: { color: COLORS.accentStrong, fontFamily: FONTS.medium, fontSize: tokens.type.caption, lineHeight: 18 },
   sessionItem: { color: COLORS.text, fontFamily: FONTS.medium, fontSize: tokens.type.body, lineHeight: 22 },
   sessionTimer: { color: COLORS.text, fontFamily: FONTS.medium, fontSize: tokens.type.timer, lineHeight: 48, fontVariant: ['tabular-nums'], letterSpacing: -0.8 },
   sessionTimerPaused: { color: COLORS.muted },
-  sessionMetrics: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: tokens.space.xs },
-  sessionRemaining: { flex: 1, color: COLORS.muted, fontFamily: FONTS.regular, fontSize: tokens.type.caption, lineHeight: 18, fontVariant: ['tabular-nums'] },
+  sessionRemaining: { color: COLORS.muted, fontFamily: FONTS.regular, fontSize: tokens.type.caption, lineHeight: 18, fontVariant: ['tabular-nums'] },
   sessionActions: { flexDirection: 'row', gap: tokens.space.xs },
   sessionAction: { flex: 1 },
+  pausedStopAction: { borderWidth: 1, borderColor: COLORS.borderStrong },
+  listAction: { minHeight: tokens.hitTarget, flexDirection: 'row', alignItems: 'center', gap: tokens.space.xs },
+  listActionIcon: { width: 24, alignItems: 'center' },
+  listActionLabel: { flex: 1, color: COLORS.accentStrong, fontFamily: FONTS.medium, fontSize: tokens.type.body, lineHeight: 22 },
   metricHero: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: tokens.space.xs, paddingVertical: tokens.space.sm },
   metricValue: { color: COLORS.text, fontFamily: FONTS.medium, fontSize: tokens.type.body, lineHeight: 22, fontVariant: ['tabular-nums'] },
-  metricRow: { minHeight: 68, flexDirection: 'row', justifyContent: 'space-between', borderRadius: tokens.radius.card, backgroundColor: COLORS.surfaceSubtle, padding: tokens.space.sm },
-  metricColumn: { flex: 1, alignItems: 'flex-start', gap: 2 },
+  metricRow: { minHeight: 62, flexDirection: 'row', gap: tokens.space.xs },
+  metricColumn: { flex: 1, minHeight: 62, alignItems: 'flex-start', gap: 2, borderRadius: tokens.radius.small, backgroundColor: COLORS.surfaceSubtle, padding: 10 },
   metricLabel: { color: COLORS.muted, fontFamily: FONTS.regular, fontSize: tokens.type.caption, lineHeight: 18 },
   metricColumnValue: { color: COLORS.text, fontFamily: FONTS.medium, fontSize: tokens.type.body, lineHeight: 22, fontVariant: ['tabular-nums'] },
   alignRight: { alignItems: 'flex-end' },
   textRight: { textAlign: 'right' },
-  ledgerRow: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: tokens.radius.small, paddingHorizontal: tokens.space.sm, paddingVertical: 12 },
-  ledgerRowStacked: { flexDirection: 'column', alignItems: 'stretch', gap: 8 },
-  ledgerAccount: { backgroundColor: COLORS.surfaceSubtle },
-  ledgerItem: { backgroundColor: COLORS.surface },
-  ledgerTitle: { flex: 1.35, color: COLORS.text, fontFamily: FONTS.regular, fontSize: tokens.type.label, lineHeight: 18 },
-  ledgerTitleStacked: { flexGrow: 0, flexBasis: 'auto' },
-  ledgerTitleAccount: { fontFamily: FONTS.medium, fontSize: tokens.type.caption },
-  ledgerMetrics: { flex: 3, flexDirection: 'row', justifyContent: 'space-between', gap: 4 },
-  ledgerMetricsStacked: { width: '100%' },
-  ledgerMetric: { flex: 1, color: COLORS.muted, fontFamily: FONTS.regular, fontSize: tokens.type.label, lineHeight: 18, textAlign: 'right', fontVariant: ['tabular-nums'] },
+  ledgerRow: { flexDirection: 'row', alignItems: 'center', gap: tokens.space.xs, borderBottomColor: COLORS.border, borderBottomWidth: StyleSheet.hairlineWidth, paddingHorizontal: tokens.space.sm },
+  ledgerAccount: { minHeight: 44, backgroundColor: COLORS.surface },
+  ledgerItem: { minHeight: 56, backgroundColor: COLORS.surface },
+  ledgerCopy: { flex: 1, gap: 1, paddingVertical: tokens.space.xs },
+  ledgerTitle: { flex: 1, color: COLORS.text, fontFamily: FONTS.regular, fontSize: tokens.type.caption, lineHeight: 18 },
+  ledgerTitleAccount: { fontFamily: FONTS.medium, fontSize: tokens.type.body, lineHeight: 22 },
+  ledgerAccountTotal: { color: COLORS.accentStrong, fontFamily: FONTS.regular, fontSize: tokens.type.caption, lineHeight: 18, textAlign: 'right', fontVariant: ['tabular-nums'] },
+  ledgerMetric: { color: COLORS.muted, fontFamily: FONTS.regular, fontSize: tokens.type.label, lineHeight: 18, fontVariant: ['tabular-nums'] },
   entryRow: { minHeight: tokens.hitTarget, flexDirection: 'row', alignItems: 'center', gap: tokens.space.md, paddingVertical: tokens.space.sm, borderBottomColor: COLORS.border, borderBottomWidth: StyleSheet.hairlineWidth },
   entryCopy: { flex: 1, gap: tokens.space.xxs },
   entryValue: { maxWidth: 96, color: COLORS.text, fontFamily: FONTS.medium, fontSize: tokens.type.body, lineHeight: 22, textAlign: 'right', fontVariant: ['tabular-nums'] },

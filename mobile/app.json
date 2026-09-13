@@ -10,12 +10,12 @@
     "ios": {
       "icon": "./assets/expo.icon",
       "bundleIdentifier": "com.oosops.app",
-      "buildNumber": "13",
+      "buildNumber": "14",
       "supportsTablet": true
     },
     "android": {
       "package": "com.oosops.app",
-      "versionCode": 13,
+      "versionCode": 14,
       "adaptiveIcon": {
         "backgroundColor": "#F7F6F2",
         "foregroundImage": "./assets/images/android-icon-foreground.png",

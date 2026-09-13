@@ -1,4 +1,5 @@
 import { Tabs } from 'expo-router';
+import { CalendarDays, List } from 'lucide-react-native';
 import {
   Pressable,
   StyleSheet,
@@ -48,8 +49,22 @@ export default function TabsLayout() {
         tabBarButton: MinimalTabButton,
         tabBarLabelStyle: { fontFamily: FONTS.regular, fontSize: 13, lineHeight: 18 },
       }}>
-      <Tabs.Screen name="index" options={{ title: '오늘', tabBarLabel: ({ color, focused }) => <TabLabel color={color} focused={focused}>오늘</TabLabel> }} />
-      <Tabs.Screen name="records" options={{ title: '기록', tabBarLabel: ({ color, focused }) => <TabLabel color={color} focused={focused}>기록</TabLabel> }} />
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: '오늘',
+          tabBarIcon: ({ color }) => <CalendarDays color={color} size={20} strokeWidth={2} />,
+          tabBarLabel: ({ color, focused }) => <TabLabel color={color} focused={focused}>오늘</TabLabel>,
+        }}
+      />
+      <Tabs.Screen
+        name="records"
+        options={{
+          title: '기록',
+          tabBarIcon: ({ color }) => <List color={color} size={20} strokeWidth={2} />,
+          tabBarLabel: ({ color, focused }) => <TabLabel color={color} focused={focused}>기록</TabLabel>,
+        }}
+      />
     </Tabs>
   );
 }
@@ -93,10 +108,10 @@ function TabLabel({ children, color, focused }: { children: string; color: Color
 
 const styles = StyleSheet.create({
   tabButton: { alignItems: 'center', justifyContent: 'center' },
-  tabButtonContent: { minWidth: 64, minHeight: 48, alignItems: 'center', justifyContent: 'center', gap: 5 },
+  tabButtonContent: { minWidth: 64, minHeight: 48, alignItems: 'center', justifyContent: 'center', gap: 2 },
   indicator: { width: 20, height: 2, borderRadius: 1, backgroundColor: 'transparent' },
   indicatorSelected: { backgroundColor: COLORS.accent },
-  tabLabel: { fontFamily: FONTS.regular, fontSize: 13, lineHeight: 18 },
+  tabLabel: { fontFamily: FONTS.regular, fontSize: 12, lineHeight: 18 },
   tabLabelSelected: { fontFamily: FONTS.medium },
   tabButtonPressed: { opacity: 0.72 },
 });
