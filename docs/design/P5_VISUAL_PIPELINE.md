@@ -4,7 +4,7 @@
 
 ## 현재 판정
 
-- 상태: `제품 기획 승인 / Figma v3 미작성 / implementation blocked`
+- 상태: `제품 기획·Figma v3·사용자 승인 완료 / Claude 읽기 전용 조건부 승인 사항 교정 완료 / implementation gate open / device comparison pending`
 - 현재 설치 앱: `0.6.0(13)` P5 Visual v2 personal standalone
 - 보존할 것: 계정→항목 구조, 오늘 항목 선택, 직접 기록, 단일 running timer, 여러 paused session, 재시작 복원, 기록 원장과 더보기 기능
 - 바꿀 것: 반복 지표, 중첩 카드, 시작까지의 불필요한 선택, 현재 세션 중복, 내비게이션 아이콘과 시스템 bar의 시각 분리
@@ -136,7 +136,16 @@ timespent와 Equinox+는 P5 Visual v2의 Records/Dark 비교 근거로만 남긴
 6. Light/Dark
 7. Galaxy 3-button and gesture-navigation safe area
 
-모든 frame은 360dp compact width와 합성 데이터로 만들되 특정 기기 pixel 상수를 제품 코드 계약으로 만들지 않는다.
+핵심 Galaxy 기준 frame은 실제 검수 폭인 390dp와 합성 데이터로 만들었다. 360dp compact width는 별도 적응형 증거와 코드 검증 대상으로 유지하며, 어느 폭도 특정 기기 pixel 상수로 제품 코드에 고정하지 않는다.
+
+## Figma v3 승인 기록
+
+- 사용자 승인: 2026-09-13. 현재 `P5 Visual v3`를 구현 source of truth로 확정했다.
+- Claude Cowork 읽기 전용 검수: `post-Figma / pre-implementation`, Blocker 없음, 조건부 승인.
+- Claude가 찾은 계정 header와 항목 title의 13dp 시작축 차이는 Account Header의 왼쪽 거터를 13dp로 맞춰 교정했다. 우측 합계와 48dp 상세 hit area의 축은 유지했다.
+- Paused current-session의 secondary action은 배경과 같은 표면색에 묻히지 않도록 semantic border 1dp를 추가했고, Light와 Dark paused proof를 모두 만들었다.
+- Claude가 본 이전 revision의 23/24dp 비대칭은 최종 revision에서 좌우 24dp, 본문 342dp로 통일했다. 최종 node 검사에서 343dp 잔여 본문은 0개다.
+- 긴 이름은 두 줄 자연 높이, sheet handle은 중앙, running action pair는 동일 폭과 8dp gap, 3-button navigation은 앱 탭 56dp와 OS inset 48dp 분리를 확인했다.
 
 ## 승인·구현 순서
 

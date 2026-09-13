@@ -12,6 +12,7 @@
 - 전체·계정·항목·상세가 각각 한 단계의 지표만 소유하게 하고, 계정 공용 상한, 평면 항목 행, trailing play 즉시 시작, 단일 current session, 여러 paused session과 `오늘 돌아보기` 재배치를 확정했다.
 - Rubit은 Today 평면 목록·밀도, Todoist는 group/row 위계, Tiimo는 실행 연속성만 참고한다. Toss의 `One thing per One page`는 정보 감축 rubric으로 사용하고 브랜드·문구·화면을 복제하지 않는다.
 - 기존 P5 Visual v2 Figma와 `0.6.0(13)`은 비교 기준선으로 남기되 공개 시각 source of truth 승인을 철회했다. 새 v3 Figma·읽기 전용 검수·사용자 승인 전 implementation gate를 닫았다.
+- `P5 Visual v3`의 390dp Galaxy core/edge frame, 360dp·200% 적응형 증거, 실제 3-button navigation 경계를 완성하고 사용자가 승인했다. Claude 읽기 전용 대칭 검수의 13dp 제목축과 paused secondary-action 대비 지적을 Figma에 교정해 implementation gate를 열었다.
 
 ### P5 Visual v2 implementation — 2026-09-13
 

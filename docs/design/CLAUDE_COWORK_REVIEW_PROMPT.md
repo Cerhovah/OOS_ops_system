@@ -1,4 +1,4 @@
-# Claude Cowork P5 Visual v2 검수 프롬프트
+# Claude Cowork P5 Visual v2·v3 검수 기록
 
 아래 본문은 `P5 Visual v2`의 pre-implementation 검수용이다. node URL은 2026-09-13 완성한 합성 데이터 frame으로 고정했으며 개인 데이터 screenshot은 첨부하지 않는다.
 
@@ -47,3 +47,12 @@ Reference 역할:
 - Medium: Today의 `+12분` 의미가 불명확함. 같은 무채색을 유지하며 `+12분 초과`로 보완했다.
 - Low: switch conflict 시트의 합성 항목명이 배경 실행 항목과 달랐다. 구현에서도 동적 현재 항목명을 사용하도록 시트 설명을 `현재 기록을 일시정지하고 이 항목을 시작합니다.`로 고쳤다.
 - 제한: Cowork 프로젝트에 저장소 폴더가 연결되지 않아 Claude는 SPEC 문구를 직접 열지 못했다. Codex가 동일 변경 뒤 SPEC §2·§3.2·§5·§7·§8과 재대조했고 제품·SQLite·P6 sync 계약 변경은 없음을 확인했다.
+
+## P5 Visual v3 대칭 집중 검수 — 2026-09-13
+
+- 같은 Cowork 세션에 `P5 Visual v3`의 core/edge Figma 링크와 합성 데이터만 전송했다. 개인 기기 screenshot이나 개인 데이터는 전송하지 않았다.
+- 판정: `post-Figma / pre-implementation`, `조건부 승인`, Blocker 없음. `One thing per One page`와 전체/계정/항목/상세 정보 소유권은 통과했다.
+- High 1: Account Header와 Today Row 제목 시작축 13dp 차이. Account Header에 13dp 왼쪽 거터를 추가해 제목축을 맞추고 우측 합계·동작축은 유지했다.
+- High 2: Paused 카드와 secondary action이 같은 표면색이라 동작 발견성이 낮음. secondary action에 semantic border 1dp를 추가하고 Light·Dark paused를 재확인했다.
+- Low: Claude가 검수한 revision의 23/24dp 본문 비대칭. 최종 revision은 좌우 24dp와 본문 342dp로 통일했고 343dp 잔여 노드가 없음을 확인했다.
+- 유지: Current Session의 같은 폭 action pair, Records 원장 축, 비판단 signed 차이, 계층별 정보 소유권.
