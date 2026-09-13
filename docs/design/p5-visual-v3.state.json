@@ -1,7 +1,7 @@
 {
   "runId": "p5-visual-v3-20260913",
-  "phase": "phase4",
-  "step": "implementation_approved",
+  "phase": "phase5",
+  "step": "release_qualified",
   "entities": {
     "collections": {
       "primitives": "VariableCollectionId:38:2",
@@ -52,9 +52,7 @@
       "longNameRows": ["93:1221", "93:1232"]
     }
   },
-  "pendingValidations": [
-    "implementation:device-comparison"
-  ],
+  "pendingValidations": [],
   "completedSteps": [
     "phase0",
     "phase1",
@@ -67,6 +65,11 @@
     "review:claude-symmetry-corrections",
     "review:user-figma-approval",
     "review:design-context-final",
-    "review:screenshot-final"
+    "review:screenshot-final",
+    "implementation:code-review",
+    "implementation:automated-verify",
+    "implementation:standalone-build",
+    "implementation:data-preserving-update",
+    "review:device-comparison"
   ]
 }

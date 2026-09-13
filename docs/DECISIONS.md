@@ -423,9 +423,10 @@
 ### ADR-034 — P5 Visual v3의 계층별 정보 소유권과 즉시 시작
 
 - 날짜: 2026-09-13
-- 상태: 승인 / Figma·구현 대기
+- 상태: 승인 / 구현·실기기 검증 완료
 - 맥락: `0.6.0(13)`은 Galaxy system navigation 위에 앱 navigation을 분리하고 v0.6.0 기능 구조를 보존했지만, 전체·계정·항목에 같은 실제·초과 값이 반복되고 account/item 중첩 card와 불명확한 icon이 첫 화면의 선택 비용을 높였다. 사용자는 기능과 구조를 유지하면서 Rubit처럼 평면적이고 빠르게 읽히는 Today와 Toss의 `One thing per One page` 원칙을 승인했다.
 - 결정: Today의 유일한 질문을 `지금 무엇을 시작하거나 이어갈 것인가`로 고정한다. 전체는 오늘 실제와 항목 수, 계정은 오늘 선택 하위 항목의 계획 합계인 공용 상한과 실제, 항목은 이름·실제·상태, Records/상세는 계획·실제·signed 차이를 소유한다. 계정은 typography/spacing, 항목은 flat row로 표시하고 현재 session만 강조 surface로 둔다. 시간형 trailing play는 running session이 없을 때 즉시 시작하고, row 본문은 상세/직접 기록으로 분리한다. 다른 session이 running이면 기존 session을 pause하고 새 항목을 시작하는 결과 하나만 확인한다. 기존 `오늘 종료` snapshot/note는 `오늘 돌아보기` 진입으로 재배치한다.
+- 구현 확정: running session을 최우선, running이 없으면 가장 최근 paused session을 current-session으로 선택한다. current 항목 행의 trailing 조작은 숨겨 상단 카드와 중복 동작을 만들지 않고, 다른 paused 항목만 재개할 수 있게 한다. 계정 header는 표시 전용이므로 연결 화면 없는 chevron을 두지 않는다. Records는 계획·실제·차이 3개 동등 폭 카드와 계정별 단일 ledger surface를 사용한다.
 - 대안: v2 card와 상시 signed 차이를 색만 조정, 모든 시작을 action sheet 뒤에 유지, 기록·관리·분석을 동일 빈도의 3탭으로 전환, Rubit/Todoist/Tiimo 화면을 직접 복제.
 - 근거: 같은 파생값을 한 계층에서만 노출하면 원자료를 보존하면서도 반복을 제거할 수 있다. 자주 쓰는 play와 드문 상세를 분리하면 시작 tap을 줄이고, 실행 중 전환만 확인해 의도하지 않은 pause를 막는다. 하단은 빈도가 높은 Today/Records 2탭을 유지해 관리·분석이 핵심 기록 흐름과 경쟁하지 않게 한다.
 - 결과 및 위험: SQLite v6, repository, sync/server 계약은 바뀌지 않는다. 현재 item별 계획의 합계를 계정 공용 상한으로 해석하므로 별도의 직접 입력 일일 상한은 지원하지 않는다. play와 row가 다른 동작을 가져 접근성 label과 시각 affordance를 명확히 해야 하며, Figma prototype과 큰 글씨/TalkBack 검수 없이 구현하면 안 된다.

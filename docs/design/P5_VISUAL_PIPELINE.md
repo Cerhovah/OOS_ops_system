@@ -142,10 +142,11 @@ timespent와 Equinox+는 P5 Visual v2의 Records/Dark 비교 근거로만 남긴
 
 - 사용자 승인: 2026-09-13. 현재 `P5 Visual v3`를 구현 source of truth로 확정했다.
 - Claude Cowork 읽기 전용 검수: `post-Figma / pre-implementation`, Blocker 없음, 조건부 승인.
-- Claude가 찾은 계정 header와 항목 title의 13dp 시작축 차이는 Account Header의 왼쪽 거터를 13dp로 맞춰 교정했다. 우측 합계와 48dp 상세 hit area의 축은 유지했다.
+- Claude가 찾은 계정 header와 항목 title의 13dp 시작축 차이는 Account Header의 왼쪽 거터를 13dp로 맞춰 교정했다. 구현 검수에서 계정별 연결 화면이 없는 48dp 상세 hit area와 chevron은 동작 없는 affordance로 판정해 Figma에서 제거하고 우측 합계를 342dp 본문 끝축에 맞췄다.
 - Paused current-session의 secondary action은 배경과 같은 표면색에 묻히지 않도록 semantic border 1dp를 추가했고, Light와 Dark paused proof를 모두 만들었다.
 - Claude가 본 이전 revision의 23/24dp 비대칭은 최종 revision에서 좌우 24dp, 본문 342dp로 통일했다. 최종 node 검사에서 343dp 잔여 본문은 0개다.
 - 긴 이름은 두 줄 자연 높이, sheet handle은 중앙, running action pair는 동일 폭과 8dp gap, 3-button navigation은 앱 탭 56dp와 OS inset 48dp 분리를 확인했다.
+- 구현 뒤 SM-S721N의 실제 1080×2340 dark 화면에서 좌우 24dp, current-session action pair, 3열 Records 지표, 계정별 단일 원장 표면, 앱 탭과 3-button system navigation 분리를 승인 Figma와 대조했다. 개인 screenshot은 Figma·Claude·저장소로 전송하지 않았다.
 
 ## 승인·구현 순서
 

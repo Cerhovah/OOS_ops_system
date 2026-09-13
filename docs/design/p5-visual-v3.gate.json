@@ -61,7 +61,7 @@
     "figmaHighFidelity": true,
     "claudeReadOnlyVisualReview": true,
     "userFigmaApproval": true,
-    "deviceComparison": false
+    "deviceComparison": true
   },
   "privacy": {
     "syntheticDesignDataOnly": true,

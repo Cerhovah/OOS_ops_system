@@ -241,3 +241,11 @@ Windows 긴 경로는 OS에서 `LongPathsEnabled=1`, 이 저장소의 로컬 Git
 - 공식 [Expo EAS Maestro 예시](https://docs.expo.dev/eas/workflows/examples/e2e-tests/)의 원격 job은 alpha·빌드 비용·GitHub 연결 경계가 있어 이번 로컬 준비 범위에는 추가하지 않았다.
 - ADB `R5CY31QP08W`는 연결됐고 `com.oosops.app`이 설치돼 있다. 화면이 잠긴 상태라 개인 데이터 screenshot은 수집하지 않았다. 개인용 실기기에서 Maestro `clearState`를 실행하지 않는다.
 - 디자인 gate는 `npm run design:status`로 읽고, `npm run design:gate -- --stage implementation`은 새 Figma와 사용자·Claude 승인이 기록되기 전 의도적으로 실패한다.
+
+## P5 Visual v3 구현·standalone 환경 (2026-09-13)
+
+- Figma `P5 Visual v3` page `74:6`과 core/edge node를 구현 source of truth로 사용했다. 사용자 승인, Claude Cowork 읽기 전용 대칭 검수, 두 Codex 읽기 전용 구현 검수를 거쳐 implementation과 release gate를 통과했다. 계정 header의 동작 없는 chevron은 최종 구현 대조에서 Figma component `76:605`에서도 제거했다.
+- `lucide-react-native@1.45.0`과 Expo 호환 `react-native-svg@15.15.4`만 명시 icon dependency로 추가했다. `expo install --check`와 Expo Doctor 21/21이 통과했으며 Mobbin/Figma/Claude MCP는 앱 runtime dependency가 아니다.
+- EAS development `1dbde3bb-3c8b-4e90-ad82-d4b0614b6606`과 personal `6a84d74e-249d-4133-8bb5-91fd31fb4f66`은 fingerprint `5e74445f419e5f1a95451474c5c597602cfa7b31`, 기존 remote keystore, `com.oosops.app`, `0.6.0(14)`, SDK 57을 사용했다.
+- 최종 standalone APK는 `C:\Users\skljh\Downloads\OOS-Ops-0.6.0-build14-personal.apk`다. SM-S721N Android 16에 `adb install -r`로 설치했으며 non-debuggable, 최초 설치일 2026-08-23 유지, Metro와 ADB reverse 없는 cold start를 확인했다.
+- update 전에 병합 검증한 복구 DB는 `C:\Users\skljh\Downloads\OOS-Ops-user-data-backup-20260913-214335`에, 최종 raw DB/WAL/SHM과 ZIP은 `C:\Users\skljh\Downloads\OOS-Ops-user-data-backup-20260913-220132-raw`에 있다. 개인 화면 캡처와 UI dump는 로컬 Temp에서만 확인했으며 외부 서비스나 저장소로 전송하지 않는다.

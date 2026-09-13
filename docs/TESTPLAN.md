@@ -11,6 +11,19 @@
 
 실행 기록에는 실행일, source SHA, 앱 버전/versionCode, SQLite 버전, 기기/OS, 조건, 기대값/실제값, 증빙 위치와 재현 실패만 남긴다. 자동 검증은 합성 데이터, 실기기는 개인정보를 가린 증빙을 사용한다.
 
+## P5 Visual v3 구현·standalone 종료 게이트 — 2026-09-13 통과
+
+- 소스/경계: 구현 source `afdf196`, `0.6.0(14)`, SQLite v6. Today와 Records의 정보 구조·조작·표면만 변경했고 SQLite schema/migration, repository 저장 의미, Supabase schema/RPC/RLS/payload와 sync 계약은 변경하지 않았다.
+- 독립 검수: Claude Cowork의 pre-implementation 대칭 검수는 Blocker 없이 조건부 승인했다. 두 읽기 전용 Codex 구현 검수에서 current paused session 선택, 중첩 pressable, current 행 중복 조작, 다중 항목 선택, 비시간형 icon, Records 3열·계정 그룹 대칭과 200% 글씨 문제를 발견해 교정했다. 연결 화면이 없는 계정 header chevron은 코드에 dead action을 만들지 않고 최종 Figma component에서 제거했다.
+- 자동 게이트: `npm run verify` 종료 코드 0. TypeScript/ESLint 0, 40 files/239 tests, coverage statements 98.10% / branches 94.21% / functions 100% / lines 99.18%, Supabase 계약 2 files/8 tests, Expo dependency check, Doctor 21/21, Android Hermes 3,799 modules와 7MB `.hbc`를 통과했다.
+- artifact: EAS development `1dbde3bb-3c8b-4e90-ad82-d4b0614b6606`과 personal `6a84d74e-249d-4133-8bb5-91fd31fb4f66`, fingerprint `5e74445f419e5f1a95451474c5c597602cfa7b31`, 기존 remote keystore, `com.oosops.app`, `0.6.0(14)`, SDK 57. personal APK는 `C:\Users\skljh\Downloads\OOS-Ops-0.6.0-build14-personal.apk`, 123,381,554 bytes, SHA-256 `65EBA68823B00CBE5A3E45B2B429A9D2F4D23835FAEBB5A558D1A0A3EBBB9190`이다.
+- 선행 백업: 기존 v13을 실행하지 않은 동일 서명 development helper로 update한 뒤 force-stop 상태에서 DB/WAL/SHM을 복사했다. 로컬 크기는 626,688 / 4,218,912 / 32,768 bytes로 기기 원본과 일치했고, 병합 복구본 `C:\Users\skljh\Downloads\OOS-Ops-user-data-backup-20260913-214335`은 `PRAGMA integrity_check=ok`, user_version 6, accounts 14 / items 9 / entries 28 / settings 16을 확인했다.
+- raw 보존: 최종 smoke 뒤 `C:\Users\skljh\Downloads\OOS-Ops-user-data-backup-20260913-220132-raw`에 DB/WAL/SHM 세 파일을 다시 보존하고 ZIP SHA-256 `CB1DA5DDF78E4F45904532A180F5502FD7475FA8698A63F3620C71D609079625`를 기록했다. 기기 외부 staging 사본은 삭제했고 앱 데이터와 로컬 백업은 삭제하지 않았다.
+- 설치/보존: personal APK의 `adb install -r`가 성공했다. 설치본은 versionCode 14, non-debuggable이며 최초 설치일은 2026-08-23 14:42:29로 유지됐다. Metro/ADB reverse 없이 cold start가 성공하고 기존 Today 14시간 11분·3개 항목이 복원됐으며 fatal/ReactNativeJS/SQLite 오류는 0건이다.
+- 고객여정: Today → 필수 일정 시작 → 38초 일시정지 → force-stop/cold start 38초 paused 복원 → 재개 → 운동을 오늘 항목으로 다중 선택 UI에서 추가 → `필수 일정 일시정지 후 운동 시작` 전환 → 실행 중 직접 기록 경고 → 필수 일정 15분 직접 기록 → 운동 종료 → 남은 필수 일정 종료를 확인했다. 최종 Today는 14시간 29분·4개 항목, 필수 일정 14시간 27분, 운동 2분이며 열린 timer는 0개다.
+- Records/sync: Records의 계획 2시간 30분, 실제 14시간 29분, 차이 +11시간 59분과 계정·항목 원장을 확인했다. `지금 동기화` 뒤 마지막 동기화가 21:57:27로 갱신되고 전송 대기 0건이었다. 개인 screenshot/UI dump는 로컬 Temp에서만 대조했고 Figma·Claude·Git에 넣지 않았다.
+- 시각 release gate: SM-S721N, Android 16, 1080×2340, density 540, 큰 시스템 글씨, dark mode, 3-button navigation에서 24dp 본문축, current-session action pair, account/item 평면 위계, Records 3열·ledger group, 앱 2탭과 system bar 분리를 승인 Figma와 대조했다. 고정 유사도 점수 대신 정보 소유권·상태·접근성·잘림 여부로 판정했고 `deviceComparison=true`로 release gate를 열었다.
+
 ## P5 Visual v2 구현 자동 게이트 — 2026-09-13 통과
 
 - 소스/경계: `1f13657`, `0.6.0(13)`, SQLite v6. 승인 Figma의 표면·간격·타이포그래피·행·control과 OOS 전용 2탭을 구현했고 `mobile/src/data`, `mobile/src/services`, `mobile/src/sync`, `supabase` diff는 0건이다.
