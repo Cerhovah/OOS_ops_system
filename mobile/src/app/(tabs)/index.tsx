@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Alert, RefreshControl, StyleSheet, Text, View } from 'react-native';
 
-import { AppButton, Field, Heading, LoadingView, Screen, Sheet, StatusBanner, textStyles } from '@/components/ui';
+import { AppBar, AppButton, Field, LoadingView, Screen, Sheet, StatusBanner, textStyles } from '@/components/ui';
 import { DEFAULT_DAY_END_TIME } from '@/constants/app';
 import { useApp } from '@/context/app-context';
 import { dateKey, formatMinutes, parseDurationToMinutes } from '@/domain/calculations';
@@ -22,6 +22,7 @@ import {
 } from '@/features/today/today-view-model';
 import { COLORS } from '@/theme/colors';
 import { tokens } from '@/theme/tokens';
+import { FONTS } from '@/theme/typography';
 import type { Entry, Item, ItemInput, ItemType } from '@/types/domain';
 
 type SheetMode = 'add-existing' | 'quick-add' | 'manual-items' | null;
@@ -67,6 +68,9 @@ export default function TodayScreen() {
     [itemSearch, viewModel.accountNames, viewModel.missingItems],
   );
   const currentSession = viewModel.runningTimer ?? viewModel.timerSessions[0] ?? null;
+  const currentItemModel = currentSession
+    ? viewModel.visibleItems.find((visible) => visible.candidate.item.id === currentSession.item.id) ?? null
+    : null;
 
   if (app.loading) return <LoadingView />;
 
@@ -180,16 +184,16 @@ export default function TodayScreen() {
         refreshControl={(
           <RefreshControl refreshing={app.busy} onRefresh={() => void app.refresh().catch(() => undefined)} />
         )}>
-        <Heading subtitle={todayLabel}>오늘</Heading>
+        <AppBar title="오늘" meta={todayLabel} />
         {app.error ? <StatusBanner message={app.error} onClose={app.clearError} /> : null}
         <TodaySummary plannedMinutes={viewModel.plannedMinutes} actualMinutes={viewModel.actualMinutes} />
         {currentSession ? (
           <CurrentSessionCard
             session={currentSession}
             accountName={viewModel.accountNames[currentSession.item.accountId] ?? '기존 계정'}
-            plannedValue={viewModel.visibleItems.find(
-              (visible) => visible.candidate.item.id === currentSession.item.id,
-            )?.candidate.plannedValue ?? null}
+            plannedValue={currentItemModel?.candidate.plannedValue ?? null}
+            priorActualMinutes={currentItemModel?.actualMinutes ?? 0}
+            todayActualMinutes={viewModel.actualMinutes}
             busy={app.busy}
             onPause={() => void app.pauseTimer(currentSession.entry).catch(() => undefined)}
             onResume={() => requestTimerAction({ kind: 'resume', session: currentSession })}
@@ -198,12 +202,6 @@ export default function TodayScreen() {
         ) : null}
         <View style={styles.listHeader}>
           <Text accessibilityRole="header" style={styles.listTitle}>오늘 할 일</Text>
-          {viewModel.accountGroups.length > 0 ? (
-            <View style={styles.listActions}>
-              <AppButton label="불러오기" variant="plain" onPress={() => { setItemSearch(''); setSheetMode('add-existing'); }} />
-              <AppButton label="직접 기록" variant="plain" onPress={() => setSheetMode('manual-items')} />
-            </View>
-          ) : null}
         </View>
         {viewModel.accountGroups.map((group) => (
           <TodayAccountSection key={group.accountId} group={group} onItemPress={setSelectedItem} />
@@ -216,6 +214,12 @@ export default function TodayScreen() {
               <AppButton label="항목 불러오기" variant="secondary" onPress={() => setSheetMode('add-existing')} style={styles.emptyAction} />
               <AppButton label="직접 기록" variant="plain" onPress={() => setSheetMode('manual-items')} style={styles.emptyAction} />
             </View>
+          </View>
+        ) : null}
+        {viewModel.accountGroups.length > 0 ? (
+          <View style={styles.listActions}>
+            <AppButton label="다른 항목 기록하기" variant="plain" onPress={() => setSheetMode('manual-items')} />
+            <AppButton label="항목 불러오기" variant="plain" onPress={() => { setItemSearch(''); setSheetMode('add-existing'); }} />
           </View>
         ) : null}
       </Screen>
@@ -232,7 +236,7 @@ export default function TodayScreen() {
             </Text>
             {selected.item.type === 'time' && !selectedSession ? (
               <AppButton
-                label="타이머 시작"
+                label="시작"
                 onPress={() => requestTimerAction({ kind: 'start', item: selected.item })}
                 disabled={app.busy}
               />
@@ -240,7 +244,6 @@ export default function TodayScreen() {
             {selected.item.type === 'time' && selectedSession?.runtime.status === 'running' ? (
               <AppButton
                 label="일시정지"
-                variant="secondary"
                 onPress={() => void app.pauseTimer(selectedSession.entry).then(() => setSelectedItem(null)).catch(() => undefined)}
                 disabled={app.busy}
               />
@@ -255,7 +258,7 @@ export default function TodayScreen() {
             {selectedSession ? (
               <AppButton
                 label="종료하고 기록"
-                variant="secondary"
+                variant="plain"
                 onPress={() => void app.stopTimer(selectedSession.entry).then(() => setSelectedItem(null)).catch(() => undefined)}
                 disabled={app.busy}
               />
@@ -269,7 +272,7 @@ export default function TodayScreen() {
             ) : null}
             <AppButton
               label={selected.item.type === 'numeric' || selected.item.type === 'event' ? '값 입력' : '직접 기록'}
-              variant="secondary"
+              variant="plain"
               onPress={() => requestManualRecord(selected.item)}
             />
           </>
@@ -282,21 +285,21 @@ export default function TodayScreen() {
             ? `${viewModel.accountNames[viewModel.runningTimer.item.accountId] ?? '기존 계정'} · ${viewModel.runningTimer.item.name}`
             : '실행 중인 기록'}은 그대로 돌아갈 수 있습니다.
         </Text>
-        <AppButton label="기존 기록으로 돌아가기" variant="secondary" onPress={() => setPendingTimerAction(null)} />
         <AppButton
-          label="일시정지하고 새로 시작"
+          label="전환하고 시작"
           onPress={() => {
             if (!pendingTimerAction) return;
             void runTimerAction(pendingTimerAction, viewModel.runningTimer?.entry ?? null).catch(() => undefined);
           }}
           disabled={app.busy}
         />
+        <AppButton label="취소" variant="plain" onPress={() => setPendingTimerAction(null)} />
       </Sheet>
 
       <Sheet visible={recordWarningItem !== null} title="실행 중에도 직접 기록할 수 있습니다" onClose={() => setRecordWarningItem(null)}>
         <Text style={textStyles.muted}>현재 타이머는 계속 흐릅니다. 저장 후 언제든 오늘 화면으로 돌아갈 수 있습니다.</Text>
         <AppButton label="기록 계속하기" onPress={() => recordWarningItem && openManualRecord(recordWarningItem)} />
-        <AppButton label="취소" variant="secondary" onPress={() => setRecordWarningItem(null)} />
+        <AppButton label="취소" variant="plain" onPress={() => setRecordWarningItem(null)} />
       </Sheet>
 
       <Sheet visible={sheetMode === 'add-existing'} title="저장된 항목 불러오기" onClose={() => setSheetMode(null)}>
@@ -390,9 +393,9 @@ function formatTodayLabel(now: Date): string {
 }
 
 const styles = StyleSheet.create({
-  listHeader: { minHeight: tokens.hitTarget, gap: tokens.space.xxs },
-  listTitle: { color: COLORS.text, fontSize: 17, fontWeight: '800', letterSpacing: -0.2 },
-  listActions: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'flex-end', gap: 0 },
+  listHeader: { minHeight: 24, justifyContent: 'center' },
+  listTitle: { color: COLORS.text, fontFamily: FONTS.medium, fontSize: tokens.type.section, lineHeight: 24, letterSpacing: -0.2 },
+  listActions: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: tokens.space.xxs },
   emptyState: { gap: tokens.space.sm, borderRadius: tokens.radius.card, backgroundColor: COLORS.surfaceRaised, padding: tokens.space.md },
   emptyActions: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: tokens.space.xs },
   emptyAction: { flexGrow: 1 },

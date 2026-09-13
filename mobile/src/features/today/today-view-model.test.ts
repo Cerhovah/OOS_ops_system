@@ -107,6 +107,11 @@ describe('buildTodayViewModel', () => {
     expect(result.activeItems.map((candidate) => candidate.id)).toEqual(['focus', 'weight', 'spare']);
     expect(result.visibleItems.map((candidate) => candidate.candidate.item.id)).toEqual(['focus', 'weight']);
     expect(result.visibleItems.map((candidate) => candidate.summary)).toEqual(['35분 기록 · 55분 남음', '71 kg']);
+    expect(result.visibleItems.map((candidate) => candidate.meta)).toEqual([
+      '1시간 30분 계획 · 35분 기록',
+      '수치형 · 오늘 71 kg',
+    ]);
+    expect(result.visibleItems.map((candidate) => candidate.trailing)).toEqual(['기록 중', '71 kg']);
     expect(result.visibleItems[0]?.latestManualEntry?.id).toBe('focus-manual');
     expect(result.runningTimers.map((timer) => timer.entry.id)).toEqual(['focus-running']);
     expect(result.missingItems.map((candidate) => candidate.id)).toEqual(['spare']);

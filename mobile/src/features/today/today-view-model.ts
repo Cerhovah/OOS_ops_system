@@ -26,6 +26,8 @@ export interface TodayItemViewModel {
   latestManualEntry: Entry | null;
   actualMinutes: number;
   summary: string;
+  meta: string;
+  trailing: string;
 }
 
 export interface TodayAccountGroupViewModel {
@@ -66,6 +68,42 @@ function itemSummary(item: Item, plannedValue: number | null, aggregate: ItemAgg
     return `계획보다 ${formatMinutes(Math.abs(difference))} 더 기록`;
   }
   if (item.type === 'completion' || item.type === 'count') return `${aggregate?.count ?? 0}회`;
+  if (!aggregate?.hasEntry) return '기록 없음';
+  return `${aggregate.latestValue ?? 0}${item.unit ? ` ${item.unit}` : ''}`;
+}
+
+function itemMeta(item: Item, plannedValue: number | null, aggregate: ItemAggregate | undefined): string {
+  if (item.type === 'time') {
+    const plan = plannedValue === null ? '계획 없음' : `${formatMinutes(plannedValue)} 계획`;
+    const actual = aggregate?.durationMinutes ?? 0;
+    return actual > 0 ? `${plan} · ${formatMinutes(actual)} 기록` : plan;
+  }
+  if (item.type === 'completion') return `완료형 · 오늘 ${aggregate?.count ?? 0}회`;
+  if (item.type === 'count') return `횟수형 · 오늘 ${aggregate?.count ?? 0}회`;
+  if (!aggregate?.hasEntry) return `${item.type === 'event' ? '이벤트' : '수치형'} · 기록 없음`;
+  return `${item.type === 'event' ? '이벤트' : '수치형'} · 오늘 ${aggregate.latestValue ?? 0}${item.unit ? ` ${item.unit}` : ''}`;
+}
+
+function itemTrailing(
+  item: Item,
+  plannedValue: number | null,
+  aggregate: ItemAggregate | undefined,
+  session: TimerSessionViewModel | null,
+): string {
+  if (session?.runtime.status === 'running') return '기록 중';
+  if (session?.runtime.status === 'paused') return '일시정지';
+  if (item.type === 'time') {
+    const actual = aggregate?.durationMinutes ?? 0;
+    if (plannedValue === null) return actual > 0 ? formatMinutes(actual) : '계획 없음';
+    const remaining = plannedValue - actual;
+    return remaining >= 0 ? `${formatMinutes(remaining)} 남음` : `+${formatMinutes(Math.abs(remaining))} 초과`;
+  }
+  if (item.type === 'completion' || item.type === 'count') {
+    const actual = aggregate?.count ?? 0;
+    if (plannedValue === null) return `${actual}회`;
+    const remaining = plannedValue - actual;
+    return remaining >= 0 ? `${remaining}회 남음` : `+${Math.abs(remaining)}회 초과`;
+  }
   if (!aggregate?.hasEntry) return '기록 없음';
   return `${aggregate.latestValue ?? 0}${item.unit ? ` ${item.unit}` : ''}`;
 }
@@ -131,12 +169,15 @@ export function buildTodayViewModel(
   const visibleIds = new Set(candidates.map((candidate) => candidate.item.id));
   const visibleItems = candidates.map<TodayItemViewModel>((candidate) => {
     const aggregate = aggregates.get(candidate.item.id);
+    const session = sessionByItem.get(candidate.item.id) ?? null;
     return {
       candidate,
-      session: sessionByItem.get(candidate.item.id) ?? null,
+      session,
       latestManualEntry: latestManualByItem.get(candidate.item.id) ?? null,
       actualMinutes: aggregate?.durationMinutes ?? 0,
       summary: itemSummary(candidate.item, candidate.plannedValue, aggregate),
+      meta: itemMeta(candidate.item, candidate.plannedValue, aggregate),
+      trailing: itemTrailing(candidate.item, candidate.plannedValue, aggregate, session),
     };
   });
   const plannedMinutes = candidates.reduce(

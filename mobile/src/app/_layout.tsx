@@ -1,4 +1,6 @@
+import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
 import { SQLiteProvider } from 'expo-sqlite';
 import { Suspense, useEffect } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -10,8 +12,11 @@ import { SyncProvider } from '@/context/sync-context';
 import { migrateDatabase } from '@/data/migrations';
 import { observeNotificationNavigation } from '@/services/notifications';
 import { COLORS } from '@/theme/colors';
+import { FONTS } from '@/theme/typography';
 
 export { ErrorBoundary } from 'expo-router';
+
+void SplashScreen.preventAutoHideAsync();
 
 function Navigation() {
   useEffect(() => observeNotificationNavigation(), []);
@@ -23,7 +28,7 @@ function Navigation() {
         headerStyle: { backgroundColor: COLORS.background },
         headerTintColor: COLORS.text,
         headerTitle: '',
-        headerTitleStyle: { fontWeight: '700' },
+        headerTitleStyle: { fontFamily: FONTS.bold },
         contentStyle: { backgroundColor: COLORS.background },
       }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -44,6 +49,18 @@ function Navigation() {
 }
 
 export default function RootLayout() {
+  const [fontsLoaded, fontError] = useFonts({
+    [FONTS.regular]: require('@expo-google-fonts/noto-sans-kr/400Regular/NotoSansKR_400Regular.ttf'),
+    [FONTS.medium]: require('@expo-google-fonts/noto-sans-kr/500Medium/NotoSansKR_500Medium.ttf'),
+    [FONTS.bold]: require('@expo-google-fonts/noto-sans-kr/700Bold/NotoSansKR_700Bold.ttf'),
+  });
+
+  useEffect(() => {
+    if (fontsLoaded || fontError) void SplashScreen.hideAsync();
+  }, [fontError, fontsLoaded]);
+
+  if (!fontsLoaded && !fontError) return null;
+
   return (
     <SafeAreaProvider>
       <Suspense fallback={<LoadingView />}>

@@ -2,13 +2,13 @@ import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Alert, StyleSheet, Text, View } from 'react-native';
 
-import { AppButton, Field, Heading, LoadingView, Screen, Section, Sheet, StatusBanner, textStyles } from '@/components/ui';
-import { DEFAULT_DAY_END_TIME } from '@/constants/app';
+import { AppBar, AppButton, Field, LoadingView, Screen, Section, Sheet, StatusBanner, textStyles } from '@/components/ui';
 import { useApp } from '@/context/app-context';
-import { addDays, dateKey, formatMinutes, parseDurationToMinutes } from '@/domain/calculations';
-import { LedgerRow, MetricHero, PlanActualDelta, FixedActionBar } from '@/features/today/today-components';
-import { buildTodayViewModel } from '@/features/today/today-view-model';
-import { buildRecordsViewModel } from '@/features/records/records-view-model';
+import { addDays, dateKey, parseDurationToMinutes } from '@/domain/calculations';
+import { EntryRow, FixedActionBar, LedgerRow, PlanActualDelta } from '@/features/today/today-components';
+import { buildRecordsViewModel, type LedgerEntryViewModel } from '@/features/records/records-view-model';
+import { COLORS } from '@/theme/colors';
+import { tokens } from '@/theme/tokens';
 import type { Entry, Item } from '@/types/domain';
 
 export default function RecordsScreen() {
@@ -20,6 +20,7 @@ export default function RecordsScreen() {
   const [entryForm, setEntryForm] = useState<Entry | null>(null);
   const [entryValue, setEntryValue] = useState('');
   const [entryNote, setEntryNote] = useState('');
+  const [entryListItemId, setEntryListItemId] = useState<string | null>(null);
   const [manualItem, setManualItem] = useState<Item | null>(null);
   const [manualAmount, setManualAmount] = useState('');
   const [manualNote, setManualNote] = useState('');
@@ -28,13 +29,36 @@ export default function RecordsScreen() {
     () => buildRecordsViewModel(app.snapshot, selectedDate, today),
     [app.snapshot, selectedDate, today],
   );
-  const todayViewModel = useMemo(
-    () => buildTodayViewModel(app.snapshot, today, new Date(), app.snapshot.settings.day_end_time ?? DEFAULT_DAY_END_TIME),
-    [app.snapshot, today],
-  );
   const accountGroups = useMemo(
-    () => [...new Set(model.entries.map((row) => `${row.accountId}:${row.accountName}`))],
-    [model.entries],
+    () => [...new Set(model.itemSummaries.map((row) => `${row.accountId}:${row.accountName}`))].map((key) => {
+      const [accountId] = key.split(':');
+      const rows = model.itemSummaries.filter((row) => row.accountId === accountId);
+      return {
+        key,
+        accountId,
+        accountName: rows[0]?.accountName ?? '삭제된 계정',
+        rows,
+        plannedMinutes: selectedDate === today
+          ? rows.reduce((total, row) => total + (row.plannedMinutes ?? 0), 0)
+          : null,
+        actualMinutes: rows.reduce((total, row) => total + row.actualMinutes, 0),
+      };
+    }),
+    [model.itemSummaries, selectedDate, today],
+  );
+  const nonTimeEntries = useMemo(() => model.entries.filter((row) => row.entry.type !== 'time'), [model.entries]);
+  const entriesByItem = useMemo(() => {
+    const grouped = new Map<string, LedgerEntryViewModel[]>();
+    for (const row of model.entries) {
+      const rows = grouped.get(row.entry.itemId) ?? [];
+      rows.push(row);
+      grouped.set(row.entry.itemId, rows);
+    }
+    return grouped;
+  }, [model.entries]);
+  const entryListRows = useMemo(
+    () => entryListItemId ? entriesByItem.get(entryListItemId) ?? [] : [],
+    [entriesByItem, entryListItemId],
   );
   const activeAccounts = useMemo(
     () => app.snapshot.accounts.filter((account) => !account.deletedAt && !account.archived),
@@ -110,46 +134,74 @@ export default function RecordsScreen() {
   return (
     <>
       <Screen usesTabBar>
-        <View style={styles.header}>
-          <Heading subtitle={formatDateLabel(selectedDate)}>기록</Heading>
-          <AppButton label="더보기" variant="plain" onPress={() => router.push('/more')} />
-        </View>
+        <AppBar title="기록" meta="더보기" onMetaPress={() => router.push('/more')} />
         {app.error ? <StatusBanner message={app.error} onClose={app.clearError} /> : null}
         <View style={styles.dateNav}>
-          <AppButton label="어제" variant="secondary" onPress={() => moveToDate(addDays(today, -1))} />
-          <AppButton label="오늘" variant={selectedDate === today ? 'primary' : 'secondary'} onPress={() => moveToDate(today)} />
-          <AppButton label="날짜 선택" variant="plain" onPress={() => setDatePickerVisible(true)} />
+          <AppButton label="이전" variant="plain" onPress={() => moveToDate(addDays(selectedDate, -1))} />
+          <AppButton label={formatDateNavLabel(selectedDate, today)} variant="plain" onPress={() => setDatePickerVisible(true)} style={styles.dateCenter} />
+          <AppButton label="다음" variant="plain" onPress={() => moveToDate(addDays(selectedDate, 1))} />
         </View>
         <PlanActualDelta planned={model.plannedMinutes} actual={model.actualMinutes} />
-        {selectedDate === today ? (
-          <MetricHero label="오늘 가용시간" value={formatMinutes(todayViewModel.available.displayMinutes)} />
-        ) : null}
-        <Section title="원장">
-          {model.entries.length === 0 ? <Text style={textStyles.body}>이 날짜에 기록이 없습니다.</Text> : null}
-          {accountGroups.map((accountKey) => {
-            const [accountId] = accountKey.split(':');
-            const rows = model.entries.filter((row) => row.accountId === accountId);
+        <Section title="항목별 기록">
+          {model.itemSummaries.length === 0 ? <Text style={textStyles.body}>이 날짜에 시간 기록이 없습니다.</Text> : null}
+          {accountGroups.map((group) => {
             return (
-              <View key={accountKey} style={styles.accountGroup}>
-                <Text style={textStyles.title}>{rows[0]?.accountName}</Text>
-                {rows.map((row) => (
-                  <LedgerRow key={row.entry.id} title={row.itemName} value={row.value} description={row.description} onPress={() => openEntry(row.entry)} />
-                ))}
-                <Text style={textStyles.muted}>계정 소계 {formatMinutes(rows.reduce((total, row) => total + (row.entry.durationMin ?? 0), 0))}</Text>
+              <View key={group.key} style={styles.accountGroup}>
+                <LedgerRow
+                  title={group.accountName}
+                  planned={group.plannedMinutes}
+                  actual={group.actualMinutes}
+                  level="account"
+                />
+                {group.rows.map((row) => {
+                  const matchingEntries = entriesByItem.get(row.itemId) ?? [];
+                  return (
+                    <LedgerRow
+                      key={row.itemId}
+                      title={row.itemName}
+                      planned={row.plannedMinutes}
+                      actual={row.actualMinutes}
+                      level="item"
+                      onPress={matchingEntries.length > 0 ? () => setEntryListItemId(row.itemId) : undefined}
+                    />
+                  );
+                })}
               </View>
             );
           })}
-          {model.entries.length > 0 ? <Text style={textStyles.number}>날짜 소계 {formatMinutes(model.actualMinutes)}</Text> : null}
         </Section>
+        {nonTimeEntries.length > 0 ? (
+          <Section title="기타 기록">
+            {nonTimeEntries.map((row) => (
+              <EntryRow key={row.entry.id} title={row.itemName} value={row.value} description={row.description} onPress={() => openEntry(row.entry)} />
+            ))}
+          </Section>
+        ) : null}
         {selectedDate === today ? (
           <FixedActionBar>
             <View style={styles.actionItem}><AppButton label="직접 기록" onPress={() => setManualPicker(true)} style={styles.fullAction} /></View>
             <View style={styles.actionItem}><AppButton label="오늘 종료" variant="secondary" onPress={() => router.push('/today/close')} style={styles.fullAction} /></View>
           </FixedActionBar>
         ) : (
-          <AppButton label="오늘로 이동" onPress={() => moveToDate(today)} style={styles.fullAction} />
+          <AppButton label="오늘로 이동" variant="plain" onPress={() => moveToDate(today)} style={styles.fullAction} />
         )}
       </Screen>
+
+      <Sheet
+        visible={entryListItemId !== null}
+        title={entryListRows[0]?.itemName ?? '항목 기록'}
+        onClose={() => setEntryListItemId(null)}>
+        <Text style={textStyles.muted}>개별 기록을 누르면 값과 메모를 수정할 수 있습니다.</Text>
+        {entryListRows.map((row) => (
+          <EntryRow
+            key={row.entry.id}
+            title={row.itemName}
+            value={row.value}
+            description={row.description}
+            onPress={() => { setEntryListItemId(null); openEntry(row.entry); }}
+          />
+        ))}
+      </Sheet>
 
       <Sheet visible={datePickerVisible} title="날짜 선택" onClose={() => setDatePickerVisible(false)}>
         <Text style={textStyles.muted}>확인할 날짜를 YYYY-MM-DD 형식으로 입력합니다.</Text>
@@ -211,20 +263,19 @@ function isDateKey(value: string): boolean {
   return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value;
 }
 
-function formatDateLabel(value: string): string {
-  return new Intl.DateTimeFormat('ko-KR', {
-    year: 'numeric',
+function formatDateNavLabel(value: string, today: string): string {
+  const date = new Intl.DateTimeFormat('ko-KR', {
     month: 'long',
     day: 'numeric',
-    weekday: 'short',
     timeZone: 'Asia/Seoul',
   }).format(new Date(`${value}T12:00:00+09:00`));
+  return value === today ? `${date} · 오늘` : date;
 }
 
 const styles = StyleSheet.create({
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 },
-  dateNav: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 8 },
+  dateNav: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderColor: COLORS.border, borderWidth: StyleSheet.hairlineWidth, borderRadius: tokens.radius.card, backgroundColor: COLORS.surface, paddingHorizontal: tokens.space.xxs },
+  dateCenter: { flex: 1 },
   actionItem: { flexGrow: 1, minWidth: 132 },
   fullAction: { alignSelf: 'stretch' },
-  accountGroup: { gap: 8, paddingBottom: 12 },
+  accountGroup: { gap: 10 },
 });

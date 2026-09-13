@@ -8,19 +8,19 @@ import {
 
 describe('accessibleTabBarHeight', () => {
   it('keeps a compact touch-friendly content height separate from the safe inset', () => {
-    expect(accessibleTabBarHeight(1)).toBe(60);
-    expect(accessibleTabBarBottomOffset(0)).toBe(10);
-    expect(accessibleTabBarBottomOffset(24)).toBe(28);
+    expect(accessibleTabBarHeight(1)).toBe(56);
+    expect(accessibleTabBarBottomOffset(0)).toBe(0);
+    expect(accessibleTabBarBottomOffset(24)).toBe(0);
   });
 
   it('grows enough for scaled labels without doubling the navigation slab', () => {
-    expect(accessibleTabBarHeight(1.5)).toBe(66);
-    expect(accessibleTabBarHeight(2)).toBe(72);
-    expect(accessibleTabBarFootprint(2, 24)).toBe(112);
+    expect(accessibleTabBarHeight(1.5)).toBe(58);
+    expect(accessibleTabBarHeight(2)).toBe(64);
+    expect(accessibleTabBarFootprint(2, 24)).toBe(96);
   });
 
   it('falls back safely for invalid dimensions', () => {
-    expect(accessibleTabBarHeight(Number.NaN)).toBe(60);
-    expect(accessibleTabBarBottomOffset(-1)).toBe(10);
+    expect(accessibleTabBarHeight(Number.NaN)).toBe(56);
+    expect(accessibleTabBarBottomOffset(-1)).toBe(0);
   });
 });

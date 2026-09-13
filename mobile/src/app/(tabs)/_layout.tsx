@@ -2,6 +2,7 @@ import { Tabs } from 'expo-router';
 import {
   Pressable,
   StyleSheet,
+  Text,
   View,
   useWindowDimensions,
   type ColorValue,
@@ -9,8 +10,9 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { BottomTabBarButtonProps } from 'expo-router/build/react-navigation/bottom-tabs/types';
 
-import { accessibleTabBarBottomOffset, accessibleTabBarHeight } from '@/components/layout';
+import { accessibleTabBarHeight } from '@/components/layout';
 import { COLORS } from '@/theme/colors';
+import { FONTS } from '@/theme/typography';
 
 export default function TabsLayout() {
   const { fontScale } = useWindowDimensions();
@@ -19,47 +21,40 @@ export default function TabsLayout() {
 
   return (
     <Tabs
-      screenOptions={({ route }) => ({
+      screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: COLORS.accentStrong,
         tabBarAllowFontScaling: true,
+        tabBarHideOnKeyboard: true,
         tabBarInactiveTintColor: COLORS.muted,
-        tabBarLabelPosition: 'beside-icon',
         tabBarStyle: {
           position: 'absolute',
-          marginHorizontal: 18,
-          bottom: accessibleTabBarBottomOffset(insets.bottom),
-          backgroundColor: COLORS.surfaceRaised,
+          right: 0,
+          bottom: 0,
+          left: 0,
+          backgroundColor: COLORS.surface,
           borderTopColor: COLORS.border,
-          borderTopWidth: 0,
-          borderWidth: StyleSheet.hairlineWidth,
-          borderRadius: tabBarHeight / 2,
-          height: tabBarHeight,
-          padding: 4,
-          shadowColor: COLORS.shadow,
-          shadowOffset: { width: 0, height: 6 },
-          shadowOpacity: 0.12,
-          shadowRadius: 16,
-          elevation: 8,
+          borderTopWidth: StyleSheet.hairlineWidth,
+          height: tabBarHeight + insets.bottom,
+          paddingTop: 0,
+          paddingBottom: insets.bottom,
+          shadowOpacity: 0,
+          elevation: 0,
         },
         tabBarItemStyle: {
           flex: 1,
-          height: tabBarHeight - 8,
-          marginHorizontal: 2,
+          height: tabBarHeight,
         },
-        tabBarButton: FloatingTabButton,
-        tabBarIcon: ({ color }) => (
-          <TabGlyph kind={route.name === 'index' ? 'today' : 'records'} color={color} />
-        ),
-        tabBarLabelStyle: { fontSize: 12, fontWeight: '700', marginLeft: 7 },
-      })}>
-      <Tabs.Screen name="index" options={{ title: '오늘', tabBarLabel: '오늘' }} />
-      <Tabs.Screen name="records" options={{ title: '기록', tabBarLabel: '기록' }} />
+        tabBarButton: MinimalTabButton,
+        tabBarLabelStyle: { fontFamily: FONTS.regular, fontSize: 13, lineHeight: 18 },
+      }}>
+      <Tabs.Screen name="index" options={{ title: '오늘', tabBarLabel: ({ color, focused }) => <TabLabel color={color} focused={focused}>오늘</TabLabel> }} />
+      <Tabs.Screen name="records" options={{ title: '기록', tabBarLabel: ({ color, focused }) => <TabLabel color={color} focused={focused}>기록</TabLabel> }} />
     </Tabs>
   );
 }
 
-function FloatingTabButton({
+function MinimalTabButton({
   accessibilityLabel,
   accessibilityState,
   children,
@@ -73,7 +68,7 @@ function FloatingTabButton({
   return (
     <Pressable
       accessibilityLabel={accessibilityLabel}
-      accessibilityRole="button"
+      accessibilityRole="tab"
       accessibilityState={accessibilityState}
       disabled={disabled}
       onLongPress={onLongPress}
@@ -82,45 +77,26 @@ function FloatingTabButton({
       style={({ pressed }) => [
         style,
         styles.tabButton,
-        selected && styles.tabButtonSelected,
         pressed && styles.tabButtonPressed,
       ]}>
-      {children}
+      <View style={styles.tabButtonContent}>
+        {children}
+        <View style={[styles.indicator, selected && styles.indicatorSelected]} />
+      </View>
     </Pressable>
   );
 }
 
-function TabGlyph({ kind, color }: { kind: 'today' | 'records'; color: ColorValue }) {
-  if (kind === 'today') {
-    return (
-      <View style={[styles.todayGlyph, { borderColor: color }]}>
-        <View style={[styles.todayGlyphDot, { backgroundColor: color }]} />
-      </View>
-    );
-  }
-  return (
-    <View style={styles.recordsGlyph}>
-      <View style={[styles.recordLine, { backgroundColor: color }]} />
-      <View style={[styles.recordLine, styles.recordLineShort, { backgroundColor: color }]} />
-      <View style={[styles.recordLine, { backgroundColor: color }]} />
-    </View>
-  );
+function TabLabel({ children, color, focused }: { children: string; color: ColorValue; focused: boolean }) {
+  return <Text style={[styles.tabLabel, { color }, focused && styles.tabLabelSelected]}>{children}</Text>;
 }
 
 const styles = StyleSheet.create({
-  todayGlyph: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    borderWidth: 1.5,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  todayGlyphDot: { width: 5, height: 5, borderRadius: 3 },
-  recordsGlyph: { width: 18, height: 18, justifyContent: 'center', gap: 3 },
-  recordLine: { width: 18, height: 1.5, borderRadius: 1 },
-  recordLineShort: { width: 12 },
-  tabButton: { alignItems: 'center', justifyContent: 'center', borderRadius: 999 },
-  tabButtonSelected: { backgroundColor: COLORS.accentSoft },
+  tabButton: { alignItems: 'center', justifyContent: 'center' },
+  tabButtonContent: { minWidth: 64, minHeight: 48, alignItems: 'center', justifyContent: 'center', gap: 5 },
+  indicator: { width: 20, height: 2, borderRadius: 1, backgroundColor: 'transparent' },
+  indicatorSelected: { backgroundColor: COLORS.accent },
+  tabLabel: { fontFamily: FONTS.regular, fontSize: 13, lineHeight: 18 },
+  tabLabelSelected: { fontFamily: FONTS.medium },
   tabButtonPressed: { opacity: 0.72 },
 });

@@ -10,14 +10,14 @@
     "ios": {
       "icon": "./assets/expo.icon",
       "bundleIdentifier": "com.oosops.app",
-      "buildNumber": "12",
+      "buildNumber": "13",
       "supportsTablet": true
     },
     "android": {
       "package": "com.oosops.app",
-      "versionCode": 12,
+      "versionCode": 13,
       "adaptiveIcon": {
-        "backgroundColor": "#EDF1FF",
+        "backgroundColor": "#F7F6F2",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -33,7 +33,7 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#3159D9",
+          "backgroundColor": "#F7F6F2",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
