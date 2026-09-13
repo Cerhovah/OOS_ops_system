@@ -6,6 +6,8 @@ web-build/
 .env.*
 !.env.example
 *.jks
+mobile/credentials.json
+mobile/credentials/
 *.p8
 *.p12
 *.key
