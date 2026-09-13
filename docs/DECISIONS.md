@@ -407,6 +407,19 @@
 - 관련 불변조건/AC: SPEC §2.13~2.14, §3.2, §5, §7, §8
 - 대체 관계: ADR-031의 시각 master와 floating capsule 결정을 대체한다. ADR-030의 P5 기능 흐름과 P5/P6 server 경계는 유지한다.
 
+### ADR-033 — P5 Visual v2의 토큰·폰트·Android navigation 구현
+
+- 날짜: 2026-09-13
+- 상태: 승인
+- 맥락: 승인 Figma는 360dp Android frame, warm stone/moss semantic token, Noto Sans KR와 app navigation 56dp·system safe bottom 분리를 source of truth로 정했다. 기존 구현의 floating capsule과 큰 색 면적은 이 계약과 달랐다.
+- 결정: Light/Dark semantic token을 Figma 값으로 맞추고 Noto Sans KR 400/500/700만 native bundle에 내장한다. Today는 56dp 요약·48dp 계정 header·68dp 항목 행을 기본으로 하며, 실행 상태만 accent surface를 사용한다. 하단은 아이콘과 떠 있는 capsule을 제거한 전체 폭 OOS 2탭으로 두고 48dp hit area와 실제 system inset을 별도로 합산한다. 큰 글씨에서는 숫자를 줄이지 않고 기록 원장 metric만 세로 배치한다.
+- 대안: system font에 의존, Noto 전체 9굵기 내장, 기존 floating capsule 유지, 숫자를 말줄임하거나 축약.
+- 근거: 세 굵기는 승인된 text style을 충족하면서 전체 font family 번들보다 작고, 고정된 행 문법과 semantic token은 Light/Dark·running/paused 위계를 같은 규칙으로 유지한다. safe inset 분리는 Galaxy 3-button navigation과 gesture navigation 양쪽에서 앱 탭과 시스템 영역의 소유권을 분명히 한다.
+- 결과 및 위험: `expo-font`와 Noto Sans KR package가 native artifact에 추가되므로 새 binary와 versionCode 13이 필요하다. 앱 시작은 font 준비 동안 splash를 유지한다. SQLite v6와 Supabase/sync 계약은 바뀌지 않는다.
+- 되돌림/재검토 조건: 실제 기기에서 font load 실패, 200% 글꼴 숫자 손실, system navigation overlap이 재현되면 데이터·기능 코드를 건드리지 않고 font fallback 또는 navigation/row layout만 되돌린다.
+- 관련 불변조건/AC: SPEC §2.1~2.14, §3.2, §5, §7, §8
+- 대체 관계: ADR-032의 구현 방식을 구체화하고 ADR-031의 floating capsule을 최종 대체한다.
+
 ## 기록 형식
 
 ### ADR-NNN — 제목

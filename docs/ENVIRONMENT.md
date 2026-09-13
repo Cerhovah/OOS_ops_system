@@ -124,6 +124,8 @@ set EAS_NO_VCS=
 
 `0.6.0(12)` Today-first 소스는 Expo SDK 57 expected patch 기준의 13개 Expo package를 정렬했고 clean `npm ci`, 전체 verify, Expo dependency check, Doctor 21/21, personal standalone 빌드와 데이터 보존 실기기 검증을 통과했다. 기능 코드·SQLite schema·Supabase/sync 계약은 이 정렬에서 변경하지 않았다.
 
+P5 Visual v2 standalone 후보는 EAS personal `151003d8-5873-4bdc-bed3-1ca4565908c1`, `0.6.0(13)`이다. APK는 `C:\Users\skljh\Downloads\OOS-Ops-0.6.0-build13-personal.apk`, SHA-256 `5AB3D75D73B69222924600642B79ED079E904A0D7D7EDB128E20B97609A034D7`이며 SM-S721N에 데이터 보존 update install했다. 설치 직전 해시 일치 DB/WAL/SHM 백업은 `C:\Users\skljh\Downloads\OOS-Ops-user-data-backup-20260913-1500`에 있다. secure lock 때문에 최종 화면 대조는 대기 중이며, 그 전까지 기존 `0.6.0(12)`의 완전 검증 기준선과 새 후보 설치 사실을 구분한다.
+
 ## Phase 2 Supabase 개발 환경
 
 EAS development 환경의 공개 URL/publishable key를 ignore된 로컬 파일로 가져온다. 값은 터미널·문서에 출력하지 않는다.

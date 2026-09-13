@@ -6,6 +6,12 @@
 
 ## Unreleased
 
+### P5 Visual v2 implementation — 2026-09-13
+
+- 승인된 `P5 Visual v2`를 Today·실행/일시정지·항목 동작 sheet·Records·하단 2탭에 구현했다. 기능 흐름은 유지하면서 360dp 기준 정보 밀도, warm stone 표면, moss 단일 강조색, 계정→항목 위계와 시스템 navigation inset 분리를 맞췄다.
+- Noto Sans KR 400/500/700 세 굵기만 앱에 내장하고 글꼴 로드 전 splash를 유지해 첫 화면의 타이포그래피 흔들림을 막았다. 큰 글씨의 우측 숫자와 기록 지표는 숨기지 않고 필요한 행만 세로 배치한다.
+- 앱을 `0.6.0(13)`으로 올렸다. SQLite v6, migration, repository 쓰기 의미, Supabase/sync 계약은 변경하지 않았다.
+
 ### P5 Visual v2 design environment — 2026-09-13
 
 - 기존 P5 기능·SQLite v6·Supabase/sync 계약을 유지하고, 앱 코딩·개발 빌드 전에 reference→high-fidelity Figma→읽기 전용 검수→코드→기기 비교의 단계형 디자인 gate를 추가했다.

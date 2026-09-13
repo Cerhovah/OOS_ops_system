@@ -11,6 +11,19 @@
 
 실행 기록에는 실행일, source SHA, 앱 버전/versionCode, SQLite 버전, 기기/OS, 조건, 기대값/실제값, 증빙 위치와 재현 실패만 남긴다. 자동 검증은 합성 데이터, 실기기는 개인정보를 가린 증빙을 사용한다.
 
+## P5 Visual v2 구현 자동 게이트 — 2026-09-13 통과
+
+- 소스/경계: `1f13657`, `0.6.0(13)`, SQLite v6. 승인 Figma의 표면·간격·타이포그래피·행·control과 OOS 전용 2탭을 구현했고 `mobile/src/data`, `mobile/src/services`, `mobile/src/sync`, `supabase` diff는 0건이다.
+- clean 자동 게이트: `npm ci` 뒤 `npm run verify` 종료 코드 0. TypeScript/ESLint 0, 40 files/238 tests, coverage statements 98.10% / branches 94.21% / functions 100% / lines 99.18%, Supabase 계약 2 files/8 tests, Expo dependency check, Doctor 21/21, Android Hermes 1,838 modules와 4.8MB `.hbc`를 통과했다.
+- 번들 경계: Noto Sans KR 400/500/700 세 파일만 production export에 포함했다. 시각 변경 뒤 새 SQLite migration, 원격 schema/RPC/RLS/payload, telemetry는 추가하지 않았다.
+
+## P5 Visual v2 `0.6.0(13)` standalone 후보 — 2026-09-13
+
+- artifact: EAS personal `151003d8-5873-4bdc-bed3-1ca4565908c1`, `com.oosops.app`, `0.6.0(13)`, SDK 57, 기존 remote keystore, internal APK. 로컬 APK는 `C:\Users\skljh\Downloads\OOS-Ops-0.6.0-build13-personal.apk`, 115,664,281 bytes, SHA-256 `5AB3D75D73B69222924600642B79ED079E904A0D7D7EDB128E20B97609A034D7`이며 embedded `assets/index.android.bundle`을 포함한다.
+- 데이터 보존: 기존 `0.6.0(12)`을 실행하지 않은 동일 서명 development backup helper로 잠시 교체하고, force-stop 상태의 `oos-ops.db`/WAL/SHM을 `C:\Users\skljh\Downloads\OOS-Ops-user-data-backup-20260913-1500`에 추출했다. 기기 원본과 로컬 세 파일의 SHA-256이 각각 일치한 뒤에만 새 APK를 설치했다.
+- 설치/standalone: `adb install -r`가 성공했고 `firstInstallTime`은 2026-08-23 그대로 유지됐다. 설치본은 versionCode 13, non-debuggable이고 ADB reverse가 없는 상태에서 embedded Hermes가 `Running "main"`까지 시작했으며 fatal/ReactNativeJS/SQLite 오류는 0건이다.
+- 대기: 기기가 secure lock 상태여서 개인 데이터가 보이는 Today/Records 캡처와 터치 검증은 수행하지 않았다. release 디자인 gate의 `deviceComparison`은 잠금 해제 뒤 실제 화면 대조가 끝날 때까지 false로 유지한다.
+
 ## P5 Visual v2 환경 프리플라이트 — 2026-09-13
 
 - 범위: 디자인 연결·도구·gate만 확인했다. 앱 기능 코드, dependency, SQLite schema, Supabase/sync 계약과 설치 앱 데이터는 변경하지 않았고 개발 빌드를 시작하지 않았다.
