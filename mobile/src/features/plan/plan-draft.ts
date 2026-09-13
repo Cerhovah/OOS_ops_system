@@ -17,7 +17,10 @@ export function planDraftHours(
     lines.filter((line) => !line.deletedAt).map((line) => [line.accountId, line.plannedMinutes]),
   );
   return Object.fromEntries(
-    accounts.map((account) => [account.id, String((minutesByAccount.get(account.id) ?? 0) / 60)]),
+    accounts.map((account) => [
+      account.id,
+      String((minutesByAccount.get(account.id) ?? account.weeklyTargetMinutes ?? 0) / 60),
+    ]),
   );
 }
 

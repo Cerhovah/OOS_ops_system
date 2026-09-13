@@ -38,6 +38,7 @@ function Navigation() {
       <Stack.Screen name="plan" options={{ title: '주간 시간 분배' }} />
       <Stack.Screen name="analysis" options={{ title: 'AI 분석' }} />
       <Stack.Screen name="time-notifications" options={{ title: '시간과 알림' }} />
+      <Stack.Screen name="profiles" options={{ title: '프로필' }} />
       <Stack.Screen name="items" options={{ title: '항목 관리' }} />
       <Stack.Screen name="accounts" options={{ title: '계정 관리' }} />
       <Stack.Screen name="record-management" options={{ title: '기록 관리' }} />

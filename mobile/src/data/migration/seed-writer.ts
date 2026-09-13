@@ -9,6 +9,7 @@ import {
   SEED_TIME,
   settingSeeds,
 } from '@/data/migration/seed-manifest';
+import { seedProfilesAndPracticeWorkspace } from '@/data/migration/profile-seed';
 import { dateKey, weekRange } from '@/domain/calculations';
 
 export async function seedDatabase(db: SQLiteDatabase): Promise<void> {
@@ -114,4 +115,8 @@ export async function seedDatabase(db: SQLiteDatabase): Promise<void> {
   for (const [key, value] of settingSeeds) {
     await db.runAsync('INSERT INTO settings (key,value,updated_at) VALUES (?,?,?)', key, value, SEED_TIME);
   }
+  const profileTable = await db.getFirstAsync<{ name: string }>(
+    "SELECT name FROM sqlite_master WHERE type='table' AND name='profiles'",
+  );
+  if (profileTable) await seedProfilesAndPracticeWorkspace(db);
 }

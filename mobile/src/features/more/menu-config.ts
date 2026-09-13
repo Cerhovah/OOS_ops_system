@@ -30,6 +30,7 @@ export const MORE_GROUPS: readonly MoreGroup[] = [
     id: 'management',
     title: '관리',
     destinations: [
+      { id: 'profiles', title: '프로필', description: '계정과 항목 묶음을 프로필별로 전환합니다.', route: '/profiles', capability: 'core' },
       { id: 'items', title: '항목 관리', description: '계정별 항목과 기본값을 관리합니다.', route: '/items', capability: 'core' },
       { id: 'accounts', title: '계정 관리', description: '상위 계정과 정렬을 관리합니다.', route: '/accounts', capability: 'core' },
       { id: 'records', title: '기록 관리', description: '기록 수정과 삭제된 데이터를 관리합니다.', route: '/record-management', capability: 'core' },

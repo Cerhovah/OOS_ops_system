@@ -9,6 +9,7 @@ const createdAt = '2026-09-01T00:00:00.000Z';
 function project(id: string, deletedAt: string | null = null): Project {
   return {
     id,
+    profileId: 'profile-test',
     name: id,
     description: null,
     status: 'active',
@@ -95,6 +96,8 @@ function record(id: string, kpiId: string, value: number, deletedAt: string | nu
 describe('buildProjectsViewModel', () => {
   it('preserves project time and KPI semantics with one indexed pass', () => {
     const snapshot: AppSnapshot = {
+      profiles: [],
+      activeProfileId: 'profile-test',
       accounts: [],
       projects: [project('project-1'), project('deleted-project', createdAt)],
       items: [

@@ -7,9 +7,11 @@ import { buildTodayViewModel, searchMissingItems, selectCurrentTimerSession } fr
 const createdAt = '2026-09-01T00:00:00.000Z';
 const account: Account = {
   id: 'account-1',
+  profileId: 'profile-test',
   name: '제품',
   color: null,
   kind: null,
+  weeklyTargetMinutes: null,
   sortOrder: 0,
   archived: false,
   createdAt,
@@ -75,6 +77,8 @@ const schedule: ItemSchedule = {
 describe('buildTodayViewModel', () => {
   it('preserves visible totals while consistently excluding deleted and archived items from actions', () => {
     const snapshot: AppSnapshot = {
+      profiles: [],
+      activeProfileId: 'profile-test',
       accounts: [account],
       projects: [],
       items: [

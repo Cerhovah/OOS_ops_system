@@ -4,6 +4,7 @@ import { buildRecordsViewModel } from './records-view-model';
 import type { AppSnapshot } from '@/types/domain';
 
 const snapshot: AppSnapshot = {
+  profiles: [], activeProfileId: 'profile-test',
   accounts: [],
   projects: [],
   items: [{

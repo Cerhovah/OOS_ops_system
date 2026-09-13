@@ -15,6 +15,7 @@ import type {
   ItemSchedule,
   ItemType,
   PlanSource,
+  Profile,
   Project,
   ProjectKpi,
   ProjectKpiRecord,
@@ -22,12 +23,25 @@ import type {
   WeeklyPlanLine,
 } from '@/types/domain';
 
-export function accountFromRow(row: SqlRow): Account {
+export function profileFromRow(row: SqlRow): Profile {
   return {
     id: sqliteText(row, 'id'),
     name: sqliteText(row, 'name'),
+    sortOrder: sqliteNumber(row, 'sort_order'),
+    createdAt: sqliteText(row, 'created_at'),
+    updatedAt: sqliteText(row, 'updated_at'),
+    deletedAt: sqliteNullableText(row, 'deleted_at'),
+  };
+}
+
+export function accountFromRow(row: SqlRow): Account {
+  return {
+    id: sqliteText(row, 'id'),
+    profileId: sqliteText(row, 'profile_id'),
+    name: sqliteText(row, 'name'),
     color: sqliteNullableText(row, 'color'),
     kind: sqliteNullableText(row, 'kind'),
+    weeklyTargetMinutes: sqliteNullableNumber(row, 'weekly_target_minutes'),
     sortOrder: sqliteNumber(row, 'sort_order'),
     archived: sqliteBoolean(row, 'archived'),
     createdAt: sqliteText(row, 'created_at'),
@@ -39,6 +53,7 @@ export function accountFromRow(row: SqlRow): Account {
 export function projectFromRow(row: SqlRow): Project {
   return {
     id: sqliteText(row, 'id'),
+    profileId: sqliteText(row, 'profile_id'),
     name: sqliteText(row, 'name'),
     description: sqliteNullableText(row, 'description'),
     status: sqliteText(row, 'status') as Project['status'],
@@ -108,6 +123,7 @@ export function entryFromRow(row: SqlRow): Entry {
 export function planFromRow(row: SqlRow): WeeklyPlan {
   return {
     id: sqliteText(row, 'id'),
+    profileId: sqliteText(row, 'profile_id'),
     weekStart: sqliteText(row, 'week_start'),
     version: sqliteNumber(row, 'version'),
     note: sqliteNullableText(row, 'note'),

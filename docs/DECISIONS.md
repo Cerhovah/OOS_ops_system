@@ -434,6 +434,21 @@
 - 관련 불변조건/AC: SPEC §2, §3.2, §5, §7, §8
 - 대체 관계: ADR-030의 로컬 timer/P5-P6 경계는 유지한다. ADR-032의 v2 source of truth 승인과 ADR-033의 Today 고정 행·상시 정보 배치는 v3 Figma 승인 전 구현 이력으로 전환한다.
 
+### ADR-035 — 프로필은 로컬 작업공간으로 먼저 분리
+
+- 날짜: 2026-09-13
+- 상태: 승인 / 구현
+- 맥락: 실제 사용을 위해 기존 복잡한 계정·항목 묶음을 보존하면서 4개의 실사용 항목만 보이는 별도 프로필이 필요하다. 프로필을 기존 sync payload에 곧바로 추가하면 server-first 원칙과 배포된 `oos_sync_v1` 계약을 위반한다.
+- 결정: SQLite v7에 local-only `profiles`와 account/project/weekly_plan의 `profile_id`, account의 `weekly_target_minutes`를 추가한다. 기존 행은 `백업용 프로필`, 새 4계정·4항목은 `연습용 프로필`로 귀속하고 연습용을 활성화한다. snapshot repository에서 활성 profile의 관계 graph만 노출한다. 삭제는 profile tombstone만 남기며 하위 데이터는 보존한다.
+- 전환 규칙: 실행 중 timer는 profile 변경과 같은 local transaction에서 pause한다. 앱 설정·인증·sync cursor·날짜별 돌아보기는 전역으로 유지한다.
+- 동기화 경계: 새 local 열은 sync schema와 Supabase SQL/RPC/RLS에 넣지 않는다. 기존 account/item/entry는 그대로 백업되지만 profile 소속은 다른 기기에 복원되지 않는다. 다중 기기 profile sync가 필요해지는 시점에는 서버 migration과 owner RLS 배포를 사용자에게 먼저 요청한다.
+- 대안: 기존 데이터를 새 항목으로 덮어쓰기, profile별 별도 SQLite 파일, server schema 동시 변경, profile 삭제 시 cascade delete.
+- 근거: 단일 DB의 additive migration이 기존 기록·WAL update 설치·export 경로를 유지하면서도 화면 혼합을 막는다. local-only 경계는 현재 실사용을 바로 가능하게 하고 미준비 서버 변경을 피한다.
+- 결과 및 위험: 원격에서 처음 내려온 account/project/weekly_plan은 안전한 기본값인 백업용 프로필에 들어간다. 같은 기기의 기존 row는 pull update 뒤에도 local profile 소속을 유지한다. 돌아보기와 주간 코멘트는 아직 profile별이 아니다.
+- 되돌림/재검토 조건: 다중 기기에서 동일 profile 구성이 필요하거나 공통 돌아보기가 실제 사용을 방해하면 server-first profile 계약과 날짜 메모의 composite identity를 별도 승인한다.
+- 관련 불변조건/AC: SPEC §2, §3.8, §3.10, §3.11, §8
+- 대체 관계: ADR-030의 P5/P6 server-first 경계를 유지한다.
+
 ## 기록 형식
 
 ### ADR-NNN — 제목

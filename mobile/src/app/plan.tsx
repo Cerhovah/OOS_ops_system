@@ -50,6 +50,7 @@ export default function PlanRoute() {
   const minutes = useMemo(() => planDraftMinutes(accounts, hours), [accounts, hours]);
   const valid = minutes !== null;
   const status = planStatus(minutes ?? []);
+  const usesWeeklyCaps = accounts.some((account) => account.weeklyTargetMinutes !== null);
 
   if (app.loading) return <LoadingView />;
 
@@ -67,7 +68,7 @@ export default function PlanRoute() {
 
   function confirmSave() {
     if (!valid) return;
-    if (status.kind === 'balanced') {
+    if (usesWeeklyCaps || status.kind === 'balanced') {
       void save().catch(() => undefined);
       return;
     }
@@ -105,11 +106,13 @@ export default function PlanRoute() {
         <AppButton label="이번 주" variant="plain" onPress={() => setWeekStart(initial)} />
         <AppButton label="다음 주" variant="secondary" onPress={() => setWeekStart(addDays(weekStart, 7))} />
       </View>
-      <Card style={status.kind === 'balanced' ? undefined : styles.warning}>
-        <Text style={textStyles.muted}>실시간 합계</Text>
+      <Card style={!usesWeeklyCaps && status.kind !== 'balanced' ? styles.warning : undefined}>
+        <Text style={textStyles.muted}>{usesWeeklyCaps ? '주간 상한 합계' : '실시간 합계'}</Text>
         <Text style={styles.status}>
           {!valid
             ? '입력 형식을 확인하십시오.'
+            : usesWeeklyCaps
+              ? formatMinutes(status.totalMinutes)
             : status.kind === 'balanced'
               ? `현재 계획: ${formatMinutes(status.totalMinutes)}`
               : status.kind === 'over'
@@ -117,7 +120,7 @@ export default function PlanRoute() {
                 : `현재 계획: ${formatMinutes(status.totalMinutes)} · 미배분 ${formatMinutes(-status.deltaMinutes)}`}
         </Text>
       </Card>
-      <Section title="계정별 주간 시간">
+      <Section title={usesWeeklyCaps ? '계정별 주간 상한' : '계정별 주간 시간'}>
         {accounts.map((account) => (
           <Field
             key={account.id}

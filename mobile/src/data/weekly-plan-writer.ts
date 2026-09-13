@@ -4,6 +4,7 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 import type { PlanSource } from '@/types/domain';
 
 interface AppendWeeklyPlanInput {
+  profileId: string;
   weekStart: string;
   minutesByAccount: Readonly<Record<string, number>>;
   source: PlanSource;
@@ -23,7 +24,7 @@ export async function appendWeeklyPlanVersion(
   const planId = randomUUID();
   const now = input.now ?? new Date().toISOString();
   await database.runAsync(
-    'INSERT INTO weekly_plans (id,week_start,version,note,source,created_at,updated_at) VALUES (?,?,?,?,?,?,?)',
+    'INSERT INTO weekly_plans (id,week_start,version,note,source,created_at,updated_at,profile_id) VALUES (?,?,?,?,?,?,?,?)',
     planId,
     input.weekStart,
     version,
@@ -31,6 +32,7 @@ export async function appendWeeklyPlanVersion(
     input.source,
     now,
     now,
+    input.profileId,
   );
   for (const [accountId, minutes] of Object.entries(input.minutesByAccount)) {
     await database.runAsync(

@@ -110,11 +110,11 @@ describe('plan and actual calculations', () => {
   it('selects the latest append-only plan version and its lines', () => {
     const plans: WeeklyPlan[] = [
       {
-        id: 'v1', weekStart: '2026-08-17', version: 1, note: null, source: 'app',
+        id: 'v1', profileId: 'profile-test', weekStart: '2026-08-17', version: 1, note: null, source: 'app',
         createdAt: stamp, updatedAt: stamp, deletedAt: null,
       },
       {
-        id: 'v2', weekStart: '2026-08-17', version: 2, note: null, source: 'app',
+        id: 'v2', profileId: 'profile-test', weekStart: '2026-08-17', version: 2, note: null, source: 'app',
         createdAt: stamp, updatedAt: stamp, deletedAt: null,
       },
     ];

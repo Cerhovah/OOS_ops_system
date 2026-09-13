@@ -12,7 +12,7 @@ describe('more menu configuration', () => {
   it('separates features, management, and system destinations', () => {
     expect(MORE_GROUPS.map((group) => group.id)).toEqual(['features', 'management', 'system']);
     expect(MORE_GROUPS.find((group) => group.id === 'management')?.destinations.map((item) => item.route))
-      .toEqual(['/items', '/accounts', '/record-management']);
+      .toEqual(['/profiles', '/items', '/accounts', '/record-management']);
   });
 
   it('can hide personal AI without restructuring the menu', () => {

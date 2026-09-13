@@ -36,6 +36,8 @@ import type {
 } from '@/types/domain';
 
 const emptySnapshot: AppSnapshot = {
+  profiles: [],
+  activeProfileId: '',
   accounts: [],
   projects: [],
   items: [],
@@ -57,6 +59,10 @@ interface AppContextValue {
   error: string | null;
   refresh: () => Promise<void>;
   clearError: () => void;
+  createProfile: (name: string) => Promise<string>;
+  switchProfile: (profileId: string) => Promise<void>;
+  deleteProfile: (profileId: string) => Promise<void>;
+  restoreProfile: (profileId: string) => Promise<void>;
   addTodayItem: (itemId: string) => Promise<void>;
   startTimer: (item: Item, pauseEntry?: Entry | null) => Promise<void>;
   pauseTimer: (entry: Entry) => Promise<void>;
@@ -298,11 +304,43 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setItemArchived: (itemId, archived) => mutate(() => repository.setItemArchived(itemId, archived)),
       deleteItem: (itemId) => mutate(() => repository.deleteItem(itemId)),
       restoreItem: (itemId) => mutate(() => repository.restoreItem(itemId)),
-      saveAccount: (input) => mutate(() => repository.saveAccount(input)).then(() => undefined),
+      createProfile: (name) => mutate(
+        () => repository.createProfile(name),
+        { signalSync: false },
+      ),
+      switchProfile: (profileId) => mutate(async () => {
+        const now = new Date().toISOString();
+        const pausedRuntimes = snapshot.entries.flatMap((entry) => {
+          if (!entry.startedAt || entry.endedAt || entry.deletedAt) return [];
+          const runtime = parseTimerRuntime(snapshot.settings[timerRuntimeSettingKey(entry.id)], entry.startedAt);
+          if (runtime.status !== 'running') return [];
+          return [{
+            entryId: entry.id,
+            value: serializeTimerRuntime(pauseTimerRuntime(runtime, now)),
+          }];
+        });
+        await repository.switchProfile(profileId, pausedRuntimes);
+        for (const runtime of pausedRuntimes) {
+          await cancelTimerLimitNotification(repository, runtime.entryId).catch(() => undefined);
+        }
+      }, { signalSync: false }),
+      deleteProfile: (profileId) => mutate(
+        () => repository.deleteProfile(profileId, snapshot.activeProfileId),
+        { signalSync: false },
+      ),
+      restoreProfile: (profileId) => mutate(
+        () => repository.restoreProfile(profileId),
+        { signalSync: false },
+      ),
+      saveAccount: (input) => mutate(
+        () => repository.saveAccount(input, snapshot.activeProfileId),
+      ).then(() => undefined),
       setAccountArchived: (accountId, archived) => mutate(() => repository.setAccountArchived(accountId, archived)),
       deleteAccount: (accountId) => mutate(() => repository.deleteAccount(accountId)),
       restoreAccount: (accountId) => mutate(() => repository.restoreAccount(accountId)),
-      saveProject: (input) => mutate(() => repository.saveProject(input)).then(() => undefined),
+      saveProject: (input) => mutate(
+        () => repository.saveProject(input, snapshot.activeProfileId),
+      ).then(() => undefined),
       deleteProject: (projectId) => mutate(() => repository.deleteProject(projectId)),
       restoreProject: (projectId) => mutate(() => repository.restoreProject(projectId)),
       createKpi: (projectId, label, unit, aggregation) =>
@@ -317,8 +355,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
       deleteKpiRecord: (recordId) => mutate(() => repository.deleteKpiRecord(recordId)),
       restoreKpiRecord: (recordId) => mutate(() => repository.restoreKpiRecord(recordId)),
       saveWeeklyPlan: (weekStart, values, source = 'app', note = null) =>
-        mutate(() => repository.saveWeeklyPlan(weekStart, values, source, note)),
-      copyPreviousWeek: (weekStart) => mutate(() => repository.copyPreviousWeek(weekStart)),
+        mutate(() => repository.saveWeeklyPlan(
+          weekStart,
+          values,
+          source,
+          note,
+          snapshot.activeProfileId,
+        )),
+      copyPreviousWeek: (weekStart) => mutate(
+        () => repository.copyPreviousWeek(weekStart, snapshot.activeProfileId),
+      ),
       closeDay: (day, planned, actual, snapshotJson, note) =>
         mutate(() => repository.closeDay(day, planned, actual, snapshotJson, note)),
       setSetting: (key, settingValue) =>

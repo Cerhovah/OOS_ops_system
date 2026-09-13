@@ -10,12 +10,13 @@ import {
 } from './packager';
 
 const source: AppSnapshot = {
+  profiles: [], activeProfileId: 'profile-test',
   accounts: [{
-    id: 'account-a', name: '학업', color: null, kind: null, sortOrder: 0, archived: false,
+    id: 'account-a', profileId: 'profile-test', name: '학업', color: null, kind: null, weeklyTargetMinutes: null, sortOrder: 0, archived: false,
     createdAt: '2026-08-01T00:00:00.000Z', updatedAt: '2026-08-01T00:00:00.000Z', deletedAt: null,
   }],
   projects: [{
-    id: 'project-a', name: '시험', description: null, status: 'active', currentExperiment: null,
+    id: 'project-a', profileId: 'profile-test', name: '시험', description: null, status: 'active', currentExperiment: null,
     nextDecisionDate: null, createdAt: '2026-08-01T00:00:00.000Z', updatedAt: '2026-08-01T00:00:00.000Z', deletedAt: null,
   }],
   items: [{
@@ -33,7 +34,7 @@ const source: AppSnapshot = {
     source: 'app', createdAt: '2026-08-05T01:00:00.000Z', updatedAt: '2026-08-05T01:00:00.000Z', deletedAt: null,
   }],
   plans: [{
-    id: 'plan-a', weekStart: '2026-08-03', version: 1, note: null, source: 'app',
+    id: 'plan-a', profileId: 'profile-test', weekStart: '2026-08-03', version: 1, note: null, source: 'app',
     createdAt: '2026-08-02T00:00:00.000Z', updatedAt: '2026-08-02T00:00:00.000Z', deletedAt: null,
   }],
   planLines: [{

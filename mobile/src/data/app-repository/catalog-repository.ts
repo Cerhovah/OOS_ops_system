@@ -8,6 +8,7 @@ export interface AccountInput {
   name: string;
   kind: string | null;
   color: string | null;
+  profileId: string;
 }
 
 export class CatalogRepository {
@@ -31,7 +32,7 @@ export class CatalogRepository {
           'SELECT COALESCE(MAX(sort_order), -1) + 1 AS nextOrder FROM accounts',
         );
         await transaction.runAsync(
-          'INSERT INTO accounts (id,name,color,kind,sort_order,created_at,updated_at) VALUES (?,?,?,?,?,?,?)',
+          'INSERT INTO accounts (id,name,color,kind,sort_order,created_at,updated_at,profile_id) VALUES (?,?,?,?,?,?,?,?)',
           id,
           input.name,
           input.color,
@@ -39,6 +40,7 @@ export class CatalogRepository {
           order?.nextOrder ?? 0,
           now,
           now,
+          input.profileId,
         );
       });
     }
@@ -67,7 +69,7 @@ export class CatalogRepository {
     );
   }
 
-  async saveProject(input: ProjectInput): Promise<string> {
+  async saveProject(input: ProjectInput, profileId: string): Promise<string> {
     const now = new Date().toISOString();
     const id = input.id ?? randomUUID();
     if (input.id) {
@@ -83,7 +85,7 @@ export class CatalogRepository {
       );
     } else {
       await this.database.runAsync(
-        'INSERT INTO projects (id,name,description,status,current_experiment,next_decision_date,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?)',
+        'INSERT INTO projects (id,name,description,status,current_experiment,next_decision_date,created_at,updated_at,profile_id) VALUES (?,?,?,?,?,?,?,?,?)',
         id,
         input.name,
         input.description,
@@ -92,6 +94,7 @@ export class CatalogRepository {
         input.nextDecisionDate,
         now,
         now,
+        profileId,
       );
     }
     return id;

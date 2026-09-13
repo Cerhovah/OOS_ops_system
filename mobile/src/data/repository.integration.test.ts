@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { addDays, dateKey, weekRange } from '@/domain/calculations';
 import { timerRuntimeSettingKey } from '@/domain/timer-runtime';
+import { BACKUP_PROFILE_ID, PRACTICE_PROFILE_ID } from '@/data/profile-constants';
 import { TestSQLiteDatabase } from '@/test/sqlite-adapter';
 import type { ItemInput } from '@/types/domain';
 
@@ -22,6 +23,7 @@ describe('AppRepository with real SQLite', () => {
     database = adapter.asExpoDatabase();
     await migrateDatabase(database);
     repository = new AppRepository(database);
+    await repository.switchProfile(BACKUP_PROFILE_ID, []);
   });
 
   afterEach(() => adapter.close());
@@ -198,15 +200,15 @@ describe('AppRepository with real SQLite', () => {
     const initial = await repository.loadSnapshot(dateKey(new Date()));
     const values = Object.fromEntries(initial.accounts.map((account, index) => [account.id, index === 0 ? 3000 : 0]));
 
-    expect(await repository.saveWeeklyPlan(currentWeek, values)).toBe(2);
+    expect(await repository.saveWeeklyPlan(currentWeek, values)).toBe(3);
     values['seed-account-sleep'] = 2940;
-    expect(await repository.saveWeeklyPlan(currentWeek, values, 'app', '수정 버전')).toBe(3);
+    expect(await repository.saveWeeklyPlan(currentWeek, values, 'app', '수정 버전')).toBe(4);
     expect(await repository.copyPreviousWeek(nextWeek)).toBe(true);
 
     const snapshot = await repository.loadSnapshot(dateKey(new Date()));
     const currentVersions = snapshot.plans.filter((plan) => plan.weekStart === currentWeek);
     const copied = snapshot.plans.find((plan) => plan.weekStart === nextWeek);
-    expect(currentVersions.map((plan) => plan.version).sort()).toEqual([1, 2, 3]);
+    expect(currentVersions.map((plan) => plan.version).sort()).toEqual([1, 3, 4]);
     expect(currentVersions.every((plan) => plan.updatedAt.length > 0 && plan.deletedAt === null)).toBe(true);
     expect(copied).toMatchObject({ version: 1, source: 'copy_last_week' });
     const copiedLines = snapshot.planLines.filter((line) => line.weeklyPlanId === copied?.id);
@@ -249,7 +251,8 @@ describe('AppRepository with real SQLite', () => {
     expect(snapshot.projects.find((candidate) => candidate.id === projectId)?.deletedAt).not.toBeNull();
 
     const exported = await repository.exportTables();
-    expect(Object.keys(exported)).toHaveLength(19);
+    expect(Object.keys(exported)).toHaveLength(20);
+    expect(exported).toHaveProperty('profiles');
     expect(exported).toHaveProperty('sync_outbox');
     expect(exported).toHaveProperty('sync_conflicts');
     expect(exported).toHaveProperty('sync_state');
@@ -343,6 +346,50 @@ describe('AppRepository with real SQLite', () => {
     expect(await repository.getSetting('notification_cleanup_pending'))
       .toBe(JSON.stringify(['old-close', 'old-timer']));
     expect(adapter.raw.prepare("SELECT value FROM sync_state WHERE key='sync_owner_user_id'").get()).toBeUndefined();
-    expect((await repository.loadSnapshot(dateKey(new Date()))).accounts).toHaveLength(14);
+    expect((await repository.loadSnapshot(dateKey(new Date()))).accounts).toHaveLength(4);
+  });
+
+  it('separates the backup and practice profile catalogs without deleting either side', async () => {
+    const today = dateKey(new Date());
+    let snapshot = await repository.loadSnapshot(today);
+    expect(snapshot.activeProfileId).toBe(BACKUP_PROFILE_ID);
+    expect(snapshot.accounts).toHaveLength(14);
+
+    await repository.switchProfile(PRACTICE_PROFILE_ID, []);
+    snapshot = await repository.loadSnapshot(today);
+    expect(snapshot.activeProfileId).toBe(PRACTICE_PROFILE_ID);
+    expect(snapshot.accounts.map((account) => account.name)).toEqual([
+      '편입', '코디세이 미션', '사업', '수익화',
+    ]);
+    expect(snapshot.accounts.map((account) => account.weeklyTargetMinutes)).toEqual([1500, 720, 1080, 600]);
+    expect(snapshot.items).toHaveLength(4);
+    expect(snapshot.schedules.map((schedule) => schedule.plannedValue)).toEqual([240, 180, 180, 120]);
+    expect(snapshot.planLines.reduce((total, line) => total + line.plannedMinutes, 0)).toBe(65 * 60);
+    const practiceItem = snapshot.items[0];
+    await repository.createEntry(practiceItem, 30, '프로필 보존 검증');
+
+    const extraId = await repository.createProfile('추가 프로필');
+    await repository.switchProfile(extraId, []);
+    expect((await repository.loadSnapshot(today)).accounts).toHaveLength(0);
+    await repository.saveAccount({ name: '새 계정', kind: null, color: null }, extraId);
+    expect((await repository.loadSnapshot(today)).accounts.map((account) => account.name)).toEqual(['새 계정']);
+
+    await expect(repository.deleteProfile(extraId, extraId)).rejects.toThrow('현재 사용 중');
+    await repository.switchProfile(PRACTICE_PROFILE_ID, []);
+    await repository.deleteProfile(extraId, PRACTICE_PROFILE_ID);
+    expect((await repository.loadSnapshot(today)).profiles.find((profile) => profile.id === extraId)?.deletedAt).not.toBeNull();
+    expect(adapter.raw.prepare('SELECT COUNT(*) AS count FROM accounts WHERE profile_id=?').get(extraId))
+      .toMatchObject({ count: 1 });
+    await repository.restoreProfile(extraId);
+    expect((await repository.loadSnapshot(today)).profiles.find((profile) => profile.id === extraId)?.deletedAt).toBeNull();
+
+    await repository.switchProfile(BACKUP_PROFILE_ID, []);
+    await repository.deleteProfile(PRACTICE_PROFILE_ID, BACKUP_PROFILE_ID);
+    expect(adapter.raw.prepare('SELECT COUNT(*) AS count FROM entries WHERE item_id=?').get(practiceItem.id))
+      .toMatchObject({ count: 1 });
+    await repository.restoreProfile(PRACTICE_PROFILE_ID);
+    await repository.switchProfile(PRACTICE_PROFILE_ID, []);
+    expect((await repository.loadSnapshot(today)).entries.find((entry) => entry.note === '프로필 보존 검증'))
+      .toMatchObject({ durationMin: 30 });
   });
 });

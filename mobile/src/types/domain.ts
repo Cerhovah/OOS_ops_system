@@ -7,11 +7,22 @@ export type AnalysisMode = 'audit' | 'pattern' | 'project' | 'optimize' | 'longt
 type AiProposalStatus = 'pending' | 'applied' | 'dismissed';
 type AiProposalKind = 'plan_change';
 
+export interface Profile {
+  id: string;
+  name: string;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt: string | null;
+}
+
 export interface Account {
   id: string;
+  profileId: string;
   name: string;
   color: string | null;
   kind: string | null;
+  weeklyTargetMinutes: number | null;
   sortOrder: number;
   archived: boolean;
   createdAt: string;
@@ -21,6 +32,7 @@ export interface Account {
 
 export interface Project {
   id: string;
+  profileId: string;
   name: string;
   description: string | null;
   status: ProjectStatus;
@@ -82,6 +94,7 @@ export interface Entry {
 
 export interface WeeklyPlan {
   id: string;
+  profileId: string;
   weekStart: string;
   version: number;
   note: string | null;
@@ -185,6 +198,8 @@ export interface TodayItem {
 }
 
 export interface AppSnapshot {
+  profiles: Profile[];
+  activeProfileId: string;
   accounts: Account[];
   projects: Project[];
   items: Item[];

@@ -75,7 +75,7 @@ describe('Phase 1 seed manifest', () => {
     const db = new TestSQLiteDatabase();
     await migrateDatabase(db.asExpoDatabase());
 
-    expect(db.raw.prepare('PRAGMA user_version').get()).toMatchObject({ user_version: 6 });
+    expect(db.raw.prepare('PRAGMA user_version').get()).toMatchObject({ user_version: 7 });
     expect(db.raw.prepare("SELECT value FROM settings WHERE key='ai_provider'").get()).toMatchObject({ value: 'openai' });
     expect(db.raw.prepare("SELECT value FROM settings WHERE key='ai_model'").get()).toMatchObject({ value: 'gpt-5.6-terra' });
     const initial = db.raw.prepare('SELECT COUNT(*) AS count FROM sync_outbox').get() as { count: number };
@@ -122,7 +122,7 @@ describe('Phase 1 seed manifest', () => {
 
     failure.mockRestore();
     await migrateDatabase(db.asExpoDatabase());
-    expect(db.raw.prepare('PRAGMA user_version').get()).toMatchObject({ user_version: 6 });
+    expect(db.raw.prepare('PRAGMA user_version').get()).toMatchObject({ user_version: 7 });
     db.close();
   });
 
@@ -141,7 +141,7 @@ describe('Phase 1 seed manifest', () => {
 
     await migrateDatabase(db.asExpoDatabase());
 
-    expect(db.raw.prepare('PRAGMA user_version').get()).toMatchObject({ user_version: 6 });
+    expect(db.raw.prepare('PRAGMA user_version').get()).toMatchObject({ user_version: 7 });
     const triggerSql = db.raw.prepare(
       "SELECT group_concat(sql, '\n') AS sql FROM sqlite_master WHERE type='trigger' AND name LIKE 'sync_capture_settings_%'",
     ).get() as { sql: string };
@@ -155,6 +155,34 @@ describe('Phase 1 seed manifest', () => {
     expect(db.raw.prepare(
       "SELECT COUNT(*) AS count FROM sync_outbox WHERE record_id='itemXnotification:not-a-prefix'",
     ).get()).toMatchObject({ count: 0 });
+    db.raw.close();
+  });
+
+  it('keeps existing rows and pauses an open timer when the profile migration activates', async () => {
+    const db = new TestSQLiteDatabase();
+    await migrateDatabase(db.asExpoDatabase());
+    const startedAt = '2026-09-13T10:00:00.000Z';
+    db.raw.prepare(
+      `INSERT INTO entries
+       (id,item_id,account_id,type,started_at,ended_at,duration_min,value,count,occurred_at,note,source,created_at,updated_at)
+       VALUES ('profile-migration-entry','practice-item-transfer','practice-account-transfer','time',?,NULL,NULL,NULL,NULL,?,NULL,'app',?,?)`,
+    ).run(startedAt, startedAt, startedAt, startedAt);
+    db.raw.prepare(
+      "INSERT INTO settings (key,value,updated_at) VALUES ('timer_runtime:profile-migration-entry',?,?)",
+    ).run(JSON.stringify({ status: 'running', accumulatedMilliseconds: 60_000, runningSince: startedAt }), startedAt);
+    db.raw.exec('PRAGMA user_version = 6;');
+
+    await migrateDatabase(db.asExpoDatabase());
+
+    expect(db.raw.prepare('PRAGMA user_version').get()).toMatchObject({ user_version: 7 });
+    expect(db.raw.prepare("SELECT value FROM settings WHERE key='active_profile_id'").get())
+      .toMatchObject({ value: 'profile-practice' });
+    const runtime = db.raw.prepare(
+      "SELECT value FROM settings WHERE key='timer_runtime:profile-migration-entry'",
+    ).get() as { value: string };
+    expect(JSON.parse(runtime.value)).toMatchObject({ status: 'paused' });
+    expect(db.raw.prepare("SELECT COUNT(*) AS count FROM entries WHERE id='profile-migration-entry'").get())
+      .toMatchObject({ count: 1 });
     db.raw.close();
   });
 
@@ -234,14 +262,14 @@ describe('Phase 1 seed manifest', () => {
     db.raw.close();
   });
 
-  it('atomically replaces pristine install seeds when a remote backup exists', async () => {
+  it('merges a remote backup without deleting local profile workspaces', async () => {
     const db = new TestSQLiteDatabase();
     await migrateDatabase(db.asExpoDatabase());
     const repository = new SyncRepository(db.asExpoDatabase());
     const remoteAccount = db.raw.prepare(
       "SELECT * FROM accounts WHERE id='seed-account-sleep'",
     ).get() as Record<string, string | number | null>;
-    expect(await repository.shouldReplaceSeedBootstrap(true)).toBe(true);
+    expect(await repository.shouldReplaceSeedBootstrap(true)).toBe(false);
     db.raw.prepare(
       "INSERT INTO settings (key,value,updated_at) VALUES ('item_notification:old-item','1',?),('itemXnotification:local-only','keep',?)",
     ).run('2026-09-02T01:00:00.000Z', '2026-09-02T01:00:00.000Z');
@@ -253,14 +281,13 @@ describe('Phase 1 seed manifest', () => {
       client_updated_at: '2026-09-02T02:00:00.000Z',
       deleted_at: null,
       server_updated_at: '2026-09-02T02:00:01.000Z',
-    }], { replaceSeedBootstrap: true });
+    }]);
 
-    expect(db.raw.prepare('SELECT COUNT(*) AS count FROM accounts').get()).toMatchObject({ count: 1 });
+    expect(db.raw.prepare('SELECT COUNT(*) AS count FROM accounts').get()).toMatchObject({ count: 18 });
     expect(db.raw.prepare("SELECT name FROM accounts WHERE id='seed-account-sleep'").get()).toMatchObject({ name: '복구된 수면' });
-    expect(db.raw.prepare('SELECT COUNT(*) AS count FROM weekly_plans').get()).toMatchObject({ count: 0 });
-    expect(db.raw.prepare('SELECT COUNT(*) AS count FROM sync_outbox').get()).toMatchObject({ count: 0 });
-    expect(db.raw.prepare('SELECT COUNT(*) AS count FROM sync_conflicts').get()).toMatchObject({ count: 0 });
-    expect(db.raw.prepare("SELECT value FROM settings WHERE key='item_notification:old-item'").get()).toBeUndefined();
+    expect(db.raw.prepare("SELECT COUNT(*) AS count FROM accounts WHERE profile_id='profile-practice'").get()).toMatchObject({ count: 4 });
+    expect(db.raw.prepare('SELECT COUNT(*) AS count FROM weekly_plans').get()).toMatchObject({ count: 2 });
+    expect(db.raw.prepare("SELECT value FROM settings WHERE key='item_notification:old-item'").get()).toMatchObject({ value: '1' });
     expect(db.raw.prepare("SELECT value FROM settings WHERE key='itemXnotification:local-only'").get()).toMatchObject({ value: 'keep' });
     db.raw.close();
   });
