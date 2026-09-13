@@ -6,6 +6,13 @@
 
 ## Unreleased
 
+### P5 Visual v3 UI/UX product plan — 2026-09-13
+
+- v0.6.0의 기능·계정→항목 구조·SQLite v6·sync 계약을 보존하면서 Today를 `지금 무엇을 시작하거나 이어갈 것인가` 한 흐름으로 축소하는 제품 기획을 승인했다.
+- 전체·계정·항목·상세가 각각 한 단계의 지표만 소유하게 하고, 계정 공용 상한, 평면 항목 행, trailing play 즉시 시작, 단일 current session, 여러 paused session과 `오늘 돌아보기` 재배치를 확정했다.
+- Rubit은 Today 평면 목록·밀도, Todoist는 group/row 위계, Tiimo는 실행 연속성만 참고한다. Toss의 `One thing per One page`는 정보 감축 rubric으로 사용하고 브랜드·문구·화면을 복제하지 않는다.
+- 기존 P5 Visual v2 Figma와 `0.6.0(13)`은 비교 기준선으로 남기되 공개 시각 source of truth 승인을 철회했다. 새 v3 Figma·읽기 전용 검수·사용자 승인 전 implementation gate를 닫았다.
+
 ### P5 Visual v2 implementation — 2026-09-13
 
 - 승인된 `P5 Visual v2`를 Today·실행/일시정지·항목 동작 sheet·Records·하단 2탭에 구현했다. 기능 흐름은 유지하면서 360dp 기준 정보 밀도, warm stone 표면, moss 단일 강조색, 계정→항목 위계와 시스템 navigation inset 분리를 맞췄다.

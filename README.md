@@ -4,13 +4,13 @@
 
 ## 현재 상태
 
-- 소스 후보 `0.6.0(12)`, SQLite v6
-- 현재 일상 사용 빌드: 서명된 personal standalone `0.6.0(12)`
+- 현재 설치 시각 후보 `0.6.0(13)`, SQLite v6
+- 완전 검증된 기능·데이터 기준선: 서명된 personal standalone `0.6.0(12)`
 - 현재 기능 기준선: Today-first 계정→항목 목록, 로컬 실행·일시정지·재개·종료, 기록 원장과 더보기 9개 진입점
 - 기능 기준선은 TypeScript/ESLint, 40 files/238 tests, Supabase 계약 2 files/8 tests, Expo dependency check, Doctor 21/21, Android Hermes bundle을 통과했습니다.
 - SM-S721N(Android 16)에서 기존 데이터를 보존한 `0.6.0(12)` update install과 Today→기록→sync 핵심 흐름을 확인했습니다.
 
-현재 UI는 기능적으로 동작하지만 공개 시각 승인은 철회된 상태입니다. 새 `P5 Visual v2` Figma 승인 전에는 앱 UI 코딩·개발 빌드를 진행하지 않습니다. 진단은 [`docs/design-research.md`](docs/design-research.md), 작업 gate는 [`docs/design/P5_VISUAL_PIPELINE.md`](docs/design/P5_VISUAL_PIPELINE.md)에 있습니다.
+현재 v0.6.0 구조와 기능은 보존하지만 `0.6.0(13)` UI는 공개 시각 승인본이 아닙니다. `P5 Visual v3`는 제품 기획만 승인됐으며 새 Figma·읽기 전용 검수·사용자 승인이 끝나기 전에는 앱 UI 코딩이나 빌드를 진행하지 않습니다. 현재 작업 gate는 [`docs/design/P5_VISUAL_PIPELINE.md`](docs/design/P5_VISUAL_PIPELINE.md)에 있습니다.
 
 ## 고정 환경
 

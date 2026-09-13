@@ -1,89 +1,163 @@
-# P5 Visual v2 디자인 개발 파이프라인
+# P5 Visual v3 UI/UX 설계·구현 파이프라인
 
-이 문서는 P5 Today-first의 동작 계약을 바꾸지 않고, 레퍼런스에서 Figma·코드·실기기까지 시각 품질을 잃지 않기 위한 작업 절차다. 제품 동작은 `../SPEC.md`가 우선한다.
+이 문서는 v0.6.0의 기능·데이터 구조를 유지하면서 Today의 정보 밀도, 조작 비용, Android navigation 구분을 다시 설계하는 현재 파이프라인이다. 제품 동작은 `../SPEC.md`가 우선한다.
 
 ## 현재 판정
 
-- 상태: `Figma·Claude·사용자 승인 완료 / implementation allowed / release device comparison 대기`
-- 앱 기능 코드·SQLite schema·Supabase/sync 계약: 변경하지 않음
-- 개발 빌드: 시작하지 않음
-- Figma: `Pro / Full`, 파일 `Be9DsWkov1vg3ptUFPpj6F` 읽기·쓰기 가능
-- Mobbin: flow·screen 조회 가능
-- Claude Cowork: 기존 읽기 전용 검수 세션 완료, Figma connector 1개 확인
-- Android: ADB 기기 연결 확인. 현재 잠금 상태라 개인 데이터 화면은 캡처하지 않음
-- 시각 자동화: Temurin JDK 17과 Maestro CLI 2.10.0을 사용자 로컬 전용 경로에 설치하고 remote analytics를 끄는 실행 래퍼를 준비함
+- 상태: `제품 기획 승인 / Figma v3 미작성 / implementation blocked`
+- 현재 설치 앱: `0.6.0(13)` P5 Visual v2 personal standalone
+- 보존할 것: 계정→항목 구조, 오늘 항목 선택, 직접 기록, 단일 running timer, 여러 paused session, 재시작 복원, 기록 원장과 더보기 기능
+- 바꿀 것: 반복 지표, 중첩 카드, 시작까지의 불필요한 선택, 현재 세션 중복, 내비게이션 아이콘과 시스템 bar의 시각 분리
+- 바꾸지 않을 것: SQLite v6, repository 쓰기 의미, Supabase/sync 계약, applicationId/signing, 개인 데이터
+- 기존 `P5 Visual v2` Figma와 gate는 구현 이력·전후 비교 자료이며 새 구현 source of truth가 아니다.
 
-`P5 Approved · Foundations/Components/Screens`는 파일 안에 실제 존재하지만 구현 source of truth가 아니다. 계정 그룹의 자식이 잘리고, 컴포넌트 표본이 불완전하며, 현재 제품 계약과 다른 4탭이 포함되고, 상용 공개판 수준의 밀도·위계가 검증되지 않았다.
+## 제품 목표
 
-## 승인된 레퍼런스 역할
+Today가 첫눈에 답할 질문은 하나다.
+
+> 지금 무엇을 시작하거나 이어갈 것인가?
+
+사용자는 앱 실행 뒤 목록을 훑고, 원하는 항목의 재생 버튼을 눌러 바로 시작하며, 실행 중에는 같은 화면에서 일시정지·재개·종료·다른 항목 전환을 처리한다. 계획·실제·차이의 전체 설명은 Records와 상세에 남긴다.
+
+`One thing per One page`는 기능을 한 화면에 하나만 두라는 뜻이 아니라, 화면의 주 질문과 1차 행동을 하나로 제한하는 기준이다.
+
+| 화면 | 한 가지 사용정보 흐름 | 1차 행동 |
+|---|---|---|
+| Today | 지금 시작하거나 이어갈 일 | 재생 또는 일시정지/재개 |
+| Records | 선택 날짜에 실제로 기록된 내용 | 기록 확인·수정 |
+| 더보기 | 들어갈 기능 선택 | 한 route 선택 |
+| 계정/항목 관리 | 기록 구조 설정 | 저장 |
+| 주간 시간 분배 | 계정별 주간 상한 배분 | 계획 버전 저장 |
+| 지표 | 선택 날짜·주의 사실적 집계 확인 | 날짜 또는 주 선택 |
+| AI 분석 | 선택한 데이터로 분석 요청·확인 | 분석 실행 |
+
+## 레퍼런스 역할
 
 | 역할 | 근거 | 채택 | 배제 |
 |---|---|---|---|
-| 시각 master | [timespent · Creating a recurring plan](https://mobbin.com/flows/4b25d929-de2b-4d37-a017-03c13d9f23fb) | 얕은 surface, compact spacing, 명확한 type hierarchy, row/control의 낮은 시각 무게 | 캐릭터, 장식, 문구, 화면 복제, OOS에 맞지 않는 탭 크기 |
-| interaction master | [Tiimo · Completing a task](https://mobbin.com/flows/5b4c73db-d619-4f47-a666-5663d1b65ce3) | Today에서 항목 맥락이 선택·실행·완료까지 이어지는 구조 | 브랜드 색, 4탭, 축하 효과, 체크리스트 |
-| Records/Dark 보조 | [Equinox+ · Completed daily activities](https://mobbin.com/flows/e5c30bf9-efe1-4346-a86e-fcecfbc35e4f) | 날짜→그룹→상세 위계, 거의 단색인 dark surface | 피트니스 브랜드 요소, 미디어 카드 복제 |
-| Navigation | OOS 소유 | 오늘·기록 2탭, safe-area 분리, 낮은 footprint | reference 앱의 탭을 확대·축소해 그대로 사용 |
+| Today 시각 master | 사용자 제공 Rubit Today 화면 | 평면 목록, 짧은 보조 문구, 행 끝 단일 동작, 한 viewport의 높은 실제 항목 밀도 | 레벨·보상·캐릭터·광고·4탭·큰 FAB·완료 취소선 남용 |
+| 목록 보조 | [Todoist compact task list](https://mobbin.com/screens/7ff218cf-1ddd-47ee-9123-72535e5f9283) | 그룹을 타이포와 여백으로 구분, 제목 우선, 제한된 metadata | 여러 색 아이콘·날짜·tag를 한 행에 누적 |
+| 흐름 보조 | [Tiimo · Completing a task](https://mobbin.com/flows/5b4c73db-d619-4f47-a666-5663d1b65ce3) | 현재 시간 맥락, Today→실행→종료 뒤 같은 목록 복귀 | 브랜드 색·축하 효과·체크리스트·4탭 |
+| 정보 감축 rubric | Toss의 `One thing per One page` | 첫 질문·1차 CTA·다음 상태를 즉시 구분 | 상용 화면·문구·브랜드 복제 |
 
-timespent 캡처의 최하단 검은 띠는 Mobbin 표식이다. 그 위의 흰색 분할 pill은 실제 timespent UI지만 OOS 내비게이션의 source of truth는 아니다.
+timespent와 Equinox+는 P5 Visual v2의 Records/Dark 비교 근거로만 남긴다. v3 Today의 화면 밀도나 navigation을 결정하지 않는다.
 
-이 표는 2026-09-13 사용자가 승인했으며 `p5-visual-v2.gate.json`의 `referenceRoles`에 반영했다. Figma 설계에는 사용할 수 있지만 나머지 implementation gate가 끝나기 전에는 앱 코드를 바꾸지 않는다.
+## Today 정보 소유권
 
-## source of truth 순서
+같은 파생값을 여러 계층에 반복하지 않는다.
 
-1. `SPEC.md`의 제품 동작·불변조건
-2. 위 역할표의 실제 Mobbin flow
-3. 사용자 승인된 Figma `P5 Visual v2` frame과 연결된 local variables/components
-4. Figma frame의 `get_design_context`와 같은 시점의 screenshot
-5. 구현 코드
-6. 고정된 합성 데이터 상태의 앱 screenshot
+| 계층 | 기본 노출 | 접거나 상세로 이동 |
+|---|---|---|
+| 전체 | 오늘 총 기록, 오늘 항목 수 | 전체 계획·실제·차이 |
+| 계정 | 계정 실제 / 공용 상한 | signed 차이와 이력 |
+| 항목 | 이름, 오늘 실제, running/paused 상태 | 항목 계획·차이·세션 목록 |
+| 현재 세션 | 계정·항목, 경과시간, pause/resume/end | 시작시각·세부 원장 |
 
-현재 코드 토큰을 Figma로 복사한 뒤 다시 코드로 내리는 순환은 금지한다. 기존 토큰은 gap 분석의 입력일 뿐 새 시각 기준이 아니다.
+- 계정 공용 상한은 오늘 선택된 하위 시간형 항목의 계획 합계로 파생한다.
+- `초과`, `계획 없음`, `기록 없음`은 상단·계정·항목에 반복하지 않는다.
+- 계획이 없는 계정은 필요할 때 계정 header에만 `자유 기록`으로 표시한다.
+- 기록이 없는 실행 가능 항목은 별도 `기록 없음` 문구 없이 재생 동작으로 상태를 설명한다.
+- Today 항목 행은 최대 두 줄과 trailing 동작 하나를 기본으로 한다.
+- 정확한 계획·실제·signed 차이와 단위는 상세와 Records에서 유지한다.
 
-## Figma Phase 1 결과
+## Today 상태별 화면
 
-새 페이지 `P5 Visual v2`에 다음 순서로 구축했다.
+### Idle
 
-1. Foundations: Light master, Dark mode, type scale, spacing, radius, elevation, icon weight, visible control과 48dp hit area의 분리
-2. Components: App bar, account header, Today row, current session, compact action sheet, button hierarchy, ledger row, OOS 2-tab navigation
-3. Core frames: Today default, item actions, running, paused, Records
-4. Edge variants: switch conflict, direct record while running, no-plan/over-plan, long name/large text, Dark
-5. Prototype: Today → item actions → running → paused/resumed → end → Today/Records 반영
+1. 앱 bar: `오늘`, 현재 날짜
+2. 한 줄 요약: 예) `3시간 20분 기록 · 5개 항목`
+3. 계정 header: 예) `편입 공부 2시간 10분 / 4시간`
+4. 평면 항목 행: 제목, 선택적 보조 정보, trailing 재생
+5. 목록 끝 보조 동작: `오늘 항목 추가`, `오늘 돌아보기`
 
-Core frame node ID는 `p5-visual-v2.gate.json`에 고정했다. 모든 core/edge frame에서 같은 revision의 `get_design_context`와 screenshot을 수집했고, 누락 폰트 없음, 360×800 viewport, 56dp 앱 내비게이션과 24dp 시스템 안전 영역 분리, core prototype hit area 48dp 이상을 구조 검사했다.
+첫 viewport는 적어도 한 계정의 실제 항목을 보여야 한다. 빈 현재 실행 placeholder와 큰 summary card는 두지 않는다.
 
-모든 데이터는 합성값을 사용한다. frame마다 auto-layout, scrolling frame, safe-area, 실제 text wrapping을 정의한다.
+### Running
 
-## 시각 승인 rubric
+- 현재 세션은 Today 상단의 유일한 강조 표면이다.
+- 계정·항목, 초 단위 경과, 1차 `일시정지`, 2차 `기록 종료`만 먼저 보여준다.
+- 전체 요약은 한 줄로 접거나 현재 세션에 흡수한다.
+- 아래 목록의 동일 항목에는 같은 시간·상태를 다시 크게 표시하지 않는다.
+- 목록은 남겨 다른 항목으로 전환할 수 있게 한다.
 
-- 앱 진입 첫 viewport에서 날짜, 오늘 실제/남은 시간, 최소 한 계정의 항목이 보인다.
-- 각 상태의 1차 행동 하나가 먼저 읽히고 보조 행동은 시각적으로 경쟁하지 않는다.
-- 현재 실행은 목록보다 한 단계만 강조하며, paused·over-plan을 경고색으로 판정하지 않는다.
-- 48dp hit area 때문에 아이콘·버튼·pill이 커 보이지 않는다.
-- 하단 2탭과 Android 시스템 내비게이션이 하나의 두꺼운 띠로 합쳐 보이지 않는다.
-- Light의 따뜻한 저채도 surface와 단일 accent가 주 시각안이고, Dark는 별도로 같은 위계를 유지한다.
-- 긴 계정·항목명, 큰 글씨, TalkBack 순서에서 정보·행동이 사라지지 않는다.
-- 브랜드·문구·캐릭터·화면 배치를 복제하지 않는다.
+### Paused
 
-고정 pixel-match 비율은 합격 기준으로 사용하지 않는다. screenshot 자동 비교는 동일 기기·해상도·font scale·theme의 drift 탐지 보조수단이며, 위 rubric과 사용자·읽기 전용 검수를 대체하지 않는다.
+- 상단 현재 세션은 경과 증가를 멈추고 1차 `다시 시작`, 2차 `기록 종료`를 보여준다.
+- 다른 paused session은 해당 항목 행의 작은 중립 상태로만 표시한다.
+- warning 색이나 실패 문구를 쓰지 않는다.
 
-## 검수 순서
+### Start, switch, direct record
 
-1. Figma core/edge frame마다 design context와 screenshot을 같은 revision에서 수집한다.
-2. Codex가 SPEC·레퍼런스 역할·rubric과 대조해 자체 검수한다.
-3. Claude `oos-visual-reviewer`에는 Mobbin 링크, Figma screenshot, 구현 뒤 앱 screenshot 세 묶음을 제공한다. Claude는 수정하지 않고 차이만 심각도 순으로 반환한다.
-4. 사용자 승인 뒤에만 `p5-visual-v2.gate.json`의 Figma 승인 상태와 node id를 갱신한다.
-5. `npm run design:gate -- --stage implementation` 통과 뒤 화면 단위 코딩을 시작한다.
-6. 구현 뒤 typecheck/lint와 관련 테스트를 우선하고, 큰 묶음 종료 때만 전체 verify와 개발 빌드를 수행한다.
-7. 실기기 캡처는 개인 데이터를 저장소·Figma·Claude로 보내지 않는다. 검수용 합성 데이터 또는 가림 처리된 화면만 사용한다.
+- 시간형 항목의 trailing 재생은 다른 running session이 없을 때 즉시 시작한다.
+- 행 본문은 항목 상세와 `직접 기록`으로 이동한다.
+- 다른 session이 running이면 `현재 기록을 일시정지하고 새 항목 시작`과 `취소`만 확인한다.
+- 확인 시 기존 session은 종료되지 않고 paused로 남는다.
+- 직접 기록 중 running timer는 계속 흐르며 이를 짧고 중립적으로 알린다.
 
-## Maestro 경계
+### Today selection and reflection
 
-- 실행: `mobile/`에서 `npm run maestro -- --version` 또는 `npm run maestro -- <flow>`
-- runner는 `MAESTRO_CLI_NO_ANALYTICS`와 분석 알림 비활성 값을 설정한다.
-- 개인용 standalone이 설치된 실기기에서는 `clearState`를 절대 사용하지 않는다.
-- golden 생성과 `assertScreenshot` 도입은 Figma 승인 뒤 별도 합성 데이터 emulator/test build에서만 한다.
-- EAS Maestro job은 alpha이며 원격 빌드·과금·GitHub 연결이 필요할 수 있으므로 이번 로컬 디자인 환경의 필수 조건이 아니다.
+- 예정 항목과 사용자가 추가한 오늘 항목을 한 목록에 합친다.
+- `오늘 항목 추가`는 목록 뒤의 보조 동작이며 시간형 항목의 완료 checkbox가 아니다.
+- `오늘 돌아보기`는 기존 Today close snapshot/note를 사용하는 재배치다. 사실적 당일 합계와 한 개의 메모 입력면만 제공한다.
 
-## 구현 승인과 다음 게이트
+## 시각 시스템
 
-Phase 0의 도구·연결·문서·검수 runner와 레퍼런스 역할, `P5 Visual v2` Foundations/Components/Core/Edge frame과 클릭 prototype이 승인됐다. Claude pre-implementation 검수는 blocker 없이 조건부 승인했으며, 숫자 말줄임·paused 구분·초과 의미·전환 시트 합성 문구 4건을 Figma에 최소 수정하고 같은 revision의 design context와 screenshot으로 재검증했다. 사용자의 전체 승인과 함께 implementation gate를 열었다. release gate는 구현 뒤 개인 정보가 외부로 나가지 않는 실기기 비교가 통과할 때 연다.
+- Light: warm off-white 배경, 밝은 주 표면, 짙은 neutral text, 저채도 eucalyptus accent 하나
+- Dark: near-black neutral 배경과 같은 의미 토큰을 별도로 조정
+- accent filled surface: 한 화면에서 현재 세션 또는 유일한 primary CTA 하나
+- 계정 구분: 카드 중첩 대신 20~24dp section gap, header type, 선택적 hairline divider
+- 항목: compact row, 제목 우선, metadata 한 줄 이하, 보이는 컨트롤 20~24dp, 실제 hit area 48dp 이상
+- 아이콘: 한 vector family와 동일 stroke 사용. Unicode symbol·font glyph·임시 emoji 금지
+- navigation: 전체 폭 OOS 2탭, 앱 bar와 Android system navigation 사이의 safe inset 분리, 상단 hairline, active icon/label만 accent
+- 긴 이름과 큰 글씨는 숨기거나 말줄임으로 의미를 잃지 않는다. 필요한 행은 자연스럽게 높아지되 전체 화면의 고정 card 높이에 맞추지 않는다.
+- 초과·일시정지는 중립 상태다. error 색은 저장 실패·권한 실패·데이터 손실 위험에만 사용한다.
+
+## Figma v3 필수 frame
+
+### Core
+
+1. Foundations / icon and navigation system
+2. Today idle / regular data
+3. Today running
+4. Today paused with another paused item
+5. Switch confirmation
+6. Item detail and direct record
+7. Today item selection
+8. Today reflection
+9. Records return state
+
+### Edge
+
+1. no-plan account / over-plan detail
+2. long account and item names
+3. 200% font scale
+4. completion/count/numeric/event item rows
+5. empty Today and many-account scroll
+6. Light/Dark
+7. Galaxy 3-button and gesture-navigation safe area
+
+모든 frame은 360dp compact width와 합성 데이터로 만들되 특정 기기 pixel 상수를 제품 코드 계약으로 만들지 않는다.
+
+## 승인·구현 순서
+
+1. 이 제품 기획과 reference 역할을 `p5-visual-v3.gate.json`에 고정한다.
+2. Figma `P5 Visual v3` Foundations, components, core/edge frame과 prototype을 만든다.
+3. 같은 revision의 design context와 screenshot을 수집한다.
+4. Codex가 SPEC, 정보 소유권, 상태 전이, 접근성을 자체 점검한다.
+5. Claude `oos-visual-reviewer`가 읽기 전용으로 밀도·위계·잘림·행동 경쟁을 검수한다.
+6. 사용자가 Figma를 최종 승인한다.
+7. `npm run design:gate -- --stage implementation`이 통과한 뒤 화면 단위로 구현한다.
+8. typecheck, lint, 관련 Today/Records 테스트를 먼저 실행하고 큰 UI 묶음 종료 때만 전체 verify를 실행한다.
+9. 합성 데이터 screenshot과 Galaxy 실기기에서 icon, safe-area, 첫 viewport 밀도, 핵심 고객여정을 대조한 뒤 release gate를 연다.
+
+Figma 승인 전에는 앱 코드·dependency·APK를 반복 변경하지 않는다. 개인 기기 데이터와 screenshot은 Figma, Mobbin, Claude로 보내지 않는다.
+
+## 현재 범위 밖
+
+- Google/기기 Calendar OAuth와 일정 읽기·쓰기
+- 직접 입력하는 별도 일일 account cap schema
+- 새 산출물/checklist schema
+- active/paused timer의 다중 기기 동기화
+- 감정 점수·AI 회고·게임화
+
+이 항목들은 현재 화면에 placeholder로도 노출하지 않는다. 서버·sync 계약 변경이 필요한 항목은 별도 명세와 서버 준비 승인 뒤에만 시작한다.

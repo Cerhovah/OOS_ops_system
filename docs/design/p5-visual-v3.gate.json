@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "feature": "P5 Visual v3",
+  "status": "planning_approved",
+  "scope": {
+    "appId": "com.oosops.app",
+    "platform": "android",
+    "functionalContract": "docs/SPEC.md#32-오늘",
+    "preserveVersion060Structure": true,
+    "dataContractChanges": false
+  },
+  "references": [
+    {
+      "role": "today_visual_master",
+      "app": "Rubit",
+      "source": "user-provided Today screenshots"
+    },
+    {
+      "role": "compact_list_support",
+      "app": "Todoist",
+      "screenId": "7ff218cf-1ddd-47ee-9123-72535e5f9283"
+    },
+    {
+      "role": "interaction_support",
+      "app": "Tiimo",
+      "flowId": "5b4c73db-d619-4f47-a666-5663d1b65ce3"
+    }
+  ],
+  "figma": {
+    "fileKey": "Be9DsWkov1vg3ptUFPpj6F",
+    "sourcePageName": "P5 Visual v3",
+    "sourcePageId": null,
+    "coreFrames": {
+      "foundationsNavigation": null,
+      "todayIdle": null,
+      "todayRunning": null,
+      "todayPaused": null,
+      "switchConfirmation": null,
+      "itemDetailDirectRecord": null,
+      "todayItemSelection": null,
+      "todayReflection": null,
+      "recordsReturn": null
+    },
+    "edgeFrames": {
+      "noPlanOverPlan": null,
+      "longNameLargeText": null,
+      "nonTimeItems": null,
+      "emptyAndManyAccounts": null,
+      "lightDark": null,
+      "galaxyNavigation": null
+    }
+  },
+  "approvals": {
+    "productPlan": true,
+    "referenceRoles": true,
+    "figmaHighFidelity": false,
+    "claudeReadOnlyVisualReview": false,
+    "userFigmaApproval": false,
+    "deviceComparison": false
+  },
+  "privacy": {
+    "syntheticDesignDataOnly": true,
+    "personalDeviceClearStateAllowed": false,
+    "personalScreenshotsMayLeaveDevice": false
+  }
+}
