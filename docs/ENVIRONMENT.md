@@ -108,7 +108,7 @@ set EAS_NO_VCS=
 
 현재 Windows 저장소 경로의 대괄호 때문에 기본 EAS 로컬 git archive가 실패하므로 이 경로에서만 `EAS_NO_VCS=1`을 사용한다. 대괄호 없는 경로에서는 먼저 기본 명령을 사용한다. PowerShell에서는 build 전 `$env:EAS_NO_VCS = '1'`, build 후 `Remove-Item Env:EAS_NO_VCS`로 같은 범위를 적용한다.
 
-현재 연결된 프로젝트는 `@ljh951206/oos-ops`, project ID는 `a0b6c215-c87a-40ff-b749-b715d1ed9352`다. Expo SDK 57 patch 정렬 소스의 backup helper development build `1ccfb2da-eb2b-41b4-985b-5fdb98fb3509`로 SQLite DB/WAL/SHM을 추출했고, 일상 사용용 `0.6.0(12)` personal build `769d5e3e-6df8-49ae-9994-11458c7fe8a4`를 SM-S721N에 데이터 보존 업데이트로 설치했다. 이후에도 native dependency·권한·config plugin을 바꾸면 새 binary가 필요하다. 비용·계정 플랜·자격증명 선택이 나타나면 임의로 진행하지 않는다.
+현재 연결된 프로젝트는 `@ljh951206/oos-ops`, project ID는 `a0b6c215-c87a-40ff-b749-b715d1ed9352`다. SDK 57 patch 정렬 당시 backup helper development build는 `1ccfb2da-eb2b-41b4-985b-5fdb98fb3509`, personal build는 `769d5e3e-6df8-49ae-9994-11458c7fe8a4`였다. 현재 설치본은 아래 `v0.7 프로필 standalone 환경`을 기준으로 한다. 이후에도 native dependency·권한·config plugin을 바꾸면 새 binary가 필요하다. 비용·계정 플랜·자격증명 선택이 나타나면 임의로 진행하지 않는다.
 
 development client는 JavaScript를 받기 위해 Metro가 필요하다. `personal` profile은 developer launcher 없이 release APK와 embedded JavaScript bundle을 생성한다. 2026-09-06 설치본은 non-debuggable, `assets/index.android.bundle` 포함, Metro 8081 listener와 ADB reverse가 없는 상태에서 launcher cold start를 확인했다. USB는 설치·로그 확인에만 사용됐고 실행 의존성이 아니다.
 
@@ -120,11 +120,11 @@ npx eas-cli@23.2.0 build --platform android --profile personal --non-interactive
 set EAS_NO_VCS=
 ```
 
-현재 보존 artifact는 `C:\Users\skljh\Downloads\OOS-Ops-0.6.0-build12-personal.apk`, SHA-256은 `7F1F0CEC62FAE557ED1C830FF749648E44F9215180F4ED8F83AC7395589A3FF1`이다. 설치 전 SQLite DB/WAL/SHM 백업은 `C:\Users\skljh\Downloads\OOS-Ops-user-data-backup-20260912-1132`에 보존한다. native rollback은 동일 EAS Android keystore를 유지한 채 알려진 정상 commit을 더 높은 `versionCode`로 다시 빌드하고 `adb install -r` 또는 스토어 업데이트로 설치한다. SQLite migration은 전진형이므로 오래된 낮은 versionCode APK를 강제 downgrade하지 않는다.
+역사적 `0.6.0(12)` artifact는 `C:\Users\skljh\Downloads\OOS-Ops-0.6.0-build12-personal.apk`, SHA-256 `7F1F0CEC62FAE557ED1C830FF749648E44F9215180F4ED8F83AC7395589A3FF1`이다. 당시 SQLite DB/WAL/SHM 백업은 `C:\Users\skljh\Downloads\OOS-Ops-user-data-backup-20260912-1132`에 보존한다. native rollback은 동일 EAS Android keystore를 유지한 채 알려진 정상 commit을 더 높은 `versionCode`로 다시 빌드하고 `adb install -r` 또는 스토어 업데이트로 설치한다. SQLite migration은 전진형이므로 오래된 낮은 versionCode APK를 강제 downgrade하지 않는다.
 
 `0.6.0(12)` Today-first 소스는 Expo SDK 57 expected patch 기준의 13개 Expo package를 정렬했고 clean `npm ci`, 전체 verify, Expo dependency check, Doctor 21/21, personal standalone 빌드와 데이터 보존 실기기 검증을 통과했다. 기능 코드·SQLite schema·Supabase/sync 계약은 이 정렬에서 변경하지 않았다.
 
-P5 Visual v2 standalone 후보는 EAS personal `151003d8-5873-4bdc-bed3-1ca4565908c1`, `0.6.0(13)`이다. APK는 `C:\Users\skljh\Downloads\OOS-Ops-0.6.0-build13-personal.apk`, SHA-256 `5AB3D75D73B69222924600642B79ED079E904A0D7D7EDB128E20B97609A034D7`이며 SM-S721N에 데이터 보존 update install했다. 설치 직전 해시 일치 DB/WAL/SHM 백업은 `C:\Users\skljh\Downloads\OOS-Ops-user-data-backup-20260913-1500`에 있다. secure lock 때문에 최종 화면 대조는 대기 중이며, 그 전까지 기존 `0.6.0(12)`의 완전 검증 기준선과 새 후보 설치 사실을 구분한다.
+역사적 P5 Visual v2 후보는 EAS personal `151003d8-5873-4bdc-bed3-1ca4565908c1`, `0.6.0(13)`이다. APK는 `C:\Users\skljh\Downloads\OOS-Ops-0.6.0-build13-personal.apk`, SHA-256 `5AB3D75D73B69222924600642B79ED079E904A0D7D7EDB128E20B97609A034D7`이며 당시 SM-S721N에 데이터 보존 update install했다. 설치 직전 해시 일치 DB/WAL/SHM 백업은 `C:\Users\skljh\Downloads\OOS-Ops-user-data-backup-20260913-1500`에 있다. 이 후보의 대기 상태는 이후 P5 Visual v3 완료로 종료됐다.
 
 ## Phase 2 Supabase 개발 환경
 
@@ -145,7 +145,7 @@ npx supabase@2.116.0 login
 
 Phase 2 인증은 Supabase Free 기본 메일의 매직링크와 PKCE code callback만 사용한다. 네이티브 세션은 `expo-secure-store`에 `WHEN_UNLOCKED_THIS_DEVICE_ONLY`로 저장하고, 기존 Expo SQLite KV 평문 세션은 보안 저장소 쓰기에 성공한 뒤 제거한다. 보안 저장 실패 시 평문 fallback은 사용하지 않는다. 웹 대상은 브라우저 localStorage를 사용하므로 native SecureStore와 같은 보안 경계로 간주하지 않는다.
 
-`supabase/config.toml`은 `oosops://auth/callback` 추가 리디렉션과 신규 가입 차단을 저장소 기준으로 둔다. hosted Auth의 신규 가입 스위치는 별도 원격 설정이며 Q-013 사용자 확인 뒤 일치시킨다. 전체 hosted config를 무심코 push하면 로컬 `site_url` 등 다른 값을 덮을 수 있으므로 필요한 설정만 확인·적용한다. 커스텀 스킴이나 SecureStore plugin 변경 뒤에는 development build를 새로 생성한다.
+`supabase/config.toml`은 `oosops://auth/callback` 추가 리디렉션과 신규 가입 차단을 저장소 기준으로 둔다. hosted Auth의 신규 가입 스위치는 별도 원격 설정이므로 공개판 착수 전에 실제 상태와 공개 가입 정책을 다시 확인한다. 전체 hosted config를 무심코 push하면 로컬 `site_url` 등 다른 값을 덮을 수 있으므로 필요한 설정만 확인·적용한다. 커스텀 스킴이나 SecureStore plugin 변경 뒤에는 development build를 새로 생성한다.
 
 OTP 구현 build `1ead311c-9397-4f53-8893-36193025ab02`는 과거 이력이며, 매직링크 전환 뒤에는 `0.2.0(3)` build `154087e2-b93d-451a-b62c-ba6e988f4592`를 기준으로 한다. 로컬 APK 파일 경로는 기기별 정보이므로 재현 기준으로 사용하지 않고 EAS build ID와 `docs/evidence/phase-2-readiness-2026-09-02.md`의 해시를 사용한다.
 
@@ -155,9 +155,9 @@ OTP 구현 build `1ead311c-9397-4f53-8893-36193025ab02`는 과거 이력이며, 
 - 앱은 로그인 JWT로 `ai-analysis` Supabase Edge Function을 호출한다. 함수는 `verify_jwt=true`와 단일 `OOS_OWNER_USER_ID`를 확인한다.
 - API 키는 `OPENAI_API_KEY` Supabase Edge secret에만 저장하며 앱, `.env`, SQLite, 동기화 데이터, 로그, JSON/CSV export, 번들에는 넣지 않는다.
 - 기본 분석 기간은 4주이고 8주·12주를 선택할 수 있다. 메모 첨부는 같은 화면에서 끌 수 있다.
-- OpenAI Platform에서 키를 만든 뒤 저장소 루트에서 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\supabase\scripts\configure-openai.ps1`을 실행해 보안 프롬프트에 붙여넣는다. 스크립트는 Windows PowerShell 5.1에서도 깨지지 않는 ASCII 안내를 사용하고, 화면·명령 기록에 키를 표시하지 않으며 임시 파일을 덮어쓴 뒤 제거한다. 2026-09-04 Phase 4의 `ai-analysis` v2에서 원격 secret 등록과 인증 실호출을 완료했지만, 현재 v3 보안 변경 뒤 인증 회귀 호출은 아래와 같이 별도 대기다.
+- OpenAI Platform에서 키를 만든 뒤 저장소 루트에서 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\supabase\scripts\configure-openai.ps1`을 실행해 보안 프롬프트에 붙여넣는다. 스크립트는 Windows PowerShell 5.1에서도 깨지지 않는 ASCII 안내를 사용하고, 화면·명령 기록에 키를 표시하지 않으며 임시 파일을 덮어쓴 뒤 제거한다.
 - 서버 함수 코드는 `npx supabase@2.116.0 functions deploy ai-analysis --use-api`로 배포한다. secret 변경 뒤 함수 재배포는 필요하지 않다.
-- 2026-09-04 Phase 4R 원격 기준은 migration `20260904020000` 적용·재 dry-run up to date·DB lint 0·`phase_2_rls_passed`, `ai-analysis` v3 ACTIVE와 무인증 401이다. 인증된 최신 함수 실호출은 아직 대기다.
+- 현재 검증 기준은 migration `20260904020000` 적용·재 dry-run up to date·DB lint 0·`phase_2_rls_passed`, `ai-analysis` v5 ACTIVE, 무인증 401과 인증 실호출 통과다. 공개판에서는 단일 `OOS_OWNER_USER_ID` 계약을 그대로 사용하지 않는다.
 
 ## 재현 및 검증
 
@@ -257,3 +257,4 @@ Windows 긴 경로는 OS에서 `LongPathsEnabled=1`, 이 저장소의 로컬 Git
 - 기존 EAS Android keystore는 `mobile/credentials.json`과 `mobile/credentials/android/keystore.jks`에 로컬 보관하며 두 경로는 Git에서 무시한다. 비밀번호는 로그·문서·커밋에 남기지 않는다. remote EAS build는 free Android quota 소진으로 만들지 않았다.
 - 현재 설치본과 artifact는 `C:\Users\skljh\Downloads\OOS-Ops-0.7.0-build15-personal.apk`, SHA-256 `E214F39E6532B4BFED36FBEE51CB35BD96A23CB0E09C43683008BFA5CC3AFC6A`다. `com.oosops.app`, `0.7.0(15)`, SDK 57, target SDK 36, 기존 signer, non-debuggable standalone이며 SM-S721N Android 16에 데이터 보존 update install했다.
 - 설치 전 raw DB/WAL/SHM과 ZIP은 `C:\Users\skljh\Downloads\OOS-Ops-user-data-backup-before-0.7.0-20260913-232414-raw`에 보존한다. 개인 데이터가 없는 최종 Today 캡처는 `C:\Users\skljh\Downloads\OOS-Ops-0.7.0-build15-device.png`다.
+- 개인용 기준선 동결과 공개판 전환 절차는 `HANDOFF_PUBLIC_RELEASE.md`를 따른다. 위 raw DB는 v0.7 설치 전 스냅샷이므로 현재 실사용 데이터의 새 raw snapshot을 대체하지 않는다.

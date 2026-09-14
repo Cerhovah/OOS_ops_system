@@ -225,7 +225,7 @@ OOS Ops는 사용자가 직접 계획과 실제 시간을 기록하고, 계정·
 ## 9. 현재 검증 기준선
 
 - Phase 1, 2, 4, 4R, 4S, 5의 완료 증빙을 보존한다.
-- 현재 source `7194ace`는 TypeScript/ESLint 0, 40 files/242 tests, Supabase 계약 2 files/8 tests, Expo dependency check, Doctor 21/21과 Android Hermes bundle을 통과했다. 자격증명 ignore 보강은 `2f9ef10`에 분리했다.
+- 기능 source `7194ace`는 TypeScript/ESLint 0, 40 files/242 tests, Supabase 계약 2 files/8 tests, Expo dependency check, Doctor 21/21과 Android Hermes bundle을 통과했다. 자격증명 ignore 보강은 `2f9ef10`, 검증 문서 기준은 `37724ff`다.
 - `0.7.0(15)` personal standalone은 SDK 57, target SDK 36, 기존 applicationId와 EAS 서명을 유지하며 모든 Android ABI를 포함한다.
 - 기존 `0.6.0(14)`의 DB/WAL/SHM을 force-stop 상태에서 해시 백업한 뒤 SM-S721N(Android 16)에 데이터 보존 update install했다. 기존 14계정·9항목·32기록·2프로젝트·4주간계획은 보존됐다.
 - SQLite v7, `백업용 프로필`과 `연습용 프로필`, 연습용 4계정·4항목·일간/주간 상한, 실제 프로필 왕복 전환과 연습용 재활성화를 확인했다.

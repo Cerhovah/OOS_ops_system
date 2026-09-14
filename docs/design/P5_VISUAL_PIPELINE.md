@@ -4,11 +4,11 @@
 
 ## 현재 판정
 
-- 상태: `제품 기획·Figma v3·사용자 승인 완료 / Claude 읽기 전용 조건부 승인 사항 교정 완료 / implementation gate open / device comparison pending`
-- 현재 설치 앱: `0.6.0(13)` P5 Visual v2 personal standalone
+- 상태: `제품 기획·Figma v3·사용자 승인 / 읽기 전용 검수 교정 / implementation·device comparison·release gate 완료`
+- 현재 설치 앱: `0.7.0(15)` P5 Visual v3 + local profile workspace personal standalone
 - 보존할 것: 계정→항목 구조, 오늘 항목 선택, 직접 기록, 단일 running timer, 여러 paused session, 재시작 복원, 기록 원장과 더보기 기능
-- 바꿀 것: 반복 지표, 중첩 카드, 시작까지의 불필요한 선택, 현재 세션 중복, 내비게이션 아이콘과 시스템 bar의 시각 분리
-- 바꾸지 않을 것: SQLite v6, repository 쓰기 의미, Supabase/sync 계약, applicationId/signing, 개인 데이터
+- 구현에서 바꾼 것: 반복 지표, 중첩 카드, 시작까지의 불필요한 선택, 현재 세션 중복, 내비게이션 아이콘과 시스템 bar의 시각 분리
+- P5 Visual v3에서 바꾸지 않은 것: 당시 SQLite v6, repository 쓰기 의미, Supabase/sync 계약, applicationId/signing, 개인 데이터. 이후 프로필 작업공간만 versioned v7 migration으로 추가됐다.
 - 기존 `P5 Visual v2` Figma와 gate는 구현 이력·전후 비교 자료이며 새 구현 source of truth가 아니다.
 
 ## 제품 목표

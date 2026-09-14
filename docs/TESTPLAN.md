@@ -11,6 +11,15 @@
 
 실행 기록에는 실행일, source SHA, 앱 버전/versionCode, SQLite 버전, 기기/OS, 조건, 기대값/실제값, 증빙 위치와 재현 실패만 남긴다. 자동 검증은 합성 데이터, 실기기는 개인정보를 가린 증빙을 사용한다.
 
+## 공개판 인수인계 최소 감사 — 2026-09-14
+
+- 소스/경계: 시작 HEAD `37724ff`, `0.7.0(15)`, SQLite v7. 기능·migration·native dependency·Supabase 원격 상태는 변경하지 않고 현재 기준선과 인수인계 문서만 대조했다.
+- 최소 회귀: TypeScript typecheck와 ESLint 종료 코드 0. 프로필/migration/repository/timer/Today/Records 관련 5 files/31 tests, 모바일↔Supabase 보안 계약 2 files/8 tests가 통과했다.
+- 디자인 상태: `npm run design:status`가 P5 Visual v3 `approved`, `deviceComparison`을 포함한 여섯 gate ready를 반환했다.
+- artifact: `OOS-Ops-0.7.0-build15-personal.apk`의 크기·SHA-256, pre-v0.7 raw backup ZIP과 내부 DB/WAL/SHM 해시, keystore ignore 상태가 기존 종료 게이트 기록과 일치했다.
+- 실기기 재확인: sandbox 밖의 `adb devices -l`에도 연결 기기가 0대여서 현재 package dump와 post-v7 실사용 DB snapshot은 수행하지 못했다. 앱·기기 데이터에는 변경을 가하지 않았다.
+- 문서 정합성: README, SPEC 검증 source 표기, ENVIRONMENT의 역사/현재 표현, TESTPLAN의 과거 설치 표현, P5 Visual pipeline 상태만 현재 기준으로 정정했다. 문서 변경 뒤 내부 상대 링크 존재와 `git diff --check`를 확인했다.
+
 ## v0.7 프로필 작업공간·standalone 종료 게이트 — 2026-09-13 통과
 
 - 소스/경계: 기능 source `7194ace`, 자격증명 ignore `2f9ef10`, `0.7.0(15)`, SQLite v7. local profile workspace와 반복 주간 상한만 추가했고 기존 Supabase schema/RPC/RLS와 `oos_sync_v1` payload는 변경하지 않았다.
@@ -305,4 +314,4 @@ Q-010 승인 뒤 `ai-analysis` Edge Function v2를 `verify_jwt=true`로 배포�
 | 2026-09-06 | EAS development `f9ff3f21-45f2-4e1f-a682-06e3fe18d4c6` + [personal `fa8d2cf2-478b-4b62-8afd-1302ab7721a9`](https://expo.dev/accounts/ljh951206/projects/oos-ops/builds/fa8d2cf2-478b-4b62-8afd-1302ab7721a9), app 0.5.0(11) | SM-S721N(Galaxy S24 FE), Android 16/API 36 | Phase 5 §17.5 | **Phase 5 통과** | 핵심 흐름 1회, 날짜 이동·200% 글꼴, DB/WAL/SHM 원본 복원, personal 데이터 보존 설치·Metro 독립 콜드 스타트·오류 0. 최종 APK SHA-256 `E5AEDD98A849614F98189908259F4FCDD14AAC99CD5E168B939F3FE27DEB3422` |
 | 2026-09-12 | EAS [personal `769d5e3e-6df8-49ae-9994-11458c7fe8a4`](https://expo.dev/accounts/ljh951206/projects/oos-ops/builds/769d5e3e-6df8-49ae-9994-11458c7fe8a4) + development backup helper `1ccfb2da-eb2b-41b4-985b-5fdb98fb3509`, app 0.6.0(12) | SM-S721N(Galaxy S24 FE), Android 16/API 36 | P5 Today-first standalone 종료 게이트 | **통과** | clean verify·dependency check·Doctor 통과, DB/WAL/SHM 해시 일치 백업, 데이터 보존 update install, cold start·pause 복원·타이머 전환·직접 기록·원장·기존 sync 통과. APK SHA-256 `7F1F0CEC62FAE557ED1C830FF749648E44F9215180F4ED8F83AC7395589A3FF1` |
 
-과거 build URL은 expiration 이후 만료될 수 있지만 로컬 APK와 이미 설치된 앱이 삭제되는 것은 아니다. 현재 개인용 APK는 `C:\Users\skljh\Downloads\OOS-Ops-0.6.0-build12-personal.apk`에 보존했으며, 휴대폰에도 같은 `0.6.0(12)` standalone이 설치돼 있다.
+과거 build URL은 expiration 이후 만료될 수 있지만 로컬 APK가 삭제되는 것은 아니다. 당시 개인용 APK `C:\Users\skljh\Downloads\OOS-Ops-0.6.0-build12-personal.apk`는 이력으로 보존한다. 현재 설치·artifact 기준은 이 문서 상단의 `0.7.0(15)` 종료 게이트다.
