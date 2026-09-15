@@ -2,8 +2,8 @@
 
 - 기준일: 2026-09-15 (Asia/Seoul)
 - 문서 성격: 배포 운영 계획과 인수인계. 제품 동작은 `SPEC.md`가 우선하며, 이 문서만으로 공개 기능·서버 계약을 승인하지 않는다.
-- 현재 브랜치: `codex/p5-today-first-redesign`
-- 현재 상태: 개인용 source/APK/설치 전 데이터는 검증됨. 현재 실사용 DB의 새 raw snapshot은 미완료다. 공개판은 새 비공개 GitHub 저장소의 별도 애플리케이션으로 진행하는 것이 승인됐다.
+- 현재 브랜치: `main` 기준선 위 문서 정리 브랜치
+- 현재 상태: 개인용 source/APK와 현재 실사용 DB raw snapshot까지 동결·복원 검증을 마쳤다. 공개판은 새 비공개 GitHub 저장소의 별도 애플리케이션으로 진행하는 것이 승인됐다.
 
 ## 1. 동결 기준선
 
@@ -19,21 +19,16 @@
 | local keystore SHA-256 | `635FEC490F66236790F84EF308C7501149DB18F542CBC309D0769BE39066DE40` | Git ignore 확인; 파일·비밀번호 업로드 금지 |
 | 설치 전 raw DB backup ZIP | `C:\Users\skljh\Downloads\OOS-Ops-user-data-backup-before-0.7.0-20260913-232414-raw.zip` | v0.6.0(14) → v0.7.0 이전 상태 |
 | backup ZIP SHA-256 | `72824341A8AF712F1865956ABFA53838DF00386566772C52229F81DD92AF8E31` | 내부 DB/WAL/SHM 해시 일치 |
+| 현재 실사용 raw DB backup ZIP | `C:\Users\skljh\Downloads\OOS-Ops-user-data-backup-0.7.0-build15-20260915-095331-raw.zip` | post-v0.7 실사용 상태 |
+| 현재 backup ZIP SHA-256 | `0D9979E442232433AA5D0A8D07974F35F8B9659FE0D8800370102D618587F748` | DB/WAL/SHM 기기·로컬 해시 일치 |
 
 동결 태그는 `personal-v0.7.0-build15`를 사용한다. APK는 GitHub의 일반 Git blob에 넣지 않는다. 100MB를 넘고 개인용 환경을 포함할 수 있기 때문이다. raw DB와 자격증명은 개인 데이터·비밀이므로 GitHub Release에도 업로드하지 않는다.
 
-### 아직 끝나지 않은 동결 항목
+### 현재 실사용 동결 완료
 
-2026-09-14 재확인 시 `adb devices -l`에 기기가 나타나지 않았다. 기존 raw backup은 v0.7 설치 **전** 데이터이므로 이후 실사용 기록과 현재 프로필 상태를 포함하지 않는다. 공개판 설치·테스트 전에 다음 snapshot을 추가해야 현재 상태 보존이 완료된다.
+2026-09-15 SM-S721N에서 동일 applicationId·versionCode·signer의 실행하지 않은 helper로 DB/WAL/SHM을 raw 추출했다. 세 파일의 기기·로컬 크기와 SHA-256이 일치했고 `PRAGMA quick_check=ok`, SQLite v7, active profile `profile-practice`, 핵심 행 감소 없음을 확인했다. 정확한 personal APK를 `adb install -r`로 복원한 뒤 APK 해시, non-debuggable, 최초 설치일, cold start와 오류 0건을 다시 확인했다. helper와 임시 자격증명 사본은 삭제했다.
 
-1. 휴대폰을 USB 데이터 모드로 연결하고 잠금을 해제한 뒤 이 PC의 USB 디버깅을 허용한다.
-2. 실행 중 세션 상태를 확인하고 앱을 force-stop한다.
-3. 동일 applicationId·동일 signer·동일 `versionCode 15`의 debuggable backup helper를 앱 실행 없이 update install한다.
-4. `oos-ops.db`, `oos-ops.db-wal`, `oos-ops.db-shm`을 raw로 추출하고 각각의 크기·SHA-256, ZIP SHA-256을 남긴다.
-5. 정확히 위 personal APK를 `adb install -r`로 즉시 복구한다.
-6. `PRAGMA quick_check=ok`, SQLite v7, 핵심 행 감소 없음, active profile, cold start를 확인한다.
-
-`clearState`, uninstall, `-d` downgrade는 사용하지 않는다. Android Keystore 기반 SecureStore 세션과 예약 알림은 bit-for-bit 백업 대상이 아니며 복원 뒤 재로그인·재예약 가능한 상태로 취급한다.
+Android Keystore 기반 SecureStore 세션과 예약 알림은 bit-for-bit snapshot 대상이 아니다. raw snapshot과 ZIP은 암호화되지 않은 개인 데이터이므로 GitHub, EAS, Figma, Claude 또는 공개 저장소로 전송하지 않는다.
 
 ## 2. 로컬 Android 빌드 정리
 
@@ -67,7 +62,7 @@
 
 ### D1. 개인판과 공개판의 applicationId
 
-**2026-09-15 사용자 승인: 개인판과 공개판을 분리한다.** 현재 `com.oosops.app`은 그대로 보존하고 공개판은 새 비공개 GitHub 저장소 [Cerhovah/harugochim](https://github.com/Cerhovah/harugochim)의 별도 package/applicationId를 사용한다.
+**2026-09-15 사용자 승인: 개인판과 공개판을 분리한다.** 현재 `com.oosops.app`은 그대로 보존하고 공개판은 새 비공개 GitHub 저장소 [Cerhovah/harugochim](https://github.com/Cerhovah/harugochim)의 `com.cerhovah.harugochim`을 applicationId 후보로 사용한다. 문법·현재 연결 기기·공개 검색 충돌은 없었지만 전역 유일성은 Play Console 앱 생성이 성공할 때 확정하며, 첫 AAB 전까지만 변경할 수 있다.
 
 - 장점: 현재 개인 데이터와 앱을 그대로 유지하면서 두 앱을 동시에 설치할 수 있다. 개인용 Supabase·seed·서명 실험이 공개 사용자에게 섞이지 않는다.
 - 비용: 공개판은 빈 데이터로 시작하며 별도 앱 링크·Supabase redirect·Play 등록·EAS 환경이 필요하다.
@@ -98,18 +93,18 @@
 - 미국 등 추가 국가: 스토어 문구·법적 요건·지원 범위를 재검토한 뒤 별도 확장
 - 초기 인증·동기화: 미제공
 
-### D4. 인증과 계정 삭제
+### D5. 인증과 계정 삭제
 
 - 저장소 `supabase/config.toml`은 신규 가입 차단이지만 hosted 상태는 독립적이다. 공개 가입 정책을 확정하고 원격 상태를 다시 읽는다.
 - 이메일 magic link를 공개하려면 custom SMTP와 발신 도메인이 필요하다. Supabase 기본 SMTP는 production 용도가 아니다.
 - `oosops://` custom scheme은 공개 인증 callback 가로채기 방어가 약하다. 소유 도메인의 Android App Link와 fallback을 설계한다.
 - 앱에서 계정을 만들 수 있으면 앱 안의 계정 삭제와 앱 밖에서 접근 가능한 삭제 요청 URL을 모두 제공한다. 원격 데이터 삭제·보존 예외·완료 통지 계약도 함께 만든다.
 
-### D5. AI 공개 경계
+### D6. AI 공개 경계
 
 현재 `ai-analysis`는 `OOS_OWNER_USER_ID` 한 명만 허용한다. 그대로 공개하면 일반 사용자는 사용할 수 없다. 공개 AI를 승인할 때는 인증 사용자별 권한, request/range 한도, 사용자별 비용 quota, abuse 방어, 장애 시 로컬 기록 비영향, 삭제·보존 정책을 server-first로 만든다. OpenAI API 결제는 ChatGPT 구독과 별도다.
 
-### D6. 개인정보와 관측
+### D7. 개인정보와 관측
 
 - privacy policy를 앱 내부와 Play listing 모두에서 열 수 있는 실제 HTTPS URL로 제공한다.
 - Play Data safety에는 Supabase 동기화, 인증 이메일, AI 요청·응답, 포함 SDK가 기기 밖으로 보내는 데이터를 실제 동작과 일치하게 신고한다.
