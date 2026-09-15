@@ -1,23 +1,101 @@
 # CHANGELOG
 
-- 2026-09-05: `0.4.3(10)` personal release에서 Metro 독립 실행, offline 기록·재시작·내보내기·로컬 알림, online 동기화·AI를 확인해 Phase 4R AC-31~35와 Phase 4S AC-36~39를 최종 통과
-
 사용자에게 의미 있는 제품·범위·계획·검증 변경을 날짜별로 기록한다. 테스트 실행 결과 자체는 `TESTPLAN.md`, 기술적 선택은 `DECISIONS.md`에 기록한다.
 
 ## Unreleased
 
+### v0.7 profile workspace — 2026-09-13
+
+- 더보기 → 관리에 프로필 화면을 추가했다. 새 프로필 추가, 현재 프로필 변경, non-current 프로필 soft delete와 복구를 지원한다.
+- 기존 모든 계정·항목·기록·프로젝트·주간 계획은 `백업용 프로필`에 보존하고, `연습용 프로필`을 현재 프로필로 추가했다.
+- 연습용 프로필은 편입 4시간/25시간, 코디세이 미션 3시간/12시간, 사업 3시간/18시간, 수익화 2시간/10시간의 일간/주간 상한과 각각의 실행 항목을 갖는다.
+- Today·Records·관리·프로젝트·주간 계획은 활성 프로필 기준으로 분리한다. 프로필 전환 전 running timer는 pause하며 삭제된 프로필의 하위 데이터는 파괴하지 않는다.
+- 프로필 소속과 반복 주간 상한은 로컬 전용으로 추가했다. 기존 SQLite account/item/entry sync payload와 Supabase `oos_sync_v1` 계약은 변경하지 않았다.
+- `0.7.0(15)` personal standalone을 기존 `0.6.0(14)` 위에 데이터 보존 설치했다. 원본 DB/WAL/SHM을 먼저 백업하고 기존 기록을 보존한 채 연습용 프로필 활성화와 백업용 왕복 전환을 실기기에서 확인했다.
+
+### P5 Visual v3 UI/UX product plan — 2026-09-13
+
+- v0.6.0의 기능·계정→항목 구조·SQLite v6·sync 계약을 보존하면서 Today를 `지금 무엇을 시작하거나 이어갈 것인가` 한 흐름으로 축소하는 제품 기획을 승인했다.
+- 전체·계정·항목·상세가 각각 한 단계의 지표만 소유하게 하고, 계정 공용 상한, 평면 항목 행, trailing play 즉시 시작, 단일 current session, 여러 paused session과 `오늘 돌아보기` 재배치를 확정했다.
+- Rubit은 Today 평면 목록·밀도, Todoist는 group/row 위계, Tiimo는 실행 연속성만 참고한다. Toss의 `One thing per One page`는 정보 감축 rubric으로 사용하고 브랜드·문구·화면을 복제하지 않는다.
+- 기존 P5 Visual v2 Figma와 `0.6.0(13)`은 비교 기준선으로 남기되 공개 시각 source of truth 승인을 철회했다. 새 v3 Figma·읽기 전용 검수·사용자 승인 전 implementation gate를 닫았다.
+- `P5 Visual v3`의 390dp Galaxy core/edge frame, 360dp·200% 적응형 증거, 실제 3-button navigation 경계를 완성하고 사용자가 승인했다. Claude 읽기 전용 대칭 검수의 13dp 제목축과 paused secondary-action 대비 지적을 Figma에 교정해 implementation gate를 열었다.
+- `P5 Visual v3`를 Today의 평면 계정·항목 목록, 즉시 실행 icon, 단일 current-session, 다중 오늘 항목 선택, 간결한 돌아보기와 계정별 Records 원장으로 구현했다. 두 읽기 전용 구현 검수가 current paused session 선택, 중첩 pressable, 현재 행 중복 조작, Records 3열·그룹 대칭과 큰 글씨 적응 문제를 찾아 모두 교정했다.
+- Figma 계정 header의 연결 대상 없는 화살표를 제거해 코드와 source of truth를 맞췄다. `0.6.0(14)` personal standalone을 기존 설치 위에 데이터 보존 update하고 Today→타이머 복원·전환→직접 기록→종료→Records→sync를 실기기에서 통과했다. SQLite v6와 Supabase/sync 계약은 변경하지 않았다.
+
+### P5 Visual v2 implementation — 2026-09-13
+
+- 승인된 `P5 Visual v2`를 Today·실행/일시정지·항목 동작 sheet·Records·하단 2탭에 구현했다. 기능 흐름은 유지하면서 360dp 기준 정보 밀도, warm stone 표면, moss 단일 강조색, 계정→항목 위계와 시스템 navigation inset 분리를 맞췄다.
+- Noto Sans KR 400/500/700 세 굵기만 앱에 내장하고 글꼴 로드 전 splash를 유지해 첫 화면의 타이포그래피 흔들림을 막았다. 큰 글씨의 우측 숫자와 기록 지표는 숨기지 않고 필요한 행만 세로 배치한다.
+- 앱을 `0.6.0(13)`으로 올렸다. SQLite v6, migration, repository 쓰기 의미, Supabase/sync 계약은 변경하지 않았다.
+
+### P5 Visual v2 design environment — 2026-09-13
+
+- 기존 P5 기능·SQLite v6·Supabase/sync 계약을 유지하고, 앱 코딩·개발 빌드 전에 reference→high-fidelity Figma→읽기 전용 검수→코드→기기 비교의 단계형 디자인 gate를 추가했다.
+- timespent는 시각 master, Tiimo는 interaction master, Equinox+는 Records/Dark 보조, 하단 오늘·기록 2탭은 OOS 소유로 두는 Phase 0 계약을 사용자 승인으로 확정하고 Figma Phase 1을 시작했다.
+- Figma의 기존 `P5 Approved` 페이지가 실제 존재함을 재확인했지만 잘린 목록, 불완전한 컴포넌트 표본, 4탭 충돌과 낮은 완성도로 구현 승인을 철회했다. 새 source of truth는 별도 `P5 Visual v2`다.
+- Figma `Pro / Full`, Mobbin 호출, Claude Cowork의 Figma connector를 확인하고, 로컬 checksum 검증 JDK 17·Maestro runner와 read-only Claude visual reviewer를 준비했다. 개인 기기 초기화와 개인 screenshot 외부 전송은 금지한다.
+- 새 `P5 Visual v2`에 52개 변수, 9개 텍스트·2개 effect style, 8개 로컬 component API, 5개 core frame, 5개 edge frame과 Today→선택→실행→일시정지/재개→종료→기록 clickable prototype을 만들었다.
+- Claude 읽기 전용 검수는 blocker 없이 조건부 승인했고, 큰 글씨 숫자 말줄임·paused 구분·초과 의미·전환 시트 합성 문구를 Figma source에 최소 수정했다. 재수집한 design context/screenshot과 사용자 전체 승인으로 구현 gate를 열었다.
+- 이전 public-readiness 시각 변경은 기능 기준선으로만 유지하며 새 Figma·기기 대조 전에는 공개 시각 승인으로 간주하지 않는다.
+
+### P5 public-readiness visual refinement — 2026-09-13 (P5 Visual v2로 대체)
+
+- Tiimo의 Today 행 밀도, timespent의 따뜻한 중립 그룹 표면·캡슐 내비게이션, Equinox+의 절제된 단색 위계를 역할별로 혼합했다.
+- 포화 파랑 실행 면과 갈색 일시정지 면을 저채도 잉크 바이올렛 한 계열과 중립 상태로 바꾸고, 계정별 항목 카드를 하나의 그룹 표면·행 구분선으로 압축했다.
+- 하단 탭을 시스템 inset까지 채우는 전체 폭 직사각형에서 safe-area 위의 2분할 캡슐로 바꾸고 큰 글씨 높이와 본문 footprint를 별도로 계산한다.
+- 더보기의 반복 `열기` 버튼을 전체 행 터치와 단일 chevron으로 바꿔 관리 화면의 시각 소음을 줄였다.
+- 기능 흐름, SQLite v6, Supabase/sync 계약은 변경하지 않았다. Figma 재조회에서는 legacy `P5 Quiet Routine`만 확인되어 과거 승인 페이지 추가 기록을 현재 디자인 증빙으로 사용하지 않는다.
+
+### P5 Today-first personal qualification — 2026-09-12
+
+- Expo SDK 57이 요구한 13개 patch dependency만 일괄 정렬하고 기능 코드·SQLite v6·Supabase/sync 계약은 유지했다.
+- clean install 전체 자동 게이트, Expo dependency check, Doctor 21/21과 새 `0.6.0(12)` personal standalone 빌드를 통과했다.
+- 기존 사용자 DB/WAL/SHM을 해시 대조 백업한 뒤 데이터 보존 업데이트 설치하고, cold start부터 일시정지 복원·타이머 전환·직접 기록·종료·원장·기존 sync까지 실기기 흐름을 통과했다.
+- 현재 일상 사용 기준선을 `0.5.0(11)`에서 동일 applicationId/signing의 `0.6.0(12)` personal release로 올렸다.
+
+### P5 Today-first redesign implementation — 2026-09-12
+
+- `0.6.0(12)` 소스 후보에서 오늘 목록을 첫 화면에 계정→항목으로 노출하고 항목 행→compact action sheet→타이머/직접 기록 흐름을 구현했다.
+- 열린 `entries` 행과 로컬 전용 `timer_runtime:{entryId}` 상태를 결합해 실행·일시정지·재개·언제든 종료를 추가했다. 중지 시 누적 active 시간만 분으로 저장하고 runtime 설정은 같은 transaction에서 제거한다.
+- 다른 항목을 시작하거나 재개할 때 현재 실행으로 돌아가거나 일시정지 후 전환하도록 했고, 타이머 중 직접 기록은 현재 타이머가 계속 흐른다는 중립 안내를 거친다.
+- 기존 Figma 초안은 보존하고 `P5 Approved · Foundations/Components/Screens`에 Light/Dark 토큰, 핵심 컴포넌트 5종, 승인 상태 9개를 편집 가능한 구조로 추가했다.
+- active/paused 다중 기기 동기화, 서버 schema/payload/RPC 변경, 원격 EAS APK와 기존 데이터 설치는 수행하지 않았다.
+
+### P5 Today-first redesign approval — 2026-09-12
+
+- 첫 화면에 계정→항목 오늘 목록을 즉시 노출하고 행 선택 뒤 compact action sheet에서 시작 또는 직접 기록을 고르는 흐름을 승인했다.
+- 단일 로컬 타이머의 실행·일시정지·재개·부족해도 종료, 경과·남은 또는 signed 초과 표시, 종료 뒤 오늘/기록 동시 반영을 P5 계약으로 확정했다.
+- active timer의 다중 기기 동기화와 server schema/payload/RPC 호환은 P6로 분리하고, 계약 변경 전에 사용자에게 서버 준비 사항을 알리도록 고정했다.
+- Tiimo를 주 레퍼런스로 유지하고 timespent와 Equinox+를 각각 계획 진입과 완료 복귀의 제한적 보조 레퍼런스로 확정했다. 기존 Figma 정적 4화면은 legacy 비교용으로 보존한다.
+- Figma 연결을 `Pro / Full`로 재확인했으며 추가 결제·재연결은 필요하지 않다.
+
+### Current-state documentation reset — 2026-09-09
+
+- 미구현 기능과 출시 일정을 정의하던 계획·질문·예산·상용화 사전 문서를 제거했다.
+- SPEC, README, AGENTS와 검증·결정 문서를 현재 구현과 이미 수행한 증빙만 남도록 정리했다.
+- 코드, dependency, SQLite, Supabase, 기기 설치 상태와 과거 구현 증빙은 변경하지 않았다.
+- Mobbin 호출이 정상임을 재확인하고 최신 Tiimo 9화면 흐름을 대조했다. Figma는 연결됐지만 `Starter / View` 좌석이라 네이티브 캔버스 쓰기 요건을 충족하지 않는다는 진단을 기록했다.
+
+### Phase 6-1 implementation — 2026-09-08
+
+- 더보기를 안정된 id/route/capability 설정으로 기능·관리·시스템 9개 진입점에 나누고 시간과 알림·항목·계정·기록·AI 설정을 각각 전용 화면으로 옮겼다.
+- 오늘 선택·저장된 항목 불러오기·직접 기록·항목 관리·기록 원장을 계정→항목 계층으로 바꾸고, 기록에 계정별 소계와 보존된 계획이 없는 과거 날짜의 `계획 미보존`을 유지했다.
+- `주간`을 `지표`로 바꾸고 날짜 선택 달력, 기록 점, 2026 공식 공휴일 이름, 선택 날짜 한 건 상세, `주간보기`와 달력 접기를 추가했다. 개인 일정/OAuth/runtime 공휴일 API는 추가하지 않았다.
+- `계획`을 `주간 시간 분배`로 바꾸고 공통 정수 분 parser와 `분`·`시간` formatter를 입력→저장→집계 경계에 연결했다.
+- Galaxy 기종 상수 대신 safe-area inset·글꼴 배율로 탭 높이와 본문 하단 여백을 계산하도록 바꿨다.
+- SQLite schema/repository 쓰기/sync/server/타이머 계약은 변경하지 않았다. Android 개발 빌드 핵심 화면과 3-button 하단 safe-area를 통과하고 기존 personal standalone 설치를 복구했다.
+
 ### Phase 5 completed — 2026-09-06
 
-- P5 시각 설계 전에 Mobbin의 출시 모바일 앱 연속 flow 하나를 주 레퍼런스로 확인하고 Figma OOS 4화면으로 번역하는 선행 게이트를 완료했다. 데이터·sync·P6 기능 경계는 바꾸지 않았다.
-- Figma MCP와 Mobbin ChatGPT 플러그인 설치를 확인했다. Mobbin 전용 callable 도구는 현재 Codex 작업에 노출되지 않았지만, 확인한 Tiimo flow와 합성 데이터 Figma 4화면을 기준으로 P5를 완료했다.
-- Mobbin의 Tiimo `Completing a task` 5화면을 P5 주 레퍼런스로 확정하고 Quiet Routine 번역 규칙을 추가했다. TIDE·Opal은 비교 후보로만 남기고 P6 countdown·하위 작업·진행률·게임화는 P5에서 제외했다.
+- P5 시각 설계 전에 Mobbin의 출시 모바일 앱 연속 flow 하나를 주 레퍼런스로 확인하고 Figma OOS 4화면으로 번역했다. 데이터·sync 계약은 바꾸지 않았다.
+- 당시 Figma MCP와 Mobbin ChatGPT 플러그인 설치를 확인했으나 Mobbin callable 도구가 노출되지 않아, 확인한 Tiimo 링크와 합성 데이터 Figma 4화면만 기준으로 사용했다.
+- Mobbin의 Tiimo `Completing a task` 5화면을 P5 주 레퍼런스로 정하고 Quiet Routine 번역 규칙을 추가했다. 하위 작업·진행률·게임화는 제외했다.
 - theme/token과 공용 UI, 오늘·기록 2탭, TaskSheet, P5 경과 TimerView, 날짜별 기록 원장, 기존 기능의 더보기 이동을 구현했다.
 - 자동 전체 게이트와 Android 개발 빌드 핵심 흐름·200% 글꼴·DB 원본 복원을 통과하고, 최종 `0.5.0(11)` personal standalone을 데이터 보존 설치해 Metro 독립 콜드 스타트와 기존 타이머 지속을 확인했다.
-- 첨부 사전 고려사항과 실제 Phase 4S 코드를 비교해 SPEC v0.5.3의 Phase 5~8 상세와 현재 완료 상태를 기록했다.
-- P5는 오늘/기록 2탭·할일 자동 시트·명시적 재열기 버튼·극단적 미니멀 UI, P6는 countdown/초과 측정·pause/복구·수동 시간·통합 원장으로 정의했다.
-- 사용자 답변에 따라 목표 도달은 알림 후 계속 측정, 종료에서 실제 시간 기록으로 확정했다. 수동 과거 기록을 3일 이내로 제한하지 않는다.
-- 전체 추가 지출 총액을 80,000원으로 확정했다. Android 공개 준비/배포/복구/유지보수를 P7~P8로 구체화했고 Q-016에서 첫 공개판을 계정·서버 없는 public-local로 확정했다.
-- 외부 앱 비교, 구현 감사, 예산 원장과 상세 AGENTS를 정비했다. 구형·중복 AC 문서 4개를 제거하고 기존 기록·계획·개인용 sync/AI를 보존하는 확장/제거 기준과 검증 계획을 연결했다.
+- P5는 오늘/기록 2탭, 할일 자동 시트, 명시적 재열기 버튼과 기존 경과 타이머를 구현했다.
+- 수동 과거 기록을 임의 기간으로 제한하지 않는 원칙을 유지했다.
+- 외부 앱 비교와 구현 감사를 기록하고 기존 기록·계획·개인용 sync/AI를 보존하는 기준을 적용했다.
 
 ### Added
 
@@ -78,7 +156,6 @@
 - 2026-08-20: Phase 1을 사용자 구현 승인 대기 상태로 명시하고 승인 후 작업 순서를 고정
 - 2026-08-20: 후속 Phase의 수용 기준 범위를 SPEC에 맞게 Phase 2 AC-19~AC-22, Phase 3 AC-23~AC-26, Phase 4 AC-27~AC-30으로 수정
 - 2026-08-20: README에 현재 문서 전용 상태, 실행·개발 빌드 절차의 적용 시점, 환경변수·비밀값 정책을 명시
-- 2026-08-20: FUTURE 후보에 ID·명세 근거·착수 조건을 추가하고 비목표와 분리
 - 2026-08-20: 사용자 결정값과 PLAN 승인·Phase 1 착수 상태 반영
 - 2026-08-20: 루트 관리 문서와 `mobile/` Expo 앱 분리, npm 단일 사용, EAS development build 우선 결정을 ADR-001로 확정
 - 2026-08-20: Phase 1 자동 구현 완료, EAS 로그인·Android development build·실기기 게이트 대기 상태로 변경

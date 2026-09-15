@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Alert, StyleSheet, Text, View } from 'react-native';
 
-import { AppButton, Card, Field, Heading, LoadingView, Screen, Section, StatusBanner, textStyles } from '@/components/ui';
+import { AppBar, AppButton, Field, LoadingView, Screen, StatusBanner, textStyles } from '@/components/ui';
 import { useApp } from '@/context/app-context';
 import { dateKey, formatMinutes, todayItems } from '@/domain/calculations';
 import {
@@ -12,6 +12,8 @@ import {
   hydrateCloseNoteDraft,
   isCloseNoteDraftReady,
 } from '@/features/today/close-note-draft';
+import { COLORS } from '@/theme/colors';
+import { tokens } from '@/theme/tokens';
 
 export default function CloseDayScreen() {
   const app = useApp();
@@ -72,46 +74,35 @@ export default function CloseDayScreen() {
       submittedValue.trim() || null,
     );
     setNoteDraft((current) => finishCloseNoteSave(current, submittedDate, submittedValue));
-    Alert.alert('오늘 종료 저장', '종료 스냅샷을 저장했습니다. 기록은 계속 수정할 수 있습니다.', [
+    Alert.alert('오늘 돌아보기 저장', '오늘 메모를 저장했습니다. 기록은 계속 수정할 수 있습니다.', [
       { text: '확인', onPress: () => router.back() },
     ]);
   }
 
   return (
-    <Screen>
-      <Heading subtitle="종료는 기록을 잠그지 않습니다.">오늘 종료</Heading>
+    <Screen contentGap={tokens.space.sm} horizontalPadding={tokens.space.lg} topPadding={tokens.space.md}>
+      <AppBar title="오늘 돌아보기" meta="기록은 잠기지 않습니다" />
       {app.error ? <StatusBanner message={app.error} onClose={app.clearError} /> : null}
-      <Card>
-        <Text style={textStyles.muted}>계획 → 실제 · 차이</Text>
-        <Text style={styles.total}>{formatMinutes(planned)} → {formatMinutes(actual)} · {formatMinutes(actual - planned)}</Text>
-      </Card>
-      <Section title="항목별 계산">
-        {rows.map((row) => (
-          <Card key={row.id}>
-            <View style={styles.row}>
-              <Text style={textStyles.body}>{row.name}</Text>
-              <Text style={textStyles.number}>{formatMinutes(row.planned)} / {formatMinutes(row.actual)} · {formatMinutes(row.difference)}</Text>
-            </View>
-          </Card>
-        ))}
-      </Section>
+      <View accessible accessibilityLabel={`오늘 ${formatMinutes(actual)} 기록, ${visible.length}개 항목`} style={styles.summary}>
+        <Text style={textStyles.title}>오늘 {formatMinutes(actual)} 기록 · {visible.length}개 항목</Text>
+      </View>
       <Field
-        label="한 줄 메모"
+        label="오늘의 흐름에서 기억할 점"
         value={noteDraft.value}
         onChangeText={(value) => setNoteDraft((current) => editCloseNoteDraft(current, value))}
         multiline
-        placeholder="필요한 사실을 기록하십시오."
+        placeholder="짧게 적어도 충분합니다."
       />
       <AppButton
-        label={existing ? '종료 스냅샷 갱신' : '종료'}
+        label={existing ? '저장 내용 갱신' : '저장하고 오늘 마무리'}
         onPress={() => void submit().catch(() => undefined)}
         disabled={app.busy || !noteReady}
       />
+      <AppButton label="나중에" variant="secondary" onPress={() => router.back()} disabled={app.busy} />
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  total: { fontSize: 22, color: '#17202A', fontWeight: '800', fontVariant: ['tabular-nums'] },
-  row: { flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
+  summary: { minHeight: 48, justifyContent: 'center', borderRadius: tokens.radius.card, backgroundColor: COLORS.surfaceSubtle, paddingHorizontal: tokens.space.sm },
 });

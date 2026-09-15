@@ -1,4 +1,5 @@
 import { AppButton, Field, Sheet } from '@/components/ui';
+import { parseDurationToMinutes } from '@/domain/calculations';
 import type { Entry } from '@/types/domain';
 
 interface EntryEditorSheetProps {
@@ -22,12 +23,13 @@ export function EntryEditorSheet({
   onSave,
   onClose,
 }: EntryEditorSheetProps) {
+  const parsed = target?.type === 'time' ? parseDurationToMinutes(value) : Number(value);
   const invalid = (target?.type !== 'event' && value.trim() === '')
-    || (value.trim() !== '' && !Number.isFinite(Number(value)));
+    || (value.trim() !== '' && (parsed === null || !Number.isFinite(parsed)));
 
   return (
     <Sheet visible={target !== null} title="기록 수정" onClose={onClose}>
-      <Field label="값" value={value} onChangeText={onValueChange} keyboardType="decimal-pad" />
+      <Field label={target?.type === 'time' ? '시간(분)' : '값'} value={value} onChangeText={onValueChange} keyboardType="decimal-pad" />
       <Field label="메모" value={note} onChangeText={onNoteChange} multiline />
       <AppButton
         label="수정 저장"

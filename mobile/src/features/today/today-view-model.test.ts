@@ -2,14 +2,16 @@ import { describe, expect, it } from 'vitest';
 
 import type { Account, AppSnapshot, Entry, Item, ItemSchedule } from '@/types/domain';
 
-import { buildTodayViewModel, searchMissingItems } from './today-view-model';
+import { buildTodayViewModel, searchMissingItems, selectCurrentTimerSession } from './today-view-model';
 
 const createdAt = '2026-09-01T00:00:00.000Z';
 const account: Account = {
   id: 'account-1',
+  profileId: 'profile-test',
   name: '제품',
   color: null,
   kind: null,
+  weeklyTargetMinutes: null,
   sortOrder: 0,
   archived: false,
   createdAt,
@@ -75,6 +77,8 @@ const schedule: ItemSchedule = {
 describe('buildTodayViewModel', () => {
   it('preserves visible totals while consistently excluding deleted and archived items from actions', () => {
     const snapshot: AppSnapshot = {
+      profiles: [],
+      activeProfileId: 'profile-test',
       accounts: [account],
       projects: [],
       items: [
@@ -106,12 +110,46 @@ describe('buildTodayViewModel', () => {
 
     expect(result.activeItems.map((candidate) => candidate.id)).toEqual(['focus', 'weight', 'spare']);
     expect(result.visibleItems.map((candidate) => candidate.candidate.item.id)).toEqual(['focus', 'weight']);
-    expect(result.visibleItems.map((candidate) => candidate.summary)).toEqual(['35m', '71 kg']);
+    expect(result.visibleItems.map((candidate) => candidate.summary)).toEqual(['35분 기록 · 55분 남음', '71 kg']);
+    expect(result.visibleItems.map((candidate) => candidate.meta)).toEqual([
+      '1시간 30분 계획 · 35분 기록',
+      '수치형 · 오늘 71 kg',
+    ]);
+    expect(result.visibleItems.map((candidate) => candidate.trailing)).toEqual(['기록 중', '71 kg']);
     expect(result.visibleItems[0]?.latestManualEntry?.id).toBe('focus-manual');
     expect(result.runningTimers.map((timer) => timer.entry.id)).toEqual(['focus-running']);
     expect(result.missingItems.map((candidate) => candidate.id)).toEqual(['spare']);
     expect(result.plannedMinutes).toBe(90);
     expect(result.actualMinutes).toBe(55);
+    expect(result.accountGroups).toEqual([
+      expect.objectContaining({
+        accountId: 'account-1',
+        plannedMinutes: 90,
+        actualMinutes: 35,
+      }),
+    ]);
     expect(searchMissingItems(result.missingItems, '다른')).toHaveLength(1);
+  });
+
+  it('keeps the running session on top and otherwise selects the most recently paused session', () => {
+    const itemA = item('a');
+    const itemB = item('b');
+    const pausedA = {
+      entry: entry('entry-a', itemA.id),
+      item: itemA,
+      runtime: { status: 'paused' as const, accumulatedMilliseconds: 1_000, pausedAt: '2026-09-07T05:00:00.000Z' },
+    };
+    const pausedB = {
+      entry: entry('entry-b', itemB.id),
+      item: itemB,
+      runtime: { status: 'paused' as const, accumulatedMilliseconds: 2_000, pausedAt: '2026-09-07T04:00:00.000Z' },
+    };
+    const runningB = {
+      ...pausedB,
+      runtime: { status: 'running' as const, accumulatedMilliseconds: 2_000, runningSince: '2026-09-07T06:00:00.000Z' },
+    };
+
+    expect(selectCurrentTimerSession([pausedB, pausedA])?.entry.id).toBe('entry-a');
+    expect(selectCurrentTimerSession([pausedA, runningB])?.entry.id).toBe('entry-b');
   });
 });

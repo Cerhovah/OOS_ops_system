@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "feature": "P5 Visual v3",
+  "status": "approved",
+  "scope": {
+    "appId": "com.oosops.app",
+    "platform": "android",
+    "functionalContract": "docs/SPEC.md#32-오늘",
+    "preserveVersion060Structure": true,
+    "dataContractChanges": false
+  },
+  "references": [
+    {
+      "role": "today_visual_master",
+      "app": "Rubit",
+      "source": "user-provided Today screenshots"
+    },
+    {
+      "role": "compact_list_support",
+      "app": "Todoist",
+      "screenId": "7ff218cf-1ddd-47ee-9123-72535e5f9283"
+    },
+    {
+      "role": "interaction_support",
+      "app": "Tiimo",
+      "flowId": "5b4c73db-d619-4f47-a666-5663d1b65ce3"
+    }
+  ],
+  "figma": {
+    "fileKey": "Be9DsWkov1vg3ptUFPpj6F",
+    "sourcePageName": "P5 Visual v3",
+    "sourcePageId": "74:6",
+    "coreFrames": {
+      "foundationsNavigation": "74:11",
+      "todayIdle": "78:40",
+      "todayRunning": "78:69",
+      "todayPaused": "78:98",
+      "switchConfirmation": "78:127",
+      "itemDetailDirectRecord": "78:156",
+      "todayItemSelection": "78:185",
+      "todayReflection": "78:214",
+      "recordsReturn": "78:243"
+    },
+    "edgeFrames": {
+      "noPlanAccount": "92:1255",
+      "overPlanDetail": "92:1287",
+      "longNameRows": ["93:1221", "93:1232"],
+      "largeText200": "86:776",
+      "nonTimeItems": "92:1205",
+      "emptyToday": "84:709",
+      "manyAccounts": "86:817",
+      "darkRunning": "84:740",
+      "darkPaused": "96:622",
+      "galaxyNavigation": "86:858",
+      "galaxyThreeButtonProofs": ["92:1003", "92:1074", "92:1135"]
+    }
+  },
+  "approvals": {
+    "productPlan": true,
+    "referenceRoles": true,
+    "figmaHighFidelity": true,
+    "claudeReadOnlyVisualReview": true,
+    "userFigmaApproval": true,
+    "deviceComparison": true
+  },
+  "privacy": {
+    "syntheticDesignDataOnly": true,
+    "personalDeviceClearStateAllowed": false,
+    "personalScreenshotsMayLeaveDevice": false
+  }
+}

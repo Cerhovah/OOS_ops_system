@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "feature": "P5 Visual v2",
+  "status": "approved",
+  "scope": {
+    "appId": "com.oosops.app",
+    "platform": "android",
+    "functionalContract": "docs/SPEC.md#32-오늘",
+    "dataContractChanges": false
+  },
+  "references": [
+    {
+      "role": "visual_master",
+      "app": "timespent",
+      "flowId": "4b25d929-de2b-4d37-a017-03c13d9f23fb"
+    },
+    {
+      "role": "interaction_master",
+      "app": "Tiimo",
+      "flowId": "5b4c73db-d619-4f47-a666-5663d1b65ce3"
+    },
+    {
+      "role": "records_dark_support",
+      "app": "Equinox+",
+      "flowId": "e5c30bf9-efe1-4346-a86e-fcecfbc35e4f"
+    }
+  ],
+  "figma": {
+    "fileKey": "Be9DsWkov1vg3ptUFPpj6F",
+    "sourcePageName": "P5 Visual v2",
+    "sourcePageId": "41:2",
+    "coreFrames": {
+      "todayDefault": "59:4",
+      "itemActions": "60:53",
+      "timerRunning": "60:344",
+      "timerPaused": "60:412",
+      "records": "61:2"
+    },
+    "edgeFrames": {
+      "switchConflict": "63:4",
+      "directRecordWhileRunning": "63:428",
+      "noPlanOverPlan": "63:489",
+      "longNameLargeText": "65:2",
+      "dark": "65:52"
+    }
+  },
+  "approvals": {
+    "referenceRoles": true,
+    "figmaHighFidelity": true,
+    "claudeReadOnlyVisualReview": true,
+    "userFigmaApproval": true,
+    "deviceComparison": false
+  },
+  "privacy": {
+    "syntheticDesignDataOnly": true,
+    "personalDeviceClearStateAllowed": false,
+    "personalScreenshotsMayLeaveDevice": false
+  }
+}

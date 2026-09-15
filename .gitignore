@@ -6,6 +6,8 @@ web-build/
 .env.*
 !.env.example
 *.jks
+mobile/credentials.json
+mobile/credentials/
 *.p8
 *.p12
 *.key
@@ -13,6 +15,9 @@ web-build/
 *.orig.*
 coverage/
 *.log
+mobile/.maestro/screenshots/
+mobile/.maestro/debug-output/
+mobile/.maestro/test-output/
 .DS_Store
 Thumbs.db
 .idea/

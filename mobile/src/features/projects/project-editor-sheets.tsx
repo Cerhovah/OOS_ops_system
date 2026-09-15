@@ -77,7 +77,7 @@ export function ProjectEditorSheet({
           disabled={busy}
           onPress={() => {
             const project = target;
-            Alert.alert('프로젝트 삭제', '소프트 삭제하며 설정에서 복구할 수 있습니다.', [
+            Alert.alert('프로젝트 삭제', '소프트 삭제하며 기록 관리에서 복구할 수 있습니다.', [
               { text: '취소', style: 'cancel' },
               {
                 text: '삭제',
@@ -156,7 +156,7 @@ export function KpiEditorSheet({
           disabled={busy}
           onPress={() => {
             const kpi = target;
-            Alert.alert('KPI 삭제', '소프트 삭제하며 설정에서 복구할 수 있습니다.', [
+            Alert.alert('KPI 삭제', '소프트 삭제하며 기록 관리에서 복구할 수 있습니다.', [
               { text: '취소', style: 'cancel' },
               {
                 text: '삭제',

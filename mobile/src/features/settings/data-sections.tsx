@@ -1,3 +1,4 @@
+import Constants from 'expo-constants';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { AppButton, Card, Section, textStyles } from '@/components/ui';
@@ -5,12 +6,19 @@ import { APP_NAME } from '@/constants/app';
 import { useApp } from '@/context/app-context';
 import { useSync } from '@/context/sync-context';
 import { APP_DATA_TABLE_NAMES } from '@/data/app-data-tables';
-import { dateKey } from '@/domain/calculations';
+import { dateKey, formatDurationKo } from '@/domain/calculations';
+import { HOLIDAY_ASSET_INFO } from '@/features/week/holidays';
 import type { Entry } from '@/types/domain';
 
 
 export function entryAmount(entry: Entry): number | null {
   return entry.durationMin ?? entry.value ?? entry.count;
+}
+
+function entryAmountLabel(entry: Entry): string {
+  const amount = entryAmount(entry);
+  if (amount === null) return '—';
+  return entry.type === 'time' ? formatDurationKo(amount) : String(amount);
 }
 
 export function RecentEntriesSection({ onEdit }: { onEdit: (entry: Entry) => void }) {
@@ -23,7 +31,7 @@ export function RecentEntriesSection({ onEdit }: { onEdit: (entry: Entry) => voi
       {recentEntries.map((entry) => (
         <Card key={entry.id}>
           <Text style={textStyles.title}>{itemNames.get(entry.itemId) ?? '삭제된 항목'}</Text>
-          <Text style={textStyles.body}>{entry.type} · {entryAmount(entry) ?? '—'} · {dateKey(new Date(entry.occurredAt))}</Text>
+          <Text style={textStyles.body}>{entry.type} · {entryAmountLabel(entry)} · {dateKey(new Date(entry.occurredAt))}</Text>
           <View style={styles.actions}>
             <AppButton label="수정" variant="secondary" onPress={() => onEdit(entry)} />
             <AppButton
@@ -56,7 +64,7 @@ export function RecoverySection() {
     <Section title="삭제된 데이터 복구">
       {deletedEntries.map((entry) => (
         <Card key={entry.id}>
-          <Text style={textStyles.body}>기록 · {itemNames.get(entry.itemId) ?? entry.itemId} · {entryAmount(entry) ?? '—'}</Text>
+          <Text style={textStyles.body}>기록 · {itemNames.get(entry.itemId) ?? entry.itemId} · {entryAmountLabel(entry)}</Text>
           <AppButton
             label="기록 복구"
             variant="secondary"
@@ -156,10 +164,14 @@ export function AppInfoSection({ onReset }: { onReset: () => void }) {
   return (
     <Section title="앱 정보와 초기화">
       <Card>
-        <Text style={textStyles.body}>{APP_NAME} · 로컬 우선</Text>
+        <Text style={textStyles.body}>{APP_NAME} {Constants.expoConfig?.version ?? ''} · personal · 로컬 우선</Text>
         <Text style={textStyles.muted}>
           AI 분석 · {sync.session ? '서버 정책 연결' : 'Supabase 로그인 필요'}
         </Text>
+        <Text style={textStyles.muted}>
+          공휴일 데이터 · {HOLIDAY_ASSET_INFO.supportedYears.length > 0 ? `${HOLIDAY_ASSET_INFO.supportedYears.join(', ')}년 · ${HOLIDAY_ASSET_INFO.generatedAt ? new Date(HOLIDAY_ASSET_INFO.generatedAt).toLocaleDateString('ko-KR') : '생성 시각 없음'}` : '공식 자산 생성 필요'}
+        </Text>
+        <Text style={textStyles.muted}>달력 UI · react-native-calendars 1.1314.0 (MIT)</Text>
         <AppButton label="전체 초기화" variant="danger" onPress={onReset} disabled={app.busy} />
       </Card>
     </Section>

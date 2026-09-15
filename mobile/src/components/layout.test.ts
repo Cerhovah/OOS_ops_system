@@ -1,18 +1,26 @@
 import { describe, expect, it } from 'vitest';
 
-import { accessibleTabBarHeight } from './layout';
+import {
+  accessibleTabBarBottomOffset,
+  accessibleTabBarFootprint,
+  accessibleTabBarHeight,
+} from './layout';
 
 describe('accessibleTabBarHeight', () => {
-  it('keeps the minimum touch-friendly content height and adds the Android safe inset', () => {
-    expect(accessibleTabBarHeight(1, 24)).toBe(88);
+  it('keeps a compact touch-friendly content height separate from the safe inset', () => {
+    expect(accessibleTabBarHeight(1)).toBe(56);
+    expect(accessibleTabBarBottomOffset(0)).toBe(0);
+    expect(accessibleTabBarBottomOffset(24)).toBe(0);
   });
 
-  it('grows with the system font scale instead of clipping tab labels', () => {
-    expect(accessibleTabBarHeight(1.5, 24)).toBe(108);
-    expect(accessibleTabBarHeight(2, 0)).toBe(112);
+  it('grows enough for scaled labels without doubling the navigation slab', () => {
+    expect(accessibleTabBarHeight(1.5)).toBe(63);
+    expect(accessibleTabBarHeight(2)).toBe(72);
+    expect(accessibleTabBarFootprint(2, 24)).toBe(104);
   });
 
   it('falls back safely for invalid dimensions', () => {
-    expect(accessibleTabBarHeight(Number.NaN, -1)).toBe(64);
+    expect(accessibleTabBarHeight(Number.NaN)).toBe(56);
+    expect(accessibleTabBarBottomOffset(-1)).toBe(0);
   });
 });

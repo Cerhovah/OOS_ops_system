@@ -2,6 +2,12 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 
 import { SEED_TIME } from '@/data/migration/seed-manifest';
 import { seedDatabase } from '@/data/migration/seed-writer';
+import { seedProfilesAndPracticeWorkspace } from '@/data/migration/profile-seed';
+import {
+  parseTimerRuntime,
+  pauseTimerRuntime,
+  serializeTimerRuntime,
+} from '@/domain/timer-runtime';
 import {
   installPhase2Sync,
   installPhase4Sync,
@@ -18,7 +24,7 @@ export {
 } from '@/data/migration/seed-manifest';
 export { seedDatabase } from '@/data/migration/seed-writer';
 
-const DATABASE_VERSION = 6;
+const DATABASE_VERSION = 7;
 
 const sqlNow = "strftime('%Y-%m-%dT%H:%M:%fZ','now')";
 
@@ -163,6 +169,60 @@ async function migrateToVersion6(db: SQLiteDatabase): Promise<void> {
   await installPhase4Sync(db);
 }
 
+async function migrateToVersion7(db: SQLiteDatabase): Promise<void> {
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS profiles (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      deleted_at TEXT
+    );
+  `);
+  const profileColumns = await Promise.all([
+    db.getAllAsync<{ name: string }>('PRAGMA table_info(accounts)'),
+    db.getAllAsync<{ name: string }>('PRAGMA table_info(projects)'),
+    db.getAllAsync<{ name: string }>('PRAGMA table_info(weekly_plans)'),
+  ]);
+  if (!profileColumns[0].some((column) => column.name === 'profile_id')) {
+    await db.execAsync("ALTER TABLE accounts ADD COLUMN profile_id TEXT NOT NULL DEFAULT 'profile-backup';");
+  }
+  if (!profileColumns[0].some((column) => column.name === 'weekly_target_minutes')) {
+    await db.execAsync('ALTER TABLE accounts ADD COLUMN weekly_target_minutes INTEGER;');
+  }
+  if (!profileColumns[1].some((column) => column.name === 'profile_id')) {
+    await db.execAsync("ALTER TABLE projects ADD COLUMN profile_id TEXT NOT NULL DEFAULT 'profile-backup';");
+  }
+  if (!profileColumns[2].some((column) => column.name === 'profile_id')) {
+    await db.execAsync("ALTER TABLE weekly_plans ADD COLUMN profile_id TEXT NOT NULL DEFAULT 'profile-backup';");
+  }
+  await db.execAsync(`
+    CREATE INDEX IF NOT EXISTS idx_profiles_order ON profiles(sort_order, created_at);
+    CREATE INDEX IF NOT EXISTS idx_accounts_profile ON accounts(profile_id, sort_order, created_at);
+    CREATE INDEX IF NOT EXISTS idx_projects_profile ON projects(profile_id, created_at);
+    CREATE INDEX IF NOT EXISTS idx_weekly_plans_profile ON weekly_plans(profile_id, week_start, version DESC);
+  `);
+  const migrationTime = new Date().toISOString();
+  const openTimers = await db.getAllAsync<{ key: string; value: string; started_at: string }>(
+    `SELECT setting.key,setting.value,entry.started_at
+     FROM settings setting
+     JOIN entries entry ON setting.key='timer_runtime:' || entry.id
+     WHERE entry.started_at IS NOT NULL AND entry.ended_at IS NULL AND entry.deleted_at IS NULL`,
+  );
+  for (const timer of openTimers) {
+    const runtime = parseTimerRuntime(timer.value, timer.started_at);
+    if (runtime.status !== 'running') continue;
+    await db.runAsync(
+      'UPDATE settings SET value=?,updated_at=? WHERE key=?',
+      serializeTimerRuntime(pauseTimerRuntime(runtime, migrationTime)),
+      migrationTime,
+      timer.key,
+    );
+  }
+  await seedProfilesAndPracticeWorkspace(db);
+}
+
 export async function migrateDatabase(db: SQLiteDatabase): Promise<void> {
   await db.execAsync('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');
   const versionRow = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
@@ -290,6 +350,13 @@ export async function migrateDatabase(db: SQLiteDatabase): Promise<void> {
     await db.withExclusiveTransactionAsync(async (transaction) => {
       await migrateToVersion6(transaction);
       await transaction.execAsync('PRAGMA user_version = 6');
+    });
+    currentVersion = 6;
+  }
+  if (currentVersion < 7) {
+    await db.withExclusiveTransactionAsync(async (transaction) => {
+      await migrateToVersion7(transaction);
+      await transaction.execAsync('PRAGMA user_version = 7');
     });
   }
 }

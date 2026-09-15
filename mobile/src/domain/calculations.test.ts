@@ -7,12 +7,14 @@ import {
   dateKey,
   entryBelongsToRange,
   formatMinutes,
+  formatDurationKo,
   latestPlanForWeek,
   parseWeekStartDay,
   planStatus,
   remainingAvailableToday,
   scheduleMatchesDate,
   timerDurationMinutes,
+  parseDurationToMinutes,
   todayItems,
   weekdayIndex,
   weekRange,
@@ -108,11 +110,11 @@ describe('plan and actual calculations', () => {
   it('selects the latest append-only plan version and its lines', () => {
     const plans: WeeklyPlan[] = [
       {
-        id: 'v1', weekStart: '2026-08-17', version: 1, note: null, source: 'app',
+        id: 'v1', profileId: 'profile-test', weekStart: '2026-08-17', version: 1, note: null, source: 'app',
         createdAt: stamp, updatedAt: stamp, deletedAt: null,
       },
       {
-        id: 'v2', weekStart: '2026-08-17', version: 2, note: null, source: 'app',
+        id: 'v2', profileId: 'profile-test', weekStart: '2026-08-17', version: 2, note: null, source: 'app',
         createdAt: stamp, updatedAt: stamp, deletedAt: null,
       },
     ];
@@ -211,10 +213,19 @@ describe('today and timer calculations', () => {
 
 describe('formatting and KPI aggregation', () => {
   it('formats signed minute values without judgment', () => {
-    expect(formatMinutes(0)).toBe('0m');
-    expect(formatMinutes(60)).toBe('1h');
-    expect(formatMinutes(100)).toBe('1h 40m');
-    expect(formatMinutes(-100)).toBe('−1h 40m');
+    expect(formatMinutes(0)).toBe('0분');
+    expect(formatDurationKo(60)).toBe('1시간');
+    expect(formatDurationKo(100)).toBe('1시간 40분');
+    expect(formatDurationKo(-100)).toBe('−1시간 40분');
+  });
+
+  it('parses duration input once at the minute boundary', () => {
+    expect(parseDurationToMinutes('90')).toBe(90);
+    expect(parseDurationToMinutes('1시간 30분')).toBe(90);
+    expect(parseDurationToMinutes('1.5', 'hours')).toBe(90);
+    expect(parseDurationToMinutes('1.333', 'hours')).toBeNull();
+    expect(parseDurationToMinutes('')).toBeNull();
+    expect(parseDurationToMinutes('one hour')).toBeNull();
   });
 
   it('supports all KPI aggregation modes', () => {

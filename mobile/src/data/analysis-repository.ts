@@ -13,6 +13,7 @@ import {
   type SqlRow,
 } from '@/data/sqlite-row';
 import { appendWeeklyPlanVersion } from '@/data/weekly-plan-writer';
+import { BACKUP_PROFILE_ID } from '@/data/profile-constants';
 import { parseWeekStartDay, weekRange } from '@/domain/calculations';
 import type {
   AiProposal,
@@ -287,8 +288,15 @@ export class AnalysisRepository {
       if (weekRange(payload.weekStart, parseWeekStartDay(weekStartSetting?.value)).start !== payload.weekStart) {
         throw new Error('제안 날짜가 현재 주 시작 요일과 일치하지 않아 적용하지 않았습니다.');
       }
+      const profile = await transaction.getFirstAsync<{ value: string }>(
+        "SELECT value FROM settings WHERE key='active_profile_id'",
+      );
+      const profileId = profile?.value ?? BACKUP_PROFILE_ID;
       const accounts = await transaction.getAllAsync<{ id: string }>(
-        'SELECT id FROM accounts WHERE deleted_at IS NULL AND archived=0 ORDER BY sort_order,created_at',
+        `SELECT id FROM accounts
+         WHERE profile_id=? AND deleted_at IS NULL AND archived=0
+         ORDER BY sort_order,created_at`,
+        profileId,
       );
       const activeIds = new Set(accounts.map((account) => account.id));
       const proposedIds = Object.keys(payload.minutesByAccount);
@@ -298,6 +306,7 @@ export class AnalysisRepository {
 
       const now = new Date().toISOString();
       version = await appendWeeklyPlanVersion(transaction, {
+        profileId,
         weekStart: payload.weekStart,
         minutesByAccount: payload.minutesByAccount,
         source: 'ai_applied',

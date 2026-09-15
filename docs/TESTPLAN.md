@@ -1,22 +1,127 @@
 # TESTPLAN
 
-현재 완료 판정은 Phase 5까지다. P6~P8은 미구현·미검증이며, 과거 통과 이력을 새 기능의 증빙으로 사용하지 않는다.
+현재 문서는 이미 수행한 검증 결과만 기록한다. 통과 이력을 구현되지 않은 동작의 증빙으로 사용하지 않는다.
 
-## Phase 5~8 최소 검증
+## 최소 검증 원칙
 
-- Phase 5: Mobbin의 Tiimo `Completing a task` 5화면과 Figma의 Quiet Routine OOS 4화면 채택/배제 기록을 먼저 확인한다. 그 뒤 typecheck/lint와 변경 화면의 테스트, Android 개발 빌드에서 `오늘의 할일 확인 → 선택/시작 → 종료 → 직접 기록 → 원장 확인`을 한 번 실행한다. P6 기능이 보이지 않아야 한다.
-- Phase 6: timer·날짜·SQLite 변경의 단위/저장/migration 보존 테스트와 server/client sync 계약 테스트를 실행한다. Android 개발 빌드에서 시간 복원, 일시정지/재개, 작업 전환, 목표 알림 뒤 계속 측정, 종료, 수동 기록을 각각 한 번 확인한다.
-- Phase 7: production 산출물의 새 설치·업데이트, 기존 기록 보존, export/restore, 공개 빌드의 개인 서버 설정 미포함을 확인한다.
-- Phase 8: 공개 전에는 시작·데이터 손실·보안 결함이 없는지 확인하고, 공개 지시 뒤 게시 상태·설치 링크·새 설치의 핵심 흐름을 확인한다.
+- 문서만 바꾸면 내부 링크와 `git diff --check`를 확인한다.
+- 일반 UI는 typecheck/lint와 관련 테스트, 데이터 변경은 관련 저장·migration 보존 테스트를 실행한다.
+- dependency/native/schema/sync 계약 변경이나 큰 기능 묶음 종료 때만 전체 `npm run verify`를 실행한다.
+- 작은 UI 수정마다 APK·원격 DB·전체 실기기 시나리오를 반복하지 않는다.
 
 실행 기록에는 실행일, source SHA, 앱 버전/versionCode, SQLite 버전, 기기/OS, 조건, 기대값/실제값, 증빙 위치와 재현 실패만 남긴다. 자동 검증은 합성 데이터, 실기기는 개인정보를 가린 증빙을 사용한다.
+
+## 공개판 인수인계 최소 감사 — 2026-09-14
+
+- 소스/경계: 시작 HEAD `37724ff`, `0.7.0(15)`, SQLite v7. 기능·migration·native dependency·Supabase 원격 상태는 변경하지 않고 현재 기준선과 인수인계 문서만 대조했다.
+- 최소 회귀: TypeScript typecheck와 ESLint 종료 코드 0. 프로필/migration/repository/timer/Today/Records 관련 5 files/31 tests, 모바일↔Supabase 보안 계약 2 files/8 tests가 통과했다.
+- 디자인 상태: `npm run design:status`가 P5 Visual v3 `approved`, `deviceComparison`을 포함한 여섯 gate ready를 반환했다.
+- artifact: `OOS-Ops-0.7.0-build15-personal.apk`의 크기·SHA-256, pre-v0.7 raw backup ZIP과 내부 DB/WAL/SHM 해시, keystore ignore 상태가 기존 종료 게이트 기록과 일치했다.
+- 실기기 재확인: sandbox 밖의 `adb devices -l`에도 연결 기기가 0대여서 현재 package dump와 post-v7 실사용 DB snapshot은 수행하지 못했다. 앱·기기 데이터에는 변경을 가하지 않았다.
+- 문서 정합성: README, SPEC 검증 source 표기, ENVIRONMENT의 역사/현재 표현, TESTPLAN의 과거 설치 표현, P5 Visual pipeline 상태만 현재 기준으로 정정했다. 문서 변경 뒤 내부 상대 링크 존재와 `git diff --check`를 확인했다.
+
+## personal 운영 수명·공개판 분리 읽기 감사 — 2026-09-15
+
+- 앱 수명: `0.7.0(15)`은 embedded JS bundle·SQLite를 포함하고 `expo-updates`를 사용하지 않는 standalone이다. 서버·구독과 무관한 Today·타이머·기록·프로필 로컬 기능에는 고정 만료일이 없다. APK signer 유효기간은 2026-08-20~2054-01-05이고 기록된 인증서 SHA-256과 일치했다.
+- Expo: EAS project `@ljh951206/oos-ops`는 조회됐고 `billing:manage --no-open --json --non-interactive`가 active paid plan 없음을 반환해 현재 Free로 확인했다. 최신 remote personal `0.6.0(14)` artifact의 API 표시 만료는 2026-09-27 21:29 KST이다. `0.7.0(15)`은 로컬 빌드로 Downloads의 APK·해시를 기준 보존본으로 사용한다.
+- Supabase: 연결된 조직은 Free, OOS 프로젝트는 `ACTIVE_HEALTHY`, 현재 프로젝트 1개로 조회됐다. 원격 변경은 하지 않았다. Free inactivity pause는 로그인·동기화·AI만 멈추고 로컬 저장을 취소하지 않는다.
+- 유지보수 경계: 모바일은 최신 publishable key를 사용하지만 `ai-analysis` Edge Function의 legacy `SUPABASE_ANON_KEY`는 Supabase 공식 폐지 예정에 맞춰 2026년 말 전 교체가 필요하다. Expo SDK 57은 보장된 종료일은 없지만 약 1년 지원 정책을 기준으로 2027년 6월 전후 상향 필요성을 재검토한다.
+- 변경 경계: 공개판 분리 승인과 정보 조회만 했으며 OOS 기능, SQLite schema, Supabase migration/RLS/RPC, AI function, EAS 자격증을 변경하지 않았다.
+
+## v0.7 프로필 작업공간·standalone 종료 게이트 — 2026-09-13 통과
+
+- 소스/경계: 기능 source `7194ace`, 자격증명 ignore `2f9ef10`, `0.7.0(15)`, SQLite v7. local profile workspace와 반복 주간 상한만 추가했고 기존 Supabase schema/RPC/RLS와 `oos_sync_v1` payload는 변경하지 않았다.
+- 자동 게이트: 전체 `npm run verify` 종료 코드 0. TypeScript/ESLint 0, 40 files/242 tests, coverage statements 98.10% / branches 94.21% / functions 100% / lines 99.18%, Supabase 계약 2 files/8 tests, Expo dependency check, Doctor 21/21, Android Hermes 3,803 modules와 7MB bundle을 통과했다.
+- 빌드: EAS free Android quota가 2026-10-01까지 소진되어 원격 빌드는 생성하지 않았다. 공식 Android SDK 36/Build Tools 36.0.0/NDK 27.1.12297006와 기존 EAS keystore를 사용해 공백·대괄호 없는 `C:\oosb2f9` clean worktree에서 모든 ABI standalone을 로컬 빌드했다. 첫 두 시도는 제품 코드가 아니라 Windows CMake 경로 해석·길이 한계로 실패했고 짧은 경로에서 `BUILD SUCCESSFUL`을 확인했다.
+- artifact: `C:\Users\skljh\Downloads\OOS-Ops-0.7.0-build15-personal.apk`, 123,410,290 bytes, SHA-256 `E214F39E6532B4BFED36FBEE51CB35BD96A23CB0E09C43683008BFA5CC3AFC6A`. `com.oosops.app`, versionCode 15/versionName 0.7.0, min SDK 24, target/compile SDK 36, arm64-v8a/armeabi-v7a/x86/x86_64, APK Signature Scheme v2와 기존 signer를 확인했다.
+- 선행 백업: 기존 `0.6.0(14)`을 실행하지 않은 동일 서명 debuggable release helper로 update하고 force-stop 상태에서 `oos-ops.db`/WAL/SHM을 `C:\Users\skljh\Downloads\OOS-Ops-user-data-backup-before-0.7.0-20260913-232414-raw`과 ZIP에 보존했다. 세 파일은 626,688 / 4,218,912 / 32,768 bytes이며 SHA-256은 각각 `713E7857B71E268DD6693D0ECEBC218948A7614FDE1D3656C9973016A0C1F3D4`, `D711B0CEAB567E3D787E70D7FE46401139F8ED93CE8AC2151C49779F72469223`, `EA60DC98987AFA93FE999CADCE1183CBF4EAA0F30768F31B086FE34003682EF4`다. ZIP SHA-256은 `72824341A8AF712F1865956ABFA53838DF00386566772C52229F81DD92AF8E31`이다.
+- 보존 검사: update 전 user_version 6, accounts 14 / items 9 / entries 32 / item_schedules 3 / projects 2 / weekly_plans 4였다. migration 뒤 user_version 7, profiles 2, accounts 18 / items 13 / entries 32 / item_schedules 7 / projects 2 / weekly_plans 5였으므로 기존 행은 감소하지 않았다. 삭제 기록 2개와 삭제 항목 1개도 남았다.
+- 프로필 동작: 초기 활성값 `profile-practice`, `연습용 프로필` 계정 4·항목 4와 Today 4개 노출을 확인했다. 편입 240/1500분, 코디세이 미션 180/720분, 사업 180/1080분, 수익화 120/600분과 매일 반복 mask 127을 DB에서 확인했다. 실기기 UI에서 백업용(활성 계정 14·활성 항목 8)으로 변경한 뒤 연습용(4·4)으로 돌아와 현재 프로필을 연습용으로 남겼다.
+- 최종 설치: non-debug personal APK의 `adb install -r`가 성공했고 최초 설치일 2026-08-23 14:42:29를 유지했다. `run-as` 거부로 helper가 제거됐음을 확인했고 Metro/ADB reverse 없는 cold start 507ms, 앱 fatal/ReactNativeJS/SQLite migration 오류 0건, SM-S721N Android 16의 Today 항목과 system navigation 분리를 확인했다.
+- 증빙: 개인 데이터가 없는 연습용 Today 캡처는 `C:\Users\skljh\Downloads\OOS-Ops-0.7.0-build15-device.png`에만 보존했다. Figma·Mobbin·Claude·Git과 원격 분석 서비스로 전송하지 않았다.
+
+## P5 Visual v3 구현·standalone 종료 게이트 — 2026-09-13 통과
+
+- 소스/경계: 구현 source `afdf196`, `0.6.0(14)`, SQLite v6. Today와 Records의 정보 구조·조작·표면만 변경했고 SQLite schema/migration, repository 저장 의미, Supabase schema/RPC/RLS/payload와 sync 계약은 변경하지 않았다.
+- 독립 검수: Claude Cowork의 pre-implementation 대칭 검수는 Blocker 없이 조건부 승인했다. 두 읽기 전용 Codex 구현 검수에서 current paused session 선택, 중첩 pressable, current 행 중복 조작, 다중 항목 선택, 비시간형 icon, Records 3열·계정 그룹 대칭과 200% 글씨 문제를 발견해 교정했다. 연결 화면이 없는 계정 header chevron은 코드에 dead action을 만들지 않고 최종 Figma component에서 제거했다.
+- 자동 게이트: `npm run verify` 종료 코드 0. TypeScript/ESLint 0, 40 files/239 tests, coverage statements 98.10% / branches 94.21% / functions 100% / lines 99.18%, Supabase 계약 2 files/8 tests, Expo dependency check, Doctor 21/21, Android Hermes 3,799 modules와 7MB `.hbc`를 통과했다.
+- artifact: EAS development `1dbde3bb-3c8b-4e90-ad82-d4b0614b6606`과 personal `6a84d74e-249d-4133-8bb5-91fd31fb4f66`, fingerprint `5e74445f419e5f1a95451474c5c597602cfa7b31`, 기존 remote keystore, `com.oosops.app`, `0.6.0(14)`, SDK 57. personal APK는 `C:\Users\skljh\Downloads\OOS-Ops-0.6.0-build14-personal.apk`, 123,381,554 bytes, SHA-256 `65EBA68823B00CBE5A3E45B2B429A9D2F4D23835FAEBB5A558D1A0A3EBBB9190`이다.
+- 선행 백업: 기존 v13을 실행하지 않은 동일 서명 development helper로 update한 뒤 force-stop 상태에서 DB/WAL/SHM을 복사했다. 로컬 크기는 626,688 / 4,218,912 / 32,768 bytes로 기기 원본과 일치했고, 병합 복구본 `C:\Users\skljh\Downloads\OOS-Ops-user-data-backup-20260913-214335`은 `PRAGMA integrity_check=ok`, user_version 6, accounts 14 / items 9 / entries 28 / settings 16을 확인했다.
+- raw 보존: 최종 smoke 뒤 `C:\Users\skljh\Downloads\OOS-Ops-user-data-backup-20260913-220132-raw`에 DB/WAL/SHM 세 파일을 다시 보존하고 ZIP SHA-256 `CB1DA5DDF78E4F45904532A180F5502FD7475FA8698A63F3620C71D609079625`를 기록했다. 기기 외부 staging 사본은 삭제했고 앱 데이터와 로컬 백업은 삭제하지 않았다.
+- 설치/보존: personal APK의 `adb install -r`가 성공했다. 설치본은 versionCode 14, non-debuggable이며 최초 설치일은 2026-08-23 14:42:29로 유지됐다. Metro/ADB reverse 없이 cold start가 성공하고 기존 Today 14시간 11분·3개 항목이 복원됐으며 fatal/ReactNativeJS/SQLite 오류는 0건이다.
+- 고객여정: Today → 필수 일정 시작 → 38초 일시정지 → force-stop/cold start 38초 paused 복원 → 재개 → 운동을 오늘 항목으로 다중 선택 UI에서 추가 → `필수 일정 일시정지 후 운동 시작` 전환 → 실행 중 직접 기록 경고 → 필수 일정 15분 직접 기록 → 운동 종료 → 남은 필수 일정 종료를 확인했다. 최종 Today는 14시간 29분·4개 항목, 필수 일정 14시간 27분, 운동 2분이며 열린 timer는 0개다.
+- Records/sync: Records의 계획 2시간 30분, 실제 14시간 29분, 차이 +11시간 59분과 계정·항목 원장을 확인했다. `지금 동기화` 뒤 마지막 동기화가 21:57:27로 갱신되고 전송 대기 0건이었다. 개인 screenshot/UI dump는 로컬 Temp에서만 대조했고 Figma·Claude·Git에 넣지 않았다.
+- 시각 release gate: SM-S721N, Android 16, 1080×2340, density 540, 큰 시스템 글씨, dark mode, 3-button navigation에서 24dp 본문축, current-session action pair, account/item 평면 위계, Records 3열·ledger group, 앱 2탭과 system bar 분리를 승인 Figma와 대조했다. 고정 유사도 점수 대신 정보 소유권·상태·접근성·잘림 여부로 판정했고 `deviceComparison=true`로 release gate를 열었다.
+
+## P5 Visual v2 구현 자동 게이트 — 2026-09-13 통과
+
+- 소스/경계: `1f13657`, `0.6.0(13)`, SQLite v6. 승인 Figma의 표면·간격·타이포그래피·행·control과 OOS 전용 2탭을 구현했고 `mobile/src/data`, `mobile/src/services`, `mobile/src/sync`, `supabase` diff는 0건이다.
+- clean 자동 게이트: `npm ci` 뒤 `npm run verify` 종료 코드 0. TypeScript/ESLint 0, 40 files/238 tests, coverage statements 98.10% / branches 94.21% / functions 100% / lines 99.18%, Supabase 계약 2 files/8 tests, Expo dependency check, Doctor 21/21, Android Hermes 1,838 modules와 4.8MB `.hbc`를 통과했다.
+- 번들 경계: Noto Sans KR 400/500/700 세 파일만 production export에 포함했다. 시각 변경 뒤 새 SQLite migration, 원격 schema/RPC/RLS/payload, telemetry는 추가하지 않았다.
+
+## P5 Visual v2 `0.6.0(13)` standalone 후보 — 2026-09-13
+
+- artifact: EAS personal `151003d8-5873-4bdc-bed3-1ca4565908c1`, `com.oosops.app`, `0.6.0(13)`, SDK 57, 기존 remote keystore, internal APK. 로컬 APK는 `C:\Users\skljh\Downloads\OOS-Ops-0.6.0-build13-personal.apk`, 115,664,281 bytes, SHA-256 `5AB3D75D73B69222924600642B79ED079E904A0D7D7EDB128E20B97609A034D7`이며 embedded `assets/index.android.bundle`을 포함한다.
+- 데이터 보존: 기존 `0.6.0(12)`을 실행하지 않은 동일 서명 development backup helper로 잠시 교체하고, force-stop 상태의 `oos-ops.db`/WAL/SHM을 `C:\Users\skljh\Downloads\OOS-Ops-user-data-backup-20260913-1500`에 추출했다. 기기 원본과 로컬 세 파일의 SHA-256이 각각 일치한 뒤에만 새 APK를 설치했다.
+- 설치/standalone: `adb install -r`가 성공했고 `firstInstallTime`은 2026-08-23 그대로 유지됐다. 설치본은 versionCode 13, non-debuggable이고 ADB reverse가 없는 상태에서 embedded Hermes가 `Running "main"`까지 시작했으며 fatal/ReactNativeJS/SQLite 오류는 0건이다.
+- 대기: 기기가 secure lock 상태여서 개인 데이터가 보이는 Today/Records 캡처와 터치 검증은 수행하지 않았다. release 디자인 gate의 `deviceComparison`은 잠금 해제 뒤 실제 화면 대조가 끝날 때까지 false로 유지한다.
+
+## P5 Visual v2 환경 프리플라이트 — 2026-09-13
+
+- 범위: 디자인 연결·도구·gate만 확인했다. 앱 기능 코드, dependency, SQLite schema, Supabase/sync 계약과 설치 앱 데이터는 변경하지 않았고 개발 빌드를 시작하지 않았다.
+- Figma: `Pro / Full`; 파일에서 legacy 1페이지와 기존 `P5 Approved` 3페이지, Light/Dark variable 30개, text style 6개, component set 5개, 상태 frame 9개를 read-only 조회했다. screenshot에서 Today row clipping, Components 표본 누락, 4탭 계약 충돌을 확인해 구현 source 승인을 철회했다.
+- Mobbin: timespent `4b25d929-de2b-4d37-a017-03c13d9f23fb`, Tiimo 완료 흐름, Equinox+ `e5c30bf9-efe1-4346-a86e-fcecfbc35e4f` 실제 이미지를 조회했다. timespent의 최하단 검은 띠는 Mobbin 표식이고 그 위의 흰 pill은 앱 UI임을 구분했다.
+- Claude: 기존 Cowork 검수 결과와 세션의 Figma connector 1개를 읽기 전용으로 확인했다. 새 visual reviewer 정의는 파일·Figma·외부 상태 수정 도구를 허용하지 않는다.
+- 로컬 도구: Temurin `17.0.20+101`, Maestro CLI `2.10.0`을 checksum 검증 뒤 격리 설치하고 runner에서 analytics를 비활성화했다. `npm run maestro -- --version`과 `npm run design:status`를 대상으로 확인한다.
+- 기기: ADB `R5CY31QP08W`, `SM-S721N`, Android 16, 1080×2340, density 540, font scale 1.15, 3-button navigation. 잠금 상태라 앱 screenshot과 개인 데이터 조작은 하지 않았다.
+- 기대 gate: `npm run design:gate -- --stage implementation`은 `P5 Visual v2` page/frame과 사용자·Claude 승인 전 실패해야 한다. 이 실패는 환경 오류가 아니라 개발 빌드를 막는 의도된 상태다.
+
+## P5 Visual v2 Figma 구축·승인 검수 — 2026-09-13
+
+- 범위: Figma 파일 `Be9DsWkov1vg3ptUFPpj6F`, 새 page `P5 Visual v2`(`41:2`)만 작성했다. legacy page, 앱 기능 코드, dependency, SQLite v6, Supabase/sync 계약, 설치 앱 데이터는 변경하지 않았다.
+- Foundations: primitive/semantic/dimension 변수 52개와 Web·Android·iOS code syntax, Noto Sans KR text style 9개, effect style 2개를 만들었다. semantic color는 raw 값이 아닌 primitive alias이며 Light/Dark 두 mode, scope 누락 0, broken alias 0을 확인했다.
+- Components: App Bar, Button, Today Row, Account Header, Current Session, Action Sheet, Ledger Row, Bottom Navigation을 local component/variant와 text property로 구성했다. component font 누락 0, 버튼·행·탭의 최소 interaction 높이 48dp 이상을 구조 검사했다.
+- Core: `Today / Default`(`59:4`), `Today / Item actions`(`60:53`), `Today / Running`(`60:344`), `Today / Paused`(`60:412`), `Records / Day`(`61:2`)을 360×800으로 만들고 7개 투명 hit target에 prototype reaction을 연결했다. 앱 navigation 56dp와 시스템 safe bottom 24dp를 분리했다.
+- Edge: switch conflict, running 중 direct record, no-plan/over-plan, long-name/large-text, Dark 5개 frame을 만들었다. 긴 이름은 제한된 행 폭에서 ellipsis를 쓰되 우측 핵심 수치는 2줄로 모두 보존하고, Dark는 semantic mode로 전환되며, 누락 font 0을 확인했다.
+- Claude: Cowork `cse_01F8g9hP6UdCEZVZTYSgc6dQ`가 Figma connector로 실제 6개 검수 대상을 읽고 `조건부 승인 / Blocker 없음`을 반환했다. High 1건(큰 글씨 숫자 말줄임), Medium 2건(paused 구분, 초과 의미), Low 1건(전환 시트 합성 문구)을 source Figma component/frame에 최소 수정했다.
+- 구현 입력: 수정 뒤 4개 영향 frame 모두에서 같은 revision의 `get_design_context`와 screenshot을 다시 수집했고 숫자 전체 노출, paused semantic secondary 색, `+12분 초과`, generic switch 문구를 구조·시각 대조했다. 사용자의 전체 승인과 함께 `npm run design:gate -- --stage implementation`을 열며, release gate의 device comparison은 앱 구현 뒤 수행한다.
+
+## P5 UI 기능·자동 회귀 게이트 — 2026-09-13 통과 (시각 승인 아님)
+
+- 소스/경계: `3a07c41`, `0.6.0(12)`, SQLite v6. Today-first 동작은 유지하고 Tiimo의 오늘 목록·맥락 연속성, timespent의 웜 뉴트럴·그룹형 표면·캡슐 내비게이션, Equinox+의 절제된 단색 위계를 혼합했다. SQLite schema/migration, repository 쓰기, Supabase/sync 계약 변경은 0건이다.
+- 자동 게이트: `npm run verify` 종료 코드 0. TypeScript/ESLint 0, 40 files/238 tests, coverage statements 98.10% / branches 94.21% / functions 100% / lines 99.18%, Supabase 계약 2 files/8 tests, Expo dependency check, Doctor 21/21, Android Hermes 1,832 modules와 4.8MB `.hbc`를 통과했다.
+- 실기기 조건: 승인된 SM-S721N(Galaxy S24 FE), Android 16/API 36, 1080×2340, override density 540, font scale 1.15, 시스템 dark mode에서 동일 applicationId/signing의 development helper와 ADB reverse로 확인했다.
+- 시각 결과: Today 요약/빈 상태의 그룹 위계, 기록의 날짜 선택·계획/실제/차이·고정 행동, 시스템 3-button navigation 위에 분리된 2분할 캡슐 탭, 더보기의 테마 일치 back header·중복 제목 제거·그룹형 행을 확인했다. 기기 화면의 FPS/톱니 오버레이는 Android 개발자 도구이며 앱 구성요소가 아니다.
+- 데이터/런타임: 화면 이동만 수행했고 기록·계획·동기화 데이터는 만들거나 수정하지 않았다. 연속 강제종료/Metro 재연결 중 development client에서 SQLite `database is locked` 오버레이가 1회 발생했으나 4초 완전 종료 후 단일 재실행에서는 재현되지 않았고 정상 화면을 확인했다. 데이터 초기화나 migration 재실행은 하지 않았다.
+- 제한: Expo web preview는 기존 `expo-sqlite/web/worker.ts`의 `wa-sqlite.wasm` 해석 실패로 렌더 전에 중단됐다. Android 공개판 대상 번들·실기기 결과에는 영향이 없으며, 새 personal standalone APK는 이 UI 게이트에 포함하지 않는다.
+
+## P5 Today-first `0.6.0(12)` standalone 종료 게이트 — 2026-09-12 통과
+
+- 소스 경계: 기준점 `3c7eb78`을 보존하고 그 자식 `7733ff6`에서 Expo SDK 57이 요구한 13개 direct dependency와 lockfile만 호환 patch로 정렬했다. 기능 코드, SQLite v6 schema/migration, Supabase/sync 계약 diff는 0건이다.
+- clean 자동 게이트: `mobile/node_modules` clean install인 `npm ci` 뒤 `npm run verify` 종료 코드 0. TypeScript/ESLint 0, 40 files/238 tests, coverage statements 98.10% / branches 94.21% / functions 100% / lines 99.18%, Supabase 계약 2 files/8 tests, Expo dependency check, Doctor 21/21, Android Hermes 1,832 modules와 4.8MB `.hbc`를 통과했다.
+- artifact: EAS personal `769d5e3e-6df8-49ae-9994-11458c7fe8a4`, `com.oosops.app`, `0.6.0(12)`, SDK 57, 기존 remote keystore, internal APK. 로컬 APK는 `C:\Users\skljh\Downloads\OOS-Ops-0.6.0-build12-personal.apk`, 106,595,693 bytes, SHA-256 `7F1F0CEC62FAE557ED1C830FF749648E44F9215180F4ED8F83AC7395589A3FF1`이며 embedded `assets/index.android.bundle`을 포함한다.
+- 데이터 보존: 기기에는 예상 문서와 달리 이미 과거 `0.6.0(12)` personal이 설치돼 있었다. versionCode 11 강제 downgrade 대신 동일 versionCode·서명의 EAS development helper `1ccfb2da-eb2b-41b4-985b-5fdb98fb3509`를 실행하지 않은 채 교체하고, `oos-ops.db`/WAL/SHM을 `C:\Users\skljh\Downloads\OOS-Ops-user-data-backup-20260912-1132`에 추출해 기기 원본과 로컬 SHA-256 일치를 확인했다.
+- 설치: 새 personal APK의 `adb install -r`가 성공했고 `firstInstallTime`은 2026-08-23 그대로 유지됐다. 설치본은 `0.6.0(12)`, non-debuggable이며 같은 서명 체계가 아니면 거부되는 update install을 통과했다.
+- 실기기: SM-S721N(Galaxy S24 FE), Android 16/API 36에서 Metro/ADB reverse 없이 cold start `COLD`를 확인했다. Today 목록 → 시작 → 일시정지 → 앱 force-stop/cold start 상태 복원 → 재개 → 다른 타이머 전환 → 실행 중 15분 직접 기록 → 두 타이머 종료 → Today 합계 18분·항목별 반영 → 기록 원장 계획/실제/차이와 직접 기록 반영을 확인했다.
+- 기존 sync: 로그인 세션을 유지했고 수동 `지금 동기화` 뒤 마지막 동기화 시각이 갱신되고 전송 대기 0건임을 확인했다. 서버 schema/RPC/RLS/payload는 변경하지 않았다.
+- 로그/개인정보: release fatal/ReactNativeJS/SQLite 오류 0. `ashmem` deprecated 시스템 메시지 1건은 앱 오류가 아니다. 사용자 데이터가 보이는 screenshot·UI dump는 저장소에 넣지 않고 검증 후 제거했다.
+
+## Phase 6-1 구현·자동 게이트 — 2026-09-08
+
+- 구현: 설정 기반 더보기 9개 진입점과 전용 소유 화면, 계정→항목 그룹, 지표 달력·날짜 한 건/주간보기, 2026 공휴일 오프라인 asset·갱신 script, 기록 계정/항목 소계, 정수 분 parse·한국어 format, safe-area 기반 탭/본문 여백을 반영했다.
+- 경계: SQLite schema와 migration, repository 쓰기 의미, `mobile/src/services`, `mobile/src/sync`, `supabase`, 타이머 상태 계약은 변경하지 않았다. 날짜 귀속 편집·pause/resume·새 sync payload는 현재 구현에 없다.
+- 자동: 기능 변경 뒤 관련 7 files/35 tests를 먼저 통과했다. Expo `57.0.21`·Router `57.0.20`으로 당일 patch drift를 맞춘 최종 `npm run verify`에서 TypeScript/ESLint 0, 전체 39 files/232 tests, line coverage 98.97%, Supabase 계약 2 files/8 tests, dependency check, Doctor 21/21, Android Hermes 1,830 modules를 모두 통과했다.
+- 의존성: `react-native-calendars@1.1314.0`을 exact pin했다. MIT·순수 JS이며 production bundle에 포함됐다. `npm audit --omit=dev`는 moderate 15건, high/critical 0건이다.
+- 공휴일: KASI 2026 월력요항과 2026-04-30 개정 현행 공휴일 규정을 기준으로 2026 asset을 고정했다. 범위 밖 날짜는 추정하지 않으며 API service key·Google/기기 캘린더 권한은 앱 bundle에 없다.
+- Android: ADB `SM-S721N`, Android 16, navigation mode 0(3-button)에서 기존 development APK로 Metro bundle을 실행했다. `더보기 분리 → 지표 2026-09 달력 → 2026-09-07 한 날짜 상세/계획 미보존 → 주간보기 → 저장된 항목 불러오기 계정 그룹 → 기록 원장`과 navigation bar 위 주요 동작 여백을 확인했고 런타임 오류가 없었다. gesture의 0 inset과 큰 글씨 경계는 layout test로 확인했으며 기기 시스템 설정은 바꾸지 않았다.
+- 복구: 화면 확인은 읽기 동작만 수행했다. 검증 뒤 ADB reverse와 Metro를 종료하고 동일 서명의 `0.5.0(11)` personal standalone APK를 `adb install -r`로 복구해 launcher 실행을 확인했다.
 
 ## Phase 5 종료 게이트 — 2026-09-06 통과
 
 - 디자인 선행: Mobbin Tiimo `Completing a task` 5화면의 채택/배제 근거와 합성 데이터 Figma Quiet Routine 4화면을 기록했다.
 - 자동: `npm run verify` 종료 코드 0, TypeScript/ESLint 0, Vitest 37 files/225 tests, Supabase 계약 2 files/8 tests, coverage 99.07/94.93/100/100, Doctor 21/21, Android Hermes 1,499 modules를 통과했다.
 - 최소 재검증: 마지막 primary 대비 토큰 1줄 보정 뒤 typecheck, lint, layout 1 file/3 tests만 다시 통과했다. 이 UI 보정 때문에 전체 게이트를 반복하지 않았다.
-- 경계: `mobile/src/data`, `mobile/src/services`, `mobile/src/sync`, `supabase` 변경 0건이며 P6의 countdown·pause/resume·날짜 귀속 편집·sync 계약 변경을 포함하지 않았다.
+- 경계: `mobile/src/data`, `mobile/src/services`, `mobile/src/sync`, `supabase` 변경 0건이며 countdown·pause/resume·날짜 귀속 편집·sync 계약 변경을 포함하지 않았다.
 - 개발 빌드: EAS `f9ff3f21-45f2-4e1f-a682-06e3fe18d4c6`, 앱 `0.5.0(11)`을 SM-S721N(Android 16)에 데이터 보존 업데이트하고 핵심 흐름, 날짜 이동, 긴 목록/접근성, 200% 글꼴을 확인했다.
 - 데이터 보존: 앱 전용 SQLite DB/WAL/SHM을 검증 전에 복사해 해시를 대조했고, 임시 흐름 뒤 세 파일을 원본과 같은 해시로 복원했다. 사용자 데이터가 보이는 screenshot·UI dump와 임시 백업은 제거했다.
 - standalone: EAS personal `fa8d2cf2-478b-4b62-8afd-1302ab7721a9`를 `adb install -r`로 설치했다. embedded bundle·non-debuggable·Metro/ADB reverse 없는 콜드 스타트·기존 타이머 지속·release 오류 0을 확인했다.
@@ -215,5 +320,6 @@ Q-010 승인 뒤 `ai-analysis` Edge Function v2를 `verify_jwt=true`로 배포�
 | 2026-09-04 | app 0.4.0(7) source on 0.2.0(3) development client, `ai-analysis` v2 | SM-S721N(Galaxy S24 FE), Android 16/API 36 | TP-AC-27~30 | **Phase 4 통과** | 19 files/83 tests, doctor 21/21, Android export 1,447; 6개 모드·§5.7 네 질문을 포함한 실세션 9건, 입력 25,026·출력 7,271토큰·추정 $0.137304, 제안 적용/무시, outbox 0, 원격 계획 2·라인 28 확인 |
 | 2026-09-04 | EAS `ce72a92f-6fe5-456f-9a48-d9863788abaf` / [build page](https://expo.dev/accounts/ljh951206/projects/oos-ops/builds/ce72a92f-6fe5-456f-9a48-d9863788abaf), app 0.4.1(8) | SM-S721N(Galaxy S24 FE), Android 16/API 36 예정 | TP-R-01~08 / AC-31~35 | **자동·원격·CI·build 통과/실기기 대기** | `FINISHED`, fingerprint `0fd3776c2e02c5cfa31162fe208d1c9c59685526`, APK SHA-256 `BE1B577B1212F9B6D4D051A602062BAA38034C29D5AB2472E87D7DE5308C39B7` |
 | 2026-09-06 | EAS development `f9ff3f21-45f2-4e1f-a682-06e3fe18d4c6` + [personal `fa8d2cf2-478b-4b62-8afd-1302ab7721a9`](https://expo.dev/accounts/ljh951206/projects/oos-ops/builds/fa8d2cf2-478b-4b62-8afd-1302ab7721a9), app 0.5.0(11) | SM-S721N(Galaxy S24 FE), Android 16/API 36 | Phase 5 §17.5 | **Phase 5 통과** | 핵심 흐름 1회, 날짜 이동·200% 글꼴, DB/WAL/SHM 원본 복원, personal 데이터 보존 설치·Metro 독립 콜드 스타트·오류 0. 최종 APK SHA-256 `E5AEDD98A849614F98189908259F4FCDD14AAC99CD5E168B939F3FE27DEB3422` |
+| 2026-09-12 | EAS [personal `769d5e3e-6df8-49ae-9994-11458c7fe8a4`](https://expo.dev/accounts/ljh951206/projects/oos-ops/builds/769d5e3e-6df8-49ae-9994-11458c7fe8a4) + development backup helper `1ccfb2da-eb2b-41b4-985b-5fdb98fb3509`, app 0.6.0(12) | SM-S721N(Galaxy S24 FE), Android 16/API 36 | P5 Today-first standalone 종료 게이트 | **통과** | clean verify·dependency check·Doctor 통과, DB/WAL/SHM 해시 일치 백업, 데이터 보존 update install, cold start·pause 복원·타이머 전환·직접 기록·원장·기존 sync 통과. APK SHA-256 `7F1F0CEC62FAE557ED1C830FF749648E44F9215180F4ED8F83AC7395589A3FF1` |
 
-과거 build URL은 expiration 이후 만료될 수 있지만 로컬 APK와 이미 설치된 앱이 삭제되는 것은 아니다. 현재 개인용 APK는 `C:\Users\skljh\Downloads\OOS-Ops-0.5.0-build11-personal-final.apk`에 보존했으며, 휴대폰에도 같은 `0.5.0(11)` standalone이 설치돼 있다.
+과거 build URL은 expiration 이후 만료될 수 있지만 로컬 APK가 삭제되는 것은 아니다. 당시 개인용 APK `C:\Users\skljh\Downloads\OOS-Ops-0.6.0-build12-personal.apk`는 이력으로 보존한다. 현재 설치·artifact 기준은 이 문서 상단의 `0.7.0(15)` 종료 게이트다.

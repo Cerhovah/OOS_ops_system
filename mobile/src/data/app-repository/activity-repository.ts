@@ -2,7 +2,13 @@ import { randomUUID } from 'expo-crypto';
 import type { SQLiteDatabase } from 'expo-sqlite';
 
 import { sqliteNullableText, sqliteText, type SqlRow } from '@/data/sqlite-row';
+import { createTimerRuntime, serializeTimerRuntime, timerRuntimeSettingKey } from '@/domain/timer-runtime';
 import type { Item, ItemInput, ItemType } from '@/types/domain';
+
+export interface TimerRuntimeUpdate {
+  entryId: string;
+  value: string;
+}
 
 export class ActivityRepository {
   constructor(private readonly database: SQLiteDatabase) {}
@@ -19,10 +25,23 @@ export class ActivityRepository {
     );
   }
 
-  async startTimer(item: Item): Promise<string> {
+  async startTimer(
+    item: Item,
+    runtimeValue?: string,
+    pausedRuntimeUpdates: readonly TimerRuntimeUpdate[] = [],
+  ): Promise<string> {
     const now = new Date().toISOString();
     const id = randomUUID();
     await this.database.withExclusiveTransactionAsync(async (transaction) => {
+      for (const update of pausedRuntimeUpdates) {
+        await transaction.runAsync(
+          `INSERT INTO settings (key,value,updated_at) VALUES (?,?,?)
+           ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at`,
+          timerRuntimeSettingKey(update.entryId),
+          update.value,
+          now,
+        );
+      }
       await transaction.runAsync(
         `INSERT INTO entries
          (id,item_id,account_id,type,started_at,ended_at,duration_min,value,count,occurred_at,note,source,created_at,updated_at)
@@ -37,6 +56,12 @@ export class ActivityRepository {
         now,
       );
       await transaction.runAsync(
+        'INSERT INTO settings (key,value,updated_at) VALUES (?,?,?)',
+        timerRuntimeSettingKey(id),
+        runtimeValue ?? serializeTimerRuntime(createTimerRuntime(now)),
+        now,
+      );
+      await transaction.runAsync(
         `INSERT INTO settings (key,value,updated_at) VALUES ('last_timer_item_id',?,?)
          ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at`,
         item.id,
@@ -48,20 +73,39 @@ export class ActivityRepository {
 
   async stopTimer(entryId: string, durationMinutes: number): Promise<void> {
     const now = new Date().toISOString();
-    await this.database.runAsync(
-      `UPDATE entries
-       SET ended_at = ?, duration_min = ?,
-           count = CASE
-             WHEN (SELECT count_on_complete FROM items WHERE items.id = entries.item_id) = 1 THEN 1
-             ELSE count
-           END,
-           updated_at = ?
-       WHERE id = ? AND deleted_at IS NULL`,
-      now,
-      durationMinutes,
-      now,
-      entryId,
-    );
+    await this.database.withExclusiveTransactionAsync(async (transaction) => {
+      await transaction.runAsync(
+        `UPDATE entries
+         SET ended_at = ?, duration_min = ?,
+             count = CASE
+               WHEN (SELECT count_on_complete FROM items WHERE items.id = entries.item_id) = 1 THEN 1
+               ELSE count
+             END,
+             updated_at = ?
+         WHERE id = ? AND deleted_at IS NULL`,
+        now,
+        durationMinutes,
+        now,
+        entryId,
+      );
+      await transaction.runAsync('DELETE FROM settings WHERE key=?', timerRuntimeSettingKey(entryId));
+    });
+  }
+
+  async updateTimerRuntimes(updates: readonly TimerRuntimeUpdate[]): Promise<void> {
+    if (updates.length === 0) return;
+    const now = new Date().toISOString();
+    await this.database.withExclusiveTransactionAsync(async (transaction) => {
+      for (const update of updates) {
+        await transaction.runAsync(
+          `INSERT INTO settings (key,value,updated_at) VALUES (?,?,?)
+           ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at`,
+          timerRuntimeSettingKey(update.entryId),
+          update.value,
+          now,
+        );
+      }
+    });
   }
 
   async createEntry(item: Item, amount: number | null, note: string | null = null): Promise<void> {

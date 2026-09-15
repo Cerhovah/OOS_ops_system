@@ -16,12 +16,17 @@ describe('AnalysisRepository with real SQLite', () => {
   let repository: AnalysisRepository;
 
   beforeEach(async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-01-15T00:00:00.000Z'));
     adapter = new TestSQLiteDatabase();
     await migrateDatabase(adapter.asExpoDatabase());
     repository = new AnalysisRepository(adapter.asExpoDatabase());
   });
 
-  afterEach(() => adapter.close());
+  afterEach(() => {
+    adapter.close();
+    vi.useRealTimers();
+  });
 
   function resultWithPlan(minutesByAccount: Readonly<Record<string, number>>): AnalysisRunResult {
     return {
@@ -48,7 +53,7 @@ describe('AnalysisRepository with real SQLite', () => {
   }
 
   it('stores searchable sessions, transparent snapshots, proposals and usage', async () => {
-    const accounts = adapter.raw.prepare('SELECT id FROM accounts WHERE deleted_at IS NULL ORDER BY sort_order').all() as { id: string }[];
+    const accounts = adapter.raw.prepare("SELECT id FROM accounts WHERE profile_id=(SELECT value FROM settings WHERE key='active_profile_id') AND deleted_at IS NULL ORDER BY sort_order").all() as { id: string }[];
     const minutes = Object.fromEntries(accounts.map((account) => [account.id, 720]));
     const sessionId = await repository.saveSession({
       mode: 'optimize',
@@ -82,7 +87,7 @@ describe('AnalysisRepository with real SQLite', () => {
 
   it('loads proposals only for the currently visible session ids', async () => {
     const accounts = adapter.raw.prepare(
-      'SELECT id FROM accounts WHERE deleted_at IS NULL AND archived=0 ORDER BY sort_order',
+      "SELECT id FROM accounts WHERE profile_id=(SELECT value FROM settings WHERE key='active_profile_id') AND deleted_at IS NULL AND archived=0 ORDER BY sort_order",
     ).all() as { id: string }[];
     const minutes = Object.fromEntries(accounts.map((account) => [account.id, 720]));
     const sessionIds: string[] = [];
@@ -105,7 +110,7 @@ describe('AnalysisRepository with real SQLite', () => {
   });
 
   it('applies a complete plan proposal only after the explicit method call', async () => {
-    const accounts = adapter.raw.prepare('SELECT id FROM accounts WHERE deleted_at IS NULL ORDER BY sort_order').all() as { id: string }[];
+    const accounts = adapter.raw.prepare("SELECT id FROM accounts WHERE profile_id=(SELECT value FROM settings WHERE key='active_profile_id') AND deleted_at IS NULL ORDER BY sort_order").all() as { id: string }[];
     const minutes = Object.fromEntries(accounts.map((account) => [account.id, 720]));
     const sessionId = await repository.saveSession({
       mode: 'optimize',
@@ -138,7 +143,7 @@ describe('AnalysisRepository with real SQLite', () => {
   it('applies proposals against visible accounts without recreating archived plan lines', async () => {
     adapter.raw.prepare("UPDATE accounts SET archived=1 WHERE id='seed-account-sleep'").run();
     const accounts = adapter.raw.prepare(
-      'SELECT id FROM accounts WHERE deleted_at IS NULL AND archived=0 ORDER BY sort_order',
+      "SELECT id FROM accounts WHERE profile_id=(SELECT value FROM settings WHERE key='active_profile_id') AND deleted_at IS NULL AND archived=0 ORDER BY sort_order",
     ).all() as { id: string }[];
     const minutes = Object.fromEntries(accounts.map((account) => [account.id, 720]));
     const sessionId = await repository.saveSession({
@@ -164,7 +169,7 @@ describe('AnalysisRepository with real SQLite', () => {
     'rejects a legacy or synced proposal with prohibited %s prose before changing a plan',
     async (field) => {
       const accounts = adapter.raw.prepare(
-        'SELECT id FROM accounts WHERE deleted_at IS NULL AND archived=0 ORDER BY sort_order',
+        "SELECT id FROM accounts WHERE profile_id=(SELECT value FROM settings WHERE key='active_profile_id') AND deleted_at IS NULL AND archived=0 ORDER BY sort_order",
       ).all() as { id: string }[];
       const minutes = Object.fromEntries(accounts.map((account) => [account.id, 720]));
       const sessionId = await repository.saveSession({
@@ -199,7 +204,7 @@ describe('AnalysisRepository with real SQLite', () => {
 
   it('soft-deletes and restores an analysis session with its proposals and sync payloads', async () => {
     const accounts = adapter.raw.prepare(
-      'SELECT id FROM accounts WHERE deleted_at IS NULL AND archived=0 ORDER BY sort_order',
+      "SELECT id FROM accounts WHERE profile_id=(SELECT value FROM settings WHERE key='active_profile_id') AND deleted_at IS NULL AND archived=0 ORDER BY sort_order",
     ).all() as { id: string }[];
     const minutes = Object.fromEntries(accounts.map((account) => [account.id, 720]));
     const sessionId = await repository.saveSession({
@@ -257,7 +262,7 @@ describe('AnalysisRepository with real SQLite', () => {
 
   it('blocks stale proposal actions and restores only child tombstones from the session deletion', async () => {
     const accounts = adapter.raw.prepare(
-      'SELECT id FROM accounts WHERE deleted_at IS NULL AND archived=0 ORDER BY sort_order',
+      "SELECT id FROM accounts WHERE profile_id=(SELECT value FROM settings WHERE key='active_profile_id') AND deleted_at IS NULL AND archived=0 ORDER BY sort_order",
     ).all() as { id: string }[];
     const minutes = Object.fromEntries(accounts.map((account) => [account.id, 720]));
     const result = resultWithPlan(minutes);
@@ -322,7 +327,7 @@ describe('AnalysisRepository with real SQLite', () => {
   });
 
   it('rejects a proposal whose date is not the configured week start', async () => {
-    const accounts = adapter.raw.prepare('SELECT id FROM accounts WHERE deleted_at IS NULL ORDER BY sort_order').all() as { id: string }[];
+    const accounts = adapter.raw.prepare("SELECT id FROM accounts WHERE profile_id=(SELECT value FROM settings WHERE key='active_profile_id') AND deleted_at IS NULL ORDER BY sort_order").all() as { id: string }[];
     const minutes = Object.fromEntries(accounts.map((account) => [account.id, 720]));
     const result = resultWithPlan(minutes);
     result.proposals[0] = {

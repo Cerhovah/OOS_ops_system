@@ -10,6 +10,7 @@ export class PlanningRepository {
   constructor(private readonly database: SQLiteDatabase) {}
 
   async saveWeeklyPlan(
+    profileId: string,
     weekStart: string,
     minutesByAccount: Readonly<Record<string, number>>,
     source: PlanSource = 'app',
@@ -17,17 +18,18 @@ export class PlanningRepository {
   ): Promise<number> {
     let version = 1;
     await this.database.withExclusiveTransactionAsync(async (transaction) => {
-      version = await appendWeeklyPlanVersion(transaction, { weekStart, minutesByAccount, source, note });
+      version = await appendWeeklyPlanVersion(transaction, { profileId, weekStart, minutesByAccount, source, note });
     });
     return version;
   }
 
-  async copyPreviousWeek(weekStart: string): Promise<boolean> {
+  async copyPreviousWeek(profileId: string, weekStart: string): Promise<boolean> {
     const previousStart = addDays(weekStart, -7);
     let copied = false;
     await this.database.withExclusiveTransactionAsync(async (transaction) => {
       const plan = await transaction.getFirstAsync<SqlRow>(
-        'SELECT * FROM weekly_plans WHERE week_start=? AND deleted_at IS NULL ORDER BY version DESC LIMIT 1',
+        'SELECT * FROM weekly_plans WHERE profile_id=? AND week_start=? AND deleted_at IS NULL ORDER BY version DESC LIMIT 1',
+        profileId,
         previousStart,
       );
       if (!plan) return;
@@ -39,6 +41,7 @@ export class PlanningRepository {
         previousLines.map((line) => [sqliteText(line, 'account_id'), sqliteNumber(line, 'planned_minutes')]),
       );
       await appendWeeklyPlanVersion(transaction, {
+        profileId,
         weekStart,
         minutesByAccount: values,
         source: 'copy_last_week',

@@ -63,7 +63,7 @@ npm audit --omit=dev
 
 ## 남은 증빙
 
-자동 게이트는 완료됐다. EAS development APK 설치, 알림/딥링크, 파일 공유, 비행기 모드, 탭 수와 하루치 기록은 Android 실기기에서 `docs/TESTPLAN.md` TP-AC-01~TP-AC-17로 검증해야 한다.
+자동 게이트는 완료됐다. 이후 Android 실기기 결과는 `docs/TESTPLAN.md`에 기록됐다.
 
 ## EAS Cloud Android development build
 

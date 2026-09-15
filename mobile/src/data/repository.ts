@@ -1,10 +1,15 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
-import { ActivityRepository } from '@/data/app-repository/activity-repository';
+import {
+  ActivityRepository,
+  type TimerRuntimeUpdate,
+} from '@/data/app-repository/activity-repository';
 import { CatalogRepository } from '@/data/app-repository/catalog-repository';
 import { MaintenanceRepository } from '@/data/app-repository/maintenance-repository';
 import { PlanningRepository } from '@/data/app-repository/planning-repository';
+import { ProfileRepository } from '@/data/app-repository/profile-repository';
 import { SnapshotRepository } from '@/data/app-repository/snapshot-repository';
+import { BACKUP_PROFILE_ID } from '@/data/profile-constants';
 import type { SqlRow } from '@/data/sqlite-row';
 import type {
   Aggregation,
@@ -20,6 +25,7 @@ export class AppRepository {
   private readonly catalog: CatalogRepository;
   private readonly maintenance: MaintenanceRepository;
   private readonly planning: PlanningRepository;
+  private readonly profiles: ProfileRepository;
   private readonly snapshot: SnapshotRepository;
 
   constructor(database: SQLiteDatabase) {
@@ -27,6 +33,7 @@ export class AppRepository {
     this.catalog = new CatalogRepository(database);
     this.maintenance = new MaintenanceRepository(database);
     this.planning = new PlanningRepository(database);
+    this.profiles = new ProfileRepository(database);
     this.snapshot = new SnapshotRepository(database);
   }
 
@@ -38,12 +45,20 @@ export class AppRepository {
     return this.activity.addTodayItem(today, itemId);
   }
 
-  startTimer(item: Item): Promise<string> {
-    return this.activity.startTimer(item);
+  startTimer(
+    item: Item,
+    runtimeValue?: string,
+    pausedRuntimeUpdates: readonly TimerRuntimeUpdate[] = [],
+  ): Promise<string> {
+    return this.activity.startTimer(item, runtimeValue, pausedRuntimeUpdates);
   }
 
   stopTimer(entryId: string, durationMinutes: number): Promise<void> {
     return this.activity.stopTimer(entryId, durationMinutes);
+  }
+
+  updateTimerRuntimes(updates: readonly TimerRuntimeUpdate[]): Promise<void> {
+    return this.activity.updateTimerRuntimes(updates);
   }
 
   createEntry(item: Item, amount: number | null, note: string | null = null): Promise<void> {
@@ -78,8 +93,11 @@ export class AppRepository {
     return this.activity.restoreItem(itemId);
   }
 
-  saveAccount(input: { id?: string; name: string; kind: string | null; color: string | null }): Promise<string> {
-    return this.catalog.saveAccount(input);
+  saveAccount(
+    input: { id?: string; name: string; kind: string | null; color: string | null },
+    profileId = BACKUP_PROFILE_ID,
+  ): Promise<string> {
+    return this.catalog.saveAccount({ ...input, profileId });
   }
 
   setAccountArchived(accountId: string, archived: boolean): Promise<void> {
@@ -94,8 +112,8 @@ export class AppRepository {
     return this.catalog.restoreAccount(accountId);
   }
 
-  saveProject(input: ProjectInput): Promise<string> {
-    return this.catalog.saveProject(input);
+  saveProject(input: ProjectInput, profileId = BACKUP_PROFILE_ID): Promise<string> {
+    return this.catalog.saveProject(input, profileId);
   }
 
   deleteProject(projectId: string): Promise<void> {
@@ -143,12 +161,29 @@ export class AppRepository {
     minutesByAccount: Readonly<Record<string, number>>,
     source: PlanSource = 'app',
     note: string | null = null,
+    profileId = BACKUP_PROFILE_ID,
   ): Promise<number> {
-    return this.planning.saveWeeklyPlan(weekStart, minutesByAccount, source, note);
+    return this.planning.saveWeeklyPlan(profileId, weekStart, minutesByAccount, source, note);
   }
 
-  copyPreviousWeek(weekStart: string): Promise<boolean> {
-    return this.planning.copyPreviousWeek(weekStart);
+  copyPreviousWeek(weekStart: string, profileId = BACKUP_PROFILE_ID): Promise<boolean> {
+    return this.planning.copyPreviousWeek(profileId, weekStart);
+  }
+
+  createProfile(name: string): Promise<string> {
+    return this.profiles.create(name);
+  }
+
+  switchProfile(profileId: string, pausedRuntimes: readonly TimerRuntimeUpdate[]): Promise<void> {
+    return this.profiles.switchTo(profileId, pausedRuntimes);
+  }
+
+  deleteProfile(profileId: string, activeProfileId: string): Promise<void> {
+    return this.profiles.delete(profileId, activeProfileId);
+  }
+
+  restoreProfile(profileId: string): Promise<void> {
+    return this.profiles.restore(profileId);
   }
 
   closeDay(

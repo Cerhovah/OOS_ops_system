@@ -7,13 +7,17 @@ import {
   hydratePlanDraft,
   markPlanDraftSaved,
   planDraftHours,
+  planDraftMinutes,
+  planDraftValues,
 } from './plan-draft';
 
 const account = (id: string): Account => ({
   id,
+  profileId: 'profile-test',
   name: id,
   color: null,
   kind: null,
+  weeklyTargetMinutes: null,
   sortOrder: 0,
   archived: false,
   createdAt: '2026-09-04T00:00:00.000Z',
@@ -32,6 +36,11 @@ const line = (accountId: string, plannedMinutes: number): WeeklyPlanLine => ({
 });
 
 describe('plan draft', () => {
+  it('uses a recurring account cap when a week has no saved line', () => {
+    expect(planDraftHours([{ ...account('practice'), weeklyTargetMinutes: 25 * 60 }], []))
+      .toEqual({ practice: '25' });
+  });
+
   it('indexes plan lines once and creates hour inputs for every active account', () => {
     expect(planDraftHours([account('a'), account('b')], [line('a', 90)])).toEqual({ a: '1.5', b: '0' });
   });
@@ -44,6 +53,12 @@ describe('plan draft', () => {
     };
 
     expect(planDraftHours([account('a')], [line('a', 90), deletedLine])).toEqual({ a: '1.5' });
+  });
+
+  it('converts decimal-hour inputs to canonical integer minutes in one place', () => {
+    expect(planDraftMinutes([account('a'), account('b')], { a: '1.5', b: '2' })).toEqual([90, 120]);
+    expect(planDraftValues([account('a')], { a: '1.5' })).toEqual({ a: 90 });
+    expect(planDraftMinutes([account('a')], { a: '1.333' })).toBeNull();
   });
 
   it('keeps unsaved edits when a background refresh changes the source snapshot', () => {

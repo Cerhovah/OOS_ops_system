@@ -2,8 +2,18 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { AppState } from 'react-native';
 
-import { dateKey, timerDurationMinutes } from '@/domain/calculations';
+import { dateKey } from '@/domain/calculations';
 import { AppRepository } from '@/data/repository';
+import {
+  createTimerRuntime,
+  parseTimerRuntime,
+  pauseTimerRuntime,
+  resumeTimerRuntime,
+  serializeTimerRuntime,
+  timerElapsedMinutes,
+  timerRuntimeSettingKey,
+  type TimerRuntime,
+} from '@/domain/timer-runtime';
 import { shareFullJson, shareTableCsv } from '@/services/export-service';
 import { publishLocalMutation } from '@/services/local-mutation-signal';
 import { notificationScheduleFingerprint } from '@/services/notification-policy';
@@ -26,6 +36,8 @@ import type {
 } from '@/types/domain';
 
 const emptySnapshot: AppSnapshot = {
+  profiles: [],
+  activeProfileId: '',
   accounts: [],
   projects: [],
   items: [],
@@ -47,8 +59,14 @@ interface AppContextValue {
   error: string | null;
   refresh: () => Promise<void>;
   clearError: () => void;
+  createProfile: (name: string) => Promise<string>;
+  switchProfile: (profileId: string) => Promise<void>;
+  deleteProfile: (profileId: string) => Promise<void>;
+  restoreProfile: (profileId: string) => Promise<void>;
   addTodayItem: (itemId: string) => Promise<void>;
-  startTimer: (item: Item) => Promise<void>;
+  startTimer: (item: Item, pauseEntry?: Entry | null) => Promise<void>;
+  pauseTimer: (entry: Entry) => Promise<void>;
+  resumeTimer: (entry: Entry, pauseEntry?: Entry | null) => Promise<void>;
   stopTimer: (entry: Entry) => Promise<void>;
   createEntry: (item: Item, amount: number | null, note?: string | null) => Promise<void>;
   updateEntry: (entryId: string, amount: number | null, note: string | null) => Promise<void>;
@@ -224,15 +242,57 @@ export function AppProvider({ children }: { children: ReactNode }) {
       refresh,
       clearError: () => setError(null),
       addTodayItem: (itemId) => mutate(() => repository.addTodayItem(dateKey(new Date()), itemId)),
-      startTimer: (item) =>
+      startTimer: (item, pauseEntry = null) =>
         mutate(async () => {
-          const entryId = await repository.startTimer(item);
+          const now = new Date().toISOString();
+          const pausedRuntimeUpdates = pauseEntry?.startedAt
+            ? [{
+                entryId: pauseEntry.id,
+                value: serializeTimerRuntime(pauseTimerRuntime(runtimeForEntry(snapshot, pauseEntry), now)),
+              }]
+            : [];
+          const entryId = await repository.startTimer(
+            item,
+            serializeTimerRuntime(createTimerRuntime(now)),
+            pausedRuntimeUpdates,
+          );
+          if (pauseEntry) await cancelTimerLimitNotification(repository, pauseEntry.id).catch(() => undefined);
           await scheduleTimerLimitNotification(repository, entryId, item).catch(() => undefined);
         }),
+      pauseTimer: (entry) => {
+        if (!entry.startedAt) return Promise.resolve();
+        return mutate(async () => {
+          const now = new Date().toISOString();
+          const runtime = pauseTimerRuntime(runtimeForEntry(snapshot, entry), now);
+          await repository.updateTimerRuntimes([{ entryId: entry.id, value: serializeTimerRuntime(runtime) }]);
+          await cancelTimerLimitNotification(repository, entry.id).catch(() => undefined);
+        }, { signalSync: false });
+      },
+      resumeTimer: (entry, pauseEntry = null) => {
+        if (!entry.startedAt) return Promise.resolve();
+        return mutate(async () => {
+          const now = new Date().toISOString();
+          const runtime = resumeTimerRuntime(runtimeForEntry(snapshot, entry), now);
+          const updates = [{ entryId: entry.id, value: serializeTimerRuntime(runtime) }];
+          if (pauseEntry?.startedAt && pauseEntry.id !== entry.id) {
+            updates.push({
+              entryId: pauseEntry.id,
+              value: serializeTimerRuntime(pauseTimerRuntime(runtimeForEntry(snapshot, pauseEntry), now)),
+            });
+          }
+          await repository.updateTimerRuntimes(updates);
+          if (pauseEntry && pauseEntry.id !== entry.id) {
+            await cancelTimerLimitNotification(repository, pauseEntry.id).catch(() => undefined);
+          }
+          const item = snapshot.items.find((candidate) => candidate.id === entry.itemId);
+          if (item) await scheduleRemainingTimerNotification(repository, entry.id, item, runtime, now);
+        }, { signalSync: false });
+      },
       stopTimer: (entry) => {
         if (!entry.startedAt) return Promise.resolve();
         return mutate(async () => {
-          await repository.stopTimer(entry.id, timerDurationMinutes(entry.startedAt!, new Date().toISOString()));
+          const now = new Date().toISOString();
+          await repository.stopTimer(entry.id, timerElapsedMinutes(runtimeForEntry(snapshot, entry), now));
           await cancelTimerLimitNotification(repository, entry.id).catch(() => undefined);
         });
       },
@@ -244,11 +304,43 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setItemArchived: (itemId, archived) => mutate(() => repository.setItemArchived(itemId, archived)),
       deleteItem: (itemId) => mutate(() => repository.deleteItem(itemId)),
       restoreItem: (itemId) => mutate(() => repository.restoreItem(itemId)),
-      saveAccount: (input) => mutate(() => repository.saveAccount(input)).then(() => undefined),
+      createProfile: (name) => mutate(
+        () => repository.createProfile(name),
+        { signalSync: false },
+      ),
+      switchProfile: (profileId) => mutate(async () => {
+        const now = new Date().toISOString();
+        const pausedRuntimes = snapshot.entries.flatMap((entry) => {
+          if (!entry.startedAt || entry.endedAt || entry.deletedAt) return [];
+          const runtime = parseTimerRuntime(snapshot.settings[timerRuntimeSettingKey(entry.id)], entry.startedAt);
+          if (runtime.status !== 'running') return [];
+          return [{
+            entryId: entry.id,
+            value: serializeTimerRuntime(pauseTimerRuntime(runtime, now)),
+          }];
+        });
+        await repository.switchProfile(profileId, pausedRuntimes);
+        for (const runtime of pausedRuntimes) {
+          await cancelTimerLimitNotification(repository, runtime.entryId).catch(() => undefined);
+        }
+      }, { signalSync: false }),
+      deleteProfile: (profileId) => mutate(
+        () => repository.deleteProfile(profileId, snapshot.activeProfileId),
+        { signalSync: false },
+      ),
+      restoreProfile: (profileId) => mutate(
+        () => repository.restoreProfile(profileId),
+        { signalSync: false },
+      ),
+      saveAccount: (input) => mutate(
+        () => repository.saveAccount(input, snapshot.activeProfileId),
+      ).then(() => undefined),
       setAccountArchived: (accountId, archived) => mutate(() => repository.setAccountArchived(accountId, archived)),
       deleteAccount: (accountId) => mutate(() => repository.deleteAccount(accountId)),
       restoreAccount: (accountId) => mutate(() => repository.restoreAccount(accountId)),
-      saveProject: (input) => mutate(() => repository.saveProject(input)).then(() => undefined),
+      saveProject: (input) => mutate(
+        () => repository.saveProject(input, snapshot.activeProfileId),
+      ).then(() => undefined),
       deleteProject: (projectId) => mutate(() => repository.deleteProject(projectId)),
       restoreProject: (projectId) => mutate(() => repository.restoreProject(projectId)),
       createKpi: (projectId, label, unit, aggregation) =>
@@ -263,8 +355,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
       deleteKpiRecord: (recordId) => mutate(() => repository.deleteKpiRecord(recordId)),
       restoreKpiRecord: (recordId) => mutate(() => repository.restoreKpiRecord(recordId)),
       saveWeeklyPlan: (weekStart, values, source = 'app', note = null) =>
-        mutate(() => repository.saveWeeklyPlan(weekStart, values, source, note)),
-      copyPreviousWeek: (weekStart) => mutate(() => repository.copyPreviousWeek(weekStart)),
+        mutate(() => repository.saveWeeklyPlan(
+          weekStart,
+          values,
+          source,
+          note,
+          snapshot.activeProfileId,
+        )),
+      copyPreviousWeek: (weekStart) => mutate(
+        () => repository.copyPreviousWeek(weekStart, snapshot.activeProfileId),
+      ),
       closeDay: (day, planned, actual, snapshotJson, note) =>
         mutate(() => repository.closeDay(day, planned, actual, snapshotJson, note)),
       setSetting: (key, settingValue) =>
@@ -333,4 +433,26 @@ export function useApp(): AppContextValue {
   const value = useContext(AppContext);
   if (!value) throw new Error('useApp은 AppProvider 안에서 사용해야 합니다.');
   return value;
+}
+
+function runtimeForEntry(snapshot: AppSnapshot, entry: Entry): TimerRuntime {
+  if (!entry.startedAt) throw new Error('타이머 시작 시간이 없습니다.');
+  return parseTimerRuntime(snapshot.settings[timerRuntimeSettingKey(entry.id)], entry.startedAt);
+}
+
+async function scheduleRemainingTimerNotification(
+  repository: AppRepository,
+  entryId: string,
+  item: Item,
+  runtime: TimerRuntime,
+  now: string,
+): Promise<void> {
+  if (item.levelMax === null) return;
+  const remainingMinutes = Math.max(0, item.levelMax - timerElapsedMinutes(runtime, now));
+  if (remainingMinutes === 0) return;
+  await scheduleTimerLimitNotification(
+    repository,
+    entryId,
+    { ...item, levelMax: remainingMinutes },
+  ).catch(() => undefined);
 }

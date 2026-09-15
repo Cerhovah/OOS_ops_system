@@ -1,5 +1,7 @@
 import type { Account, WeeklyPlanLine } from '@/types/domain';
 
+import { parseDurationToMinutes } from '@/domain/calculations';
+
 export interface PlanDraft {
   weekStart: string;
   sourceKey: string;
@@ -15,8 +17,33 @@ export function planDraftHours(
     lines.filter((line) => !line.deletedAt).map((line) => [line.accountId, line.plannedMinutes]),
   );
   return Object.fromEntries(
-    accounts.map((account) => [account.id, String((minutesByAccount.get(account.id) ?? 0) / 60)]),
+    accounts.map((account) => [
+      account.id,
+      String((minutesByAccount.get(account.id) ?? account.weeklyTargetMinutes ?? 0) / 60),
+    ]),
   );
+}
+
+export function planDraftMinutes(
+  accounts: readonly Account[],
+  hours: Readonly<Record<string, string>>,
+): number[] | null {
+  const minutes: number[] = [];
+  for (const account of accounts) {
+    const parsed = parseDurationToMinutes(hours[account.id] ?? '0', 'hours');
+    if (parsed === null || parsed < 0) return null;
+    minutes.push(parsed);
+  }
+  return minutes;
+}
+
+export function planDraftValues(
+  accounts: readonly Account[],
+  hours: Readonly<Record<string, string>>,
+): Readonly<Record<string, number>> | null {
+  const minutes = planDraftMinutes(accounts, hours);
+  if (!minutes) return null;
+  return Object.fromEntries(accounts.map((account, index) => [account.id, minutes[index]]));
 }
 
 export function hydratePlanDraft(

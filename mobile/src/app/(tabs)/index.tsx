@@ -1,25 +1,37 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { router } from 'expo-router';
+import { Check } from 'lucide-react-native';
+import { useMemo, useState } from 'react';
+import { Alert, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 
-import { AppButton, Field, Heading, LoadingView, Screen, Sheet, StatusBanner, textStyles } from '@/components/ui';
+import { AppBar, AppButton, Field, LoadingView, Screen, Sheet, StatusBanner, textStyles } from '@/components/ui';
 import { DEFAULT_DAY_END_TIME } from '@/constants/app';
 import { useApp } from '@/context/app-context';
-import { dateKey } from '@/domain/calculations';
+import { dateKey, parseDurationToMinutes } from '@/domain/calculations';
 import {
   ChoiceChips,
+  CurrentSessionCard,
   FixedActionBar,
-  TaskSheet,
-  TimerView,
+  PlanActualDelta,
+  TodayAccountSection,
+  TodayListAction,
+  TodaySummary,
+  taskActionLabel,
 } from '@/features/today/today-components';
 import {
   amountLabel,
   buildTodayViewModel,
   searchMissingItems,
+  type TimerSessionViewModel,
+  type TodayItemViewModel,
 } from '@/features/today/today-view-model';
 import { COLORS } from '@/theme/colors';
-import type { Item, ItemInput, ItemType } from '@/types/domain';
+import { tokens } from '@/theme/tokens';
+import type { Entry, Item, ItemInput, ItemType } from '@/types/domain';
 
-type SheetMode = 'tasks' | 'add-existing' | 'quick-add' | 'manual-items' | null;
+type SheetMode = 'add-existing' | 'quick-add' | null;
+type PendingTimerAction =
+  | { kind: 'start'; item: Item }
+  | { kind: 'resume'; session: TimerSessionViewModel };
 
 const itemTypeChoices: readonly { value: ItemType; label: string }[] = [
   { value: 'time', label: '시간' },
@@ -32,15 +44,18 @@ const itemTypeChoices: readonly { value: ItemType; label: string }[] = [
 export default function TodayScreen() {
   const app = useApp();
   const [sheetMode, setSheetMode] = useState<SheetMode>(null);
+  const [selectedItem, setSelectedItem] = useState<TodayItemViewModel | null>(null);
+  const [pendingTimerAction, setPendingTimerAction] = useState<PendingTimerAction | null>(null);
+  const [recordWarningItem, setRecordWarningItem] = useState<Item | null>(null);
   const [recordItem, setRecordItem] = useState<Item | null>(null);
   const [recordAmount, setRecordAmount] = useState('');
   const [recordNote, setRecordNote] = useState('');
   const [itemSearch, setItemSearch] = useState('');
+  const [selectedTodayItemIds, setSelectedTodayItemIds] = useState<string[]>([]);
   const [quickName, setQuickName] = useState('');
   const [quickAccountId, setQuickAccountId] = useState('');
   const [quickType, setQuickType] = useState<ItemType>('time');
   const [quickDuration, setQuickDuration] = useState('');
-  const autoOpened = useRef(false);
   const today = dateKey(new Date());
   const todayLabel = formatTodayLabel(new Date());
   const dayEndTime = app.snapshot.settings.day_end_time ?? DEFAULT_DAY_END_TIME;
@@ -53,43 +68,73 @@ export default function TodayScreen() {
     [app.snapshot.accounts],
   );
   const searchedMissingItems = useMemo(
-    () => searchMissingItems(viewModel.missingItems, itemSearch),
-    [itemSearch, viewModel.missingItems],
+    () => searchMissingItems(viewModel.missingItems, itemSearch, viewModel.accountNames),
+    [itemSearch, viewModel.accountNames, viewModel.missingItems],
   );
-
-  useEffect(() => {
-    if (app.loading || autoOpened.current) return;
-    autoOpened.current = true;
-    if (viewModel.runningTimers.length === 0) setSheetMode('tasks');
-  }, [app.loading, viewModel.runningTimers.length]);
+  const currentSession = viewModel.currentTimer;
+  const currentItemModel = currentSession
+    ? viewModel.visibleItems.find((visible) => visible.candidate.item.id === currentSession.item.id) ?? null
+    : null;
+  const currentAccountGroup = currentSession
+    ? viewModel.accountGroups.find((group) => group.accountId === currentSession.item.accountId) ?? null
+    : null;
 
   if (app.loading) return <LoadingView />;
 
   function openManualRecord(item: Item) {
     setSheetMode(null);
+    setSelectedItem(null);
+    setRecordWarningItem(null);
     setRecordItem(item);
     setRecordAmount(String(item.defaultDurationMin ?? (item.type === 'count' || item.type === 'completion' ? 1 : '')));
     setRecordNote('');
   }
 
-  async function selectTask(item: Item) {
-    if (item.type === 'time') {
-      await app.startTimer(item);
-      setSheetMode(null);
-      return;
-    }
-    if (item.type === 'completion' || item.type === 'count') {
-      await app.createEntry(item, 1);
-      setSheetMode(null);
+  function requestManualRecord(item: Item) {
+    setSelectedItem(null);
+    setSheetMode(null);
+    if (viewModel.runningTimer) {
+      setRecordWarningItem(item);
       return;
     }
     openManualRecord(item);
   }
 
-  async function addExistingItem(item: Item) {
-    await app.addTodayItem(item.id);
+  async function runTimerAction(action: PendingTimerAction, pauseEntry: Entry | null = null) {
+    if (action.kind === 'start') await app.startTimer(action.item, pauseEntry);
+    else await app.resumeTimer(action.session.entry, pauseEntry);
+    setSelectedItem(null);
+    setPendingTimerAction(null);
+  }
+
+  function requestTimerAction(action: PendingTimerAction) {
+    const targetEntryId = action.kind === 'resume' ? action.session.entry.id : null;
+    const running = viewModel.runningTimer;
+    if (running && running.entry.id !== targetEntryId) {
+      setSelectedItem(null);
+      setPendingTimerAction(action);
+      return;
+    }
+    void runTimerAction(action).catch(() => undefined);
+  }
+
+  function openTodaySelection() {
     setItemSearch('');
-    setSheetMode('tasks');
+    setSelectedTodayItemIds([]);
+    setSheetMode('add-existing');
+  }
+
+  function toggleTodayItem(itemId: string) {
+    setSelectedTodayItemIds((current) => (
+      current.includes(itemId) ? current.filter((id) => id !== itemId) : [...current, itemId]
+    ));
+  }
+
+  async function addSelectedItems() {
+    for (const itemId of selectedTodayItemIds) await app.addTodayItem(itemId);
+    setItemSearch('');
+    setSelectedTodayItemIds([]);
+    setSheetMode(null);
   }
 
   function startQuickAdd() {
@@ -128,12 +173,14 @@ export default function TodayScreen() {
     };
     const itemId = await app.saveItem(input);
     await app.addTodayItem(itemId);
-    setSheetMode('tasks');
+    setSheetMode(null);
   }
 
   async function submitManualRecord() {
     if (!recordItem) return;
-    const amount = recordItem.type === 'event' && recordAmount.trim() === '' ? null : Number(recordAmount);
+    const amount = recordItem.type === 'event' && recordAmount.trim() === ''
+      ? null
+      : recordItem.type === 'time' ? parseDurationToMinutes(recordAmount) : Number(recordAmount);
     if (amount !== null && !Number.isFinite(amount)) {
       Alert.alert('입력 확인', '숫자를 입력하십시오.');
       return;
@@ -142,64 +189,177 @@ export default function TodayScreen() {
     setRecordItem(null);
   }
 
+  async function recordOne(item: Item) {
+    await app.createEntry(item, 1);
+    setSelectedItem(null);
+  }
+
+  function runItemAction(itemModel: TodayItemViewModel) {
+    const item = itemModel.candidate.item;
+    if (item.type === 'time') {
+      if (!itemModel.session) requestTimerAction({ kind: 'start', item });
+      else if (itemModel.session.runtime.status === 'running') {
+        void app.pauseTimer(itemModel.session.entry).catch(() => undefined);
+      } else requestTimerAction({ kind: 'resume', session: itemModel.session });
+      return;
+    }
+    if (item.type === 'completion' || item.type === 'count') {
+      void recordOne(item).catch(() => undefined);
+      return;
+    }
+    requestManualRecord(item);
+  }
+
+  const selected = selectedItem?.candidate;
+  const selectedSession = selectedItem?.session ?? null;
+
   return (
     <>
       <Screen
+        contentGap={tokens.space.sm}
+        horizontalPadding={tokens.space.lg}
+        topPadding={tokens.space.md}
+        usesTabBar
         refreshControl={(
           <RefreshControl refreshing={app.busy} onRefresh={() => void app.refresh().catch(() => undefined)} />
         )}>
-        <Heading subtitle={todayLabel}>오늘</Heading>
+        <AppBar title="오늘" meta={todayLabel} />
         {app.error ? <StatusBanner message={app.error} onClose={app.clearError} /> : null}
-        {viewModel.runningTimers.length > 0 ? (
-          viewModel.runningTimers.map(({ entry, item }) => (
-            <TimerView
-              key={entry.id}
-              entry={entry}
-              item={item}
-              busy={app.busy}
-              onStop={() => void app.stopTimer(entry).catch(() => undefined)}
-              onOpenTasks={() => setSheetMode('tasks')}
-            />
-          ))
-        ) : (
-          <View style={styles.idle}>
-            <AppButton label="오늘의 할일 확인" onPress={() => setSheetMode('tasks')} style={styles.primaryAction} />
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyLabel}>지금 실행 중</Text>
-              <Text style={styles.emptyMark}>—</Text>
-              <Text style={textStyles.muted}>현재 실행 중인 항목이 없습니다.</Text>
-            </View>
-          </View>
-        )}
-      </Screen>
-
-      <TaskSheet
-        visible={sheetMode === 'tasks'}
-        items={viewModel.visibleItems.map(({ candidate }) => candidate)}
-        onClose={() => setSheetMode(null)}
-        onItemPress={(item) => void selectTask(item).catch(() => undefined)}
-        onAddItem={() => { setItemSearch(''); setSheetMode('add-existing'); }}
-        onManualRecord={() => setSheetMode('manual-items')}
-      />
-
-      <Sheet visible={sheetMode === 'add-existing'} title="오늘 할일 추가" onClose={() => setSheetMode('tasks')}>
-        <Field label="항목 검색" value={itemSearch} onChangeText={setItemSearch} placeholder="항목 이름" />
-        {viewModel.missingItems.length === 0 ? <Text style={textStyles.body}>추가할 기존 항목이 없습니다.</Text> : null}
-        {viewModel.missingItems.length > 0 && searchedMissingItems.length === 0 ? <Text style={textStyles.body}>검색 결과가 없습니다.</Text> : null}
-        {searchedMissingItems.map((item) => (
-          <AppButton
-            key={item.id}
-            label={`${item.name} · ${viewModel.accountNames[item.accountId] ?? '기존 계정'}`}
-            variant="secondary"
-            onPress={() => void addExistingItem(item).catch(() => undefined)}
+        <TodaySummary actualMinutes={viewModel.actualMinutes} itemCount={viewModel.visibleItems.length} />
+        {currentSession ? (
+          <CurrentSessionCard
+            session={currentSession}
+            accountName={viewModel.accountNames[currentSession.item.accountId] ?? '기존 계정'}
+            accountLimitMinutes={currentAccountGroup?.plannedMinutes ?? 0}
+            priorActualMinutes={currentItemModel?.actualMinutes ?? 0}
+            busy={app.busy}
+            onPause={() => void app.pauseTimer(currentSession.entry).catch(() => undefined)}
+            onResume={() => requestTimerAction({ kind: 'resume', session: currentSession })}
+            onStop={() => void app.stopTimer(currentSession.entry).catch(() => undefined)}
+          />
+        ) : null}
+        {viewModel.accountGroups.map((group) => (
+          <TodayAccountSection
+            key={group.accountId}
             disabled={app.busy}
+            group={group}
+            currentSessionId={currentSession?.entry.id ?? null}
+            onItemAction={runItemAction}
+            onItemPress={setSelectedItem}
           />
         ))}
-        <AppButton label="새 항목 만들기" onPress={startQuickAdd} disabled={app.busy || activeAccounts.length === 0} />
+        {viewModel.accountGroups.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Text style={textStyles.title}>오늘 사용할 항목이 없습니다</Text>
+            <Text style={textStyles.muted}>필요한 항목만 고르면 이 화면에 바로 나타납니다.</Text>
+            <AppButton label="오늘 항목 선택" onPress={openTodaySelection} />
+          </View>
+        ) : null}
+        {viewModel.accountGroups.length > 0 ? (
+          <View style={styles.listActions}>
+            <TodayListAction kind="add" label="오늘 사용할 항목" onPress={openTodaySelection} />
+            <TodayListAction kind="reflection" label="오늘 돌아보기" onPress={() => router.push('/today/close')} />
+          </View>
+        ) : null}
+      </Screen>
+
+      <Sheet
+        visible={selectedItem !== null}
+        title={selected?.item.name ?? '항목 동작'}
+        onClose={() => setSelectedItem(null)}>
+        {selected ? (
+          <>
+            <Text style={textStyles.muted}>
+              {viewModel.accountNames[selected.item.accountId] ?? '기존 계정'}
+            </Text>
+            {selected.item.type === 'time' ? (
+              <>
+                <PlanActualDelta planned={selected.plannedValue} actual={selectedItem?.actualMinutes ?? 0} />
+                <Text style={textStyles.muted}>
+                  {selectedSession ? `열린 세션 1개 · ${selectedSession.runtime.status === 'running' ? '기록 중' : '일시정지'}` : '열린 세션 없음'}
+                </Text>
+              </>
+            ) : null}
+            {(selected.item.type === 'completion' || selected.item.type === 'count') ? (
+              <AppButton
+                label={taskActionLabel(selected.item)}
+                onPress={() => void recordOne(selected.item).catch(() => undefined)}
+                disabled={app.busy}
+              />
+            ) : null}
+            <AppButton
+              label={selected.item.type === 'numeric' || selected.item.type === 'event' ? '값 입력' : '직접 기록'}
+              variant={selected.item.type === 'completion' || selected.item.type === 'count' ? 'secondary' : 'primary'}
+              onPress={() => requestManualRecord(selected.item)}
+            />
+          </>
+        ) : null}
+      </Sheet>
+
+      <Sheet visible={pendingTimerAction !== null} title="타이머 전환" onClose={() => setPendingTimerAction(null)}>
+        <Text style={textStyles.muted}>
+          {viewModel.runningTimer ? `${viewModel.runningTimer.item.name}을 일시정지하고 ` : ''}
+          {pendingTimerAction?.kind === 'start' ? pendingTimerAction.item.name : pendingTimerAction?.session.item.name ?? '새 항목'}을 시작할까요?
+        </Text>
+        <AppButton
+          label="일시정지 후 시작"
+          onPress={() => {
+            if (!pendingTimerAction) return;
+            void runTimerAction(pendingTimerAction, viewModel.runningTimer?.entry ?? null).catch(() => undefined);
+          }}
+          disabled={app.busy}
+        />
+        <AppButton label="취소" variant="secondary" onPress={() => setPendingTimerAction(null)} />
+      </Sheet>
+
+      <Sheet visible={recordWarningItem !== null} title="실행 중에도 직접 기록할 수 있습니다" onClose={() => setRecordWarningItem(null)}>
+        <Text style={textStyles.muted}>현재 타이머는 계속 흐릅니다. 저장 후 언제든 오늘 화면으로 돌아갈 수 있습니다.</Text>
+        <AppButton label="기록 계속하기" onPress={() => recordWarningItem && openManualRecord(recordWarningItem)} />
+        <AppButton label="취소" variant="plain" onPress={() => setRecordWarningItem(null)} />
+      </Sheet>
+
+      <Sheet visible={sheetMode === 'add-existing'} title="저장된 항목 불러오기" onClose={() => setSheetMode(null)}>
+        <Field label="계정 또는 항목 검색" value={itemSearch} onChangeText={setItemSearch} placeholder="계정 또는 항목 이름" />
+        {viewModel.missingItems.length === 0 ? <Text style={textStyles.body}>추가할 기존 항목이 없습니다.</Text> : null}
+        {viewModel.missingItems.length > 0 && searchedMissingItems.length === 0 ? <Text style={textStyles.body}>검색 결과가 없습니다.</Text> : null}
+        {activeAccounts.map((account) => {
+          const accountItems = searchedMissingItems.filter((item) => item.accountId === account.id);
+          if (accountItems.length === 0) return null;
+          return (
+            <View key={account.id} style={styles.itemGroup}>
+              <Text style={textStyles.title}>{account.name}</Text>
+              {accountItems.map((item) => {
+                const selectedForToday = selectedTodayItemIds.includes(item.id);
+                return (
+                  <Pressable
+                    key={item.id}
+                    accessibilityRole="checkbox"
+                    accessibilityLabel={`${item.name}, 오늘 사용할 항목`}
+                    accessibilityState={{ checked: selectedForToday, disabled: app.busy }}
+                    disabled={app.busy}
+                    onPress={() => toggleTodayItem(item.id)}
+                    style={({ pressed }) => [styles.selectionRow, pressed && styles.selectionRowPressed]}>
+                    <View style={[styles.selectionBox, selectedForToday && styles.selectionBoxSelected]}>
+                      {selectedForToday ? <Check color={COLORS.inverse} size={15} strokeWidth={2.4} /> : null}
+                    </View>
+                    <View style={styles.selectionCopy}>
+                      <Text style={textStyles.title}>{item.name}</Text>
+                      <Text style={textStyles.muted}>{account.name}</Text>
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </View>
+          );
+        })}
+        {viewModel.missingItems.length > 0 ? (
+          <AppButton label="선택 완료" onPress={() => void addSelectedItems().catch(() => undefined)} disabled={app.busy || selectedTodayItemIds.length === 0} />
+        ) : null}
+        <AppButton label="새 항목 만들기" variant="secondary" onPress={startQuickAdd} disabled={app.busy || activeAccounts.length === 0} />
       </Sheet>
 
       <Sheet visible={sheetMode === 'quick-add'} title="새 항목 만들기" onClose={() => setSheetMode('add-existing')}>
-        <Text style={textStyles.muted}>기본 정보만 저장하고 오늘 할일에 추가합니다. 일정과 고급 설정은 설정에서 바꿀 수 있습니다.</Text>
+        <Text style={textStyles.muted}>기본 정보만 저장하고 오늘 목록에 추가합니다. 일정과 고급 설정은 항목 관리에서 바꿀 수 있습니다.</Text>
         <Field label="이름" value={quickName} onChangeText={setQuickName} placeholder="항목 이름" />
         <View style={styles.accountChoices}>
           <Text style={textStyles.muted}>계정</Text>
@@ -218,18 +378,6 @@ export default function TodayScreen() {
           <Field label="기본 시간(선택, 분)" value={quickDuration} onChangeText={setQuickDuration} keyboardType="number-pad" />
         ) : null}
         <AppButton label="저장하고 오늘에 추가" onPress={() => void saveQuickItem().catch(() => undefined)} disabled={app.busy} />
-      </Sheet>
-
-      <Sheet visible={sheetMode === 'manual-items'} title="직접 기록" onClose={() => setSheetMode('tasks')}>
-        <Text style={textStyles.muted}>기록할 항목을 고르십시오.</Text>
-        {viewModel.activeItems.map((item) => (
-          <AppButton
-            key={item.id}
-            label={`${item.name} · ${amountLabel(item)}`}
-            variant="secondary"
-            onPress={() => openManualRecord(item)}
-          />
-        ))}
       </Sheet>
 
       <Sheet visible={recordItem !== null} title={recordItem ? `${recordItem.name} 직접 기록` : '직접 기록'} onClose={() => setRecordItem(null)}>
@@ -269,11 +417,14 @@ function formatTodayLabel(now: Date): string {
 }
 
 const styles = StyleSheet.create({
-  idle: { alignItems: 'stretch', gap: 24 },
-  primaryAction: { alignSelf: 'stretch' },
-  emptyState: { alignItems: 'center', gap: 8, paddingTop: 72 },
-  emptyLabel: { color: COLORS.muted, fontSize: 13, fontWeight: '600' },
-  emptyMark: { color: COLORS.text, fontSize: 48, fontWeight: '800', lineHeight: 56 },
-  accountChoices: { gap: 8 },
+  listActions: { gap: 2 },
+  emptyState: { gap: tokens.space.sm, borderRadius: tokens.radius.card, backgroundColor: COLORS.surfaceRaised, padding: tokens.space.ml },
+  accountChoices: { gap: tokens.space.xs },
   recordChip: { flexGrow: 1 },
+  itemGroup: { gap: tokens.space.xs },
+  selectionRow: { minHeight: 60, flexDirection: 'row', alignItems: 'center', gap: tokens.space.sm, borderBottomColor: COLORS.border, borderBottomWidth: StyleSheet.hairlineWidth },
+  selectionRowPressed: { opacity: 0.72 },
+  selectionBox: { width: 20, height: 20, alignItems: 'center', justifyContent: 'center', borderColor: COLORS.borderStrong, borderWidth: 1, borderRadius: 6 },
+  selectionBoxSelected: { borderColor: COLORS.accentStrong, backgroundColor: COLORS.accentStrong },
+  selectionCopy: { flex: 1, gap: 2 },
 });

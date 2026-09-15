@@ -5,7 +5,7 @@
 ## 기록 원칙
 
 - 폴더 구조, 상태 관리, 보조 라이브러리, 테스트 도구, 인덱스, 성능·접근성 구현처럼 §0.3 자율 영역의 선택만 기록한다.
-- 사용자 선호나 제품 동작을 바꾸는 결정은 ADR로 대신하지 않고 `QUESTIONS.md`에 올린다.
+- 사용자 선호나 제품 동작을 바꾸는 결정은 ADR로 대신하지 않고 사용자에게 직접 확인한다.
 - 명세에 이미 확정된 Expo/React Native, Expo Router, expo-sqlite, 로컬 알림, append-only 계획, 소프트 삭제는 ADR의 신규 결정이 아니다.
 - 대체된 결정도 삭제하지 않고 `대체` 상태와 후속 ADR 번호를 남긴다.
 
@@ -20,7 +20,7 @@
 - 대안: 저장소 루트에 앱 생성, yarn/pnpm/bun 사용, Android Studio/JDK를 설치한 로컬 네이티브 빌드.
 - 근거: 루트 문서와 앱 의존성의 경계를 명확히 하고, 단일 잠금 파일로 운영체제 간 설치를 재현하며, 현재 승인 범위에서 로컬 Android 도구 설치를 피한다.
 - 결과 및 위험: 앱 명령은 `mobile/`에서 실행한다. EAS 빌드 시 Expo 로그인·네트워크·실기기 설치가 필요하고 서비스 플랜에 따라 비용 정지 조건이 생길 수 있다.
-- 되돌림/재검토 조건: EAS로 필수 AC를 검증할 수 없거나 로컬 Android SDK가 반드시 필요한 경우 `QUESTIONS.md`에 기록하고 사용자 결정을 기다린다.
+- 되돌림/재검토 조건: EAS로 필수 검증을 수행할 수 없거나 로컬 Android SDK가 반드시 필요해지면 해당 범위를 멈추고 사용자에게 직접 확인한다.
 - 관련 불변조건/AC: I-7, I-10, I-12, AC-1, AC-13, AC-14, §10.3
 - 대체 관계: 없음
 
@@ -42,7 +42,7 @@
 - 날짜: 2026-08-20
 - 상태: 승인
 - 맥락: 명세는 타이머 정지를 강제하지 않고 상한 알림도 정보 제공만 허용한다. 로컬 알림은 앱 재시작과 콜드 스타트 딥링크를 처리해야 한다.
-- 결정: 진행 중 타이머는 DB 행으로 복원하며 다른 타이머 시작을 강제 차단하지 않는다. 시간형 `count_on_complete`는 타이머 정지 또는 수동 시간 기록 완료 시 횟수 1을 함께 저장한다. 오늘 종료·항목 일정·타이머 상한 알림의 예약 ID를 settings에 보관하고 Android HIGH 채널을 사용한다. 알림 실패는 이미 저장된 기록을 롤백하거나 차단하지 않는다.
+- 결정: 진행 중 타이머는 DB 행으로 복원한다. 시간형 `count_on_complete`는 타이머 정지 또는 수동 시간 기록 완료 시 횟수 1을 함께 저장한다. 오늘 종료·항목 일정·타이머 상한 알림의 예약 ID를 settings에 보관하고 Android HIGH 채널을 사용한다. 알림 실패는 이미 저장된 기록을 롤백하거나 차단하지 않는다. 다른 항목으로 전환하는 최신 규칙은 ADR-030이 대체한다.
 - 대안: 단일 타이머 강제, 상한 도달 시 자동 정지, 알림 실패 시 기록 실패.
 - 근거: I-1 사용자 주권, I-7 로컬 우선, I-10 로컬 알림을 함께 만족한다.
 - 결과 및 위험: 플랫폼이 앱을 오래 실행하지 않은 상태의 예약 복원은 OS 정책 영향을 받으므로 AC-13·AC-14 실기기 검증이 필수다.
@@ -77,6 +77,13 @@
 - 런타임 경로 `expo-router@57.0.19 -> query-string@7.1.3 -> decode-uri-component@0.2.2`에는 조작된 percent-encoding으로 CPU 사용량을 높일 수 있는 가용성 위험이 남는다. 수정 버전 `decode-uri-component@0.5.0`은 ESM default export라 CommonJS 함수 자체를 요구하는 `query-string@7.1.3`에 직접 override하면 호출 호환성을 깨뜨린다.
 - 도구 경로 `@expo/config-plugins -> xcode@3.0.1 -> uuid@7.0.3`의 advisory는 caller-supplied buffer를 받는 UUID v3/v5/v6에 해당한다. 현재 xcode/ngrok 경로는 `v4()`만 호출하고 Android 실행 번들에는 포함되지 않으므로 도달 가능한 앱 취약점으로 보지 않는다.
 - 따라서 검증되지 않은 major override와 Expo SDK를 낮추는 `npm audit fix --force`는 적용하지 않는다. Expo Router가 호환 수정판을 내면 우선 갱신하고 전체 게이트와 deep-link 회귀를 다시 수행한다.
+
+#### 2026-09-12 재검토
+
+- Expo SDK 57 expected patch 13개 정렬 뒤 `npm audit --omit=dev`는 15 moderate와 1 high를 보고했다.
+- moderate는 기존 `expo-router -> query-string -> decode-uri-component`와 Expo/Xcode 도구의 `uuid` 경로다. high `js-yaml@4.3.1`은 ESLint 및 Expo CLI/`@expo/xcpretty` 빌드 도구 경로이며 앱 실행 번들에서 확인된 입력 경로가 아니다.
+- npm의 제안은 SDK 57 호환 patch 범위를 벗어난 breaking downgrade/major 교체를 포함한다. 요청 범위와 전체 verify·Doctor 통과 상태를 보존하기 위해 `audit fix --force`와 검증되지 않은 override를 적용하지 않는다.
+- Expo가 호환 수정판을 제공하면 같은 clean gate, deep-link와 standalone 검증 경계에서 다시 평가한다.
 
 ### ADR-005 — EAS 프로젝트 연결과 Windows 빌드 아카이브 방식
 
@@ -344,39 +351,116 @@
 - 상태: 채택 / Phase 5 구현·게이트 통과
 - 결정: Mobbin의 Tiimo `Completing a task` 5화면을 유일한 주 레퍼런스로 삼고, 합성 데이터 Figma Quiet Routine 4화면으로 번역했다. 오늘/기록 2탭, 유휴 시작의 할일 시트, 상시 `오늘의 할일 확인` 버튼, 실행 중 복원으로 핵심 루프를 만들었다. 기존 주간·계획·프로젝트·분석·설정은 기록의 더보기로 이동하고 기능·숫자·데이터는 유지한다.
 - 근거/대안: 기존 5탭/다중 카드 첫 화면과 모든 기능 삭제 양쪽을 검토했다. 여러 앱의 장점을 임의 조합하지 않고 Tiimo의 선택→실행→종료 연속성만 채택했으며 브랜드·문구·그래픽·체크리스트·진행률·4탭·FAB는 배제했다. 출처·관찰의 한계와 Figma 링크는 `design-research.md`에 기록한다.
-- 결과 및 위험: 공통 Sheet에서 focus/Android back/키보드/스크롤/큰 글씨를 처리하고 실기기 핵심 흐름을 통과했다. P5는 기존 경과 타이머 의미를 유지하며 P6 countdown·초과·pause/resume은 구현하지 않았다.
+- 결과 및 위험: 공통 Sheet에서 focus/Android back/키보드/스크롤/큰 글씨를 처리하고 실기기 핵심 흐름을 통과했다. 현재 구현은 기존 경과 타이머 의미만 유지한다.
 - 관련 불변조건: I-1, I-2, I-9
 - 대체 관계: 과거 화면 배치와 AC-6의 합계 위치만 대체. 도메인 기능 삭제 아님.
 
-### ADR-026 — entries 확장과 영속 타이머 상태
+### ADR-029 — 앱 소유 달력 adapter와 오프라인 공휴일 release asset
 
-- 날짜: 2026-09-06
-- 상태: 명세 채택 / 구현 미착수
-- 결정: 새 sessions 원장을 만들지 않고 entries에 timer/manual 출처 및 목표·구간·누적 ms·state/revision을 추가한다. source의 기존 의미는 보존한다. 단일 관리 타이머, operation ID/조건부 transaction, 저장 후 OS 알림 조정으로 실행한다. Q-014에 따라 목표 후 계속 측정하며 종료 때 실제 분을 확정한다.
-- 근거/대안: source를 timer/manual로 바꾸거나 분 tick을 누적하면 기존 sync/AI/export와 충돌하고 앱 종료 시 시간이 어긋난다. 원장 일원화는 집계/수정/삭제 경로를 재사용한다.
-- 결과 및 위험: SQLite v6 보존 upgrade, 기존 복수 열린 entry의 사용자 정리, 시계 변경의 한계 설명, 날짜 helper 통합이 필요하다. OS 강제 중지/전원 꺼짐의 정시 알림은 보장하지 않는다.
-- 관련 불변조건: I-1, I-7, I-8
-- 대체 관계: ADR-003의 복수 타이머 허용은 새 관리 세션에 대해 SPEC §18로 대체. 기존 행을 삭제하지 않는다. ADR-022의 알림 cleanup 원칙 유지.
+- 날짜: 2026-09-08
+- 상태: 승인
+- 맥락: P6-1 지표에서 날짜 선택·기록 점·공휴일 이름을 제공하되 개인 캘린더 권한이나 runtime 외부 호출을 추가하지 않아야 한다.
+- 결정: MIT 순수 JS `react-native-calendars@1.1314.0`을 exact pin하고 앱 소유 `MetricsCalendar` adapter 뒤에서 사용한다. 공휴일은 KASI 월력요항과 현행 공휴일 규정을 검증한 schema version 1 JSON release asset으로 묶고, 서비스 키가 필요한 API 갱신 script는 개발 환경에서만 실행한다.
+- 대안: Google/기기 Calendar OAuth, runtime 공휴일 API, 직접 만든 월 그리드.
+- 근거: Expo 57/RN 0.86 typecheck·Doctor·production Hermes bundle을 통과했고 native module을 추가하지 않는다. 날짜 선택 UI와 공개 정보 주석을 개인 데이터 연결에서 분리할 수 있다.
+- 결과 및 위험: 현재 asset 지원 범위는 2026년이다. 범위 밖 날짜는 공휴일을 추정하지 않는다. 개인 일정 연동은 현재 범위에 없다.
+- 되돌림/재검토 조건: 유지보수 중단, Expo 호환 실패, 접근성 회귀가 확인되면 같은 adapter 계약의 무료 대안을 비교한다.
+- 관련 불변조건/AC: I-7, I-8, I-12, AC-43, AC-44, AC-49
+- 대체 관계: 없음
 
-### ADR-027 — 일일 계획 버전과 동기화 버전 경계
+### ADR-030 — Today-first 재설계와 P5/P6 타이머 경계
 
-- 날짜: 2026-09-06
-- 상태: 명세 채택 / 구현 미착수
-- 결정: daily_plan_versions에 실제 생성 당시의 오늘 계획을 append-only 저장한다. 과거 일정에서 확인할 수 없는 과거 계획은 미확인으로 표시한다. entries 새 필드/일일 계획 table은 전체 manifest·export/reset·codec·trigger·RPC와 함께 도입한다. 구 client가 확장 행을 덮어쓰지 못하도록 서버 protocol 경계를 먼저 준비한다.
-- 근거/대안: 최신 schedule로 과거 계획을 재계산하면 그날의 계획이 변한다. client만 nullable 필드를 추가하면 구 client의 전체 row push가 새 필드를 지울 수 있다.
-- 결과 및 위험: 공개 서버와 앱의 배포 순서·구 client 차단·오프라인 작성 지속을 실제 계약 테스트로 입증해야 한다. 다기기 동시 작성은 Q-011 해결 전 지원 완료로 표시하지 않는다.
-- 관련 불변조건: I-2, I-7, I-8
-- 대체 관계: ADR-023의 단일 manifest 원칙 유지, 버전별 호환 계약으로 확장.
+- 날짜: 2026-09-12
+- 상태: 승인 / P5 로컬 구현
+- 맥락: 기존 P5는 오늘 항목을 sheet 뒤에 숨기고 행 터치 즉시 시작했으며, 실행 중에는 일시정지·재개와 계획 대비 남은 시간이 없었다. 기능 검증은 통과했지만 사용자가 승인한 상용 수준의 Today-first 루프와 충돌했다.
+- 결정: Tiimo의 오늘 목록→실행→완료 연속성을 주 구조로, timespent의 계획 진입 명료성과 Equinox+의 완료 후 목록 복귀를 제한적 보조 구조로 사용한다. 첫 화면에 계정→항목 목록을 직접 노출하고, 행→compact action sheet→시작/직접 기록, 단일 로컬 타이머의 실행/일시정지/재개/언제든 종료, signed 남은·초과 표시를 P5로 묶는다. active timer의 다중 기기 동기화와 conflict/revision/server 호환은 P6로 분리한다.
+- 대안: 기존 즉시 시작 sheet 유지, 타이머를 독립 전체 화면으로 전환, UI와 서버 계약을 동시에 변경.
+- 근거: 한 번의 의도 확인은 오작동 시작을 줄이면서도 두 단계 안에 실행할 수 있다. 로컬 상태와 서버 계약을 분리하면 기존 사용자 데이터·동기화 호환을 보존한 채 핵심 UX를 먼저 검증할 수 있다.
+- 결과 및 위험: 기존 open `entries` 행은 유지하고 `timer_runtime:{entryId}` settings에 누적 active milliseconds와 running/paused 시각을 저장한다. 이 prefix는 sync allowlist 밖이라 P5 서버 계약을 바꾸지 않는다. 중지 시 runtime 설정과 entry 완료를 한 SQLite transaction에서 처리한다. P6 착수 전에는 server migration, 구버전 client, payload/RPC 배포 순서를 사용자에게 먼저 알린다. Figma legacy는 비교용으로 남기고 승인 시안은 별도 페이지에 만든다.
+- 되돌림/재검토 조건: 실기기에서 action sheet가 반복 사용을 유의하게 방해하거나, pause 복원 모델이 기존 entry 의미를 깨뜨리는 증거가 생기면 P5 범위 안에서 상호작용만 재검토한다.
+- 관련 불변조건/AC: I-1, I-2, I-3, I-5, I-6, I-13, I-14, SPEC §3.2
+- 대체 관계: ADR-025의 첫 화면·직접 시작·타이머 시각 계약과 ADR-003의 복수 타이머 허용 부분을 대체한다. 두 탭, 로컬 알림, 기존 기능 하위 진입 결정은 유지한다.
 
-### ADR-028 — 총액 예산 안의 공개 변형과 운영 준비
+### ADR-031 — 세 레퍼런스의 역할 제한 혼합과 단일 저채도 강조색
 
-- 날짜: 2026-09-06
-- 상태: 사용자 확정 / 구현 미착수
-- 결정: Android public-local을 첫 공개 변형으로 확정하며 개인용 sync/AI는 유지한다. 공개판의 사용자 데이터는 기기 로컬에만 두며 개인 Supabase/AI 설정을 포함하지 않는다. P7에서 복구/import·진단·서명·정책을 준비하고 P8에서 필요한 사전 리팩터 후 사용자의 공개 지시가 있을 때 배포한다.
-- 근거/대안: 80,000원은 레퍼런스·MCP 예산이며 월 운영비가 아니다. Supabase 무료 기본 SMTP와 단일 owner AI를 그대로 공개 계정 서비스로 제공할 수 없다. 가격 근거·한계는 SPEC §21/BUDGET을 따른다.
-- 결과 및 위험: 계정 없는 공개판에는 자동 클라우드 백업/AI가 없다. 로컬 JSON 복구를 먼저 구현해야 한다. 사용자 기기 삭제 전 백업 필요성과 운영 정책을 제품 안내로 제공한다. 등록·본인 확인·tester 확보·심사는 실제 사용자/외부 서비스 단계다.
-- 관련 불변조건: I-7, I-8, I-14
-- 대체 관계: 공개 스토어 비목표/F-005 일부를 최신 SPEC으로 대체. 결제·구독·광고·텔레메트리 범위를 추가하지 않는다.
+- 날짜: 2026-09-13
+- 상태: 대체 — ADR-032
+- 맥락: P5 기능 흐름은 승인 계약을 충족했지만 큰 제목·요약·실행 카드·개별 항목 카드·직사각형 하단 탭이 누적되고, 실행 파랑과 일시정지 갈색이 큰 면으로 경쟁해 미니멀한 공개 화면 기준에 미달했다.
+- 결정: Tiimo의 행 중심 Today 흐름, timespent의 따뜻한 중립 배경·그룹 표면·캡슐 내비게이션, Equinox+의 절제된 단색 위계를 역할별로 혼합한다. Light/Dark 모두 저채도 잉크 바이올렛 한 계열만 강조색으로 쓰고 paused는 경고색에서 중립 상태로 바꾼다. 계정별 항목은 하나의 그룹 표면과 구분선으로 묶고, 현재 실행만 별도 표면과 작은 상태 표시로 강조한다. 하단 탭은 safe-area와 글꼴 배율을 분리 계산한 떠 있는 2분할 캡슐로 만든다.
+- 대안: 기존 포화 파랑·갈색 상태 카드 유지, 세 앱의 브랜드 색과 외형을 직접 복제, 시스템 inset을 포함한 전체 폭 직사각형 탭 유지.
+- 근거: 세 레퍼런스의 공통점은 장식보다 현재 행동과 목록 복귀가 먼저 보이는 점이다. 역할을 제한한 혼합은 OOS의 숫자·계정 위계를 보존하면서 반복 테두리와 색 면적을 줄인다. Light의 일반 muted text와 주요 버튼 조합은 각각 4.5:1 이상을 목표로 하고 실제 팔레트 조합을 대조한다.
+- 결과 및 위험: 공통 Card/Button/Sheet의 표면도 함께 조용해져 전체 앱 밀도가 낮아진다. 실제 Galaxy 렌더링은 새 native 또는 development bundle에서 확인해야 하며, 큰 글씨에서는 캡슐 높이가 늘어나지만 시스템 inset이 다시 캡슐 내부 높이로 합쳐지지 않는다. SQLite schema, repository, Supabase/sync 계약은 바뀌지 않는다.
+- 되돌림/재검토 조건: 200% 글꼴에서 탭 label이 잘리거나 실제 기기에서 캡슐이 시스템 내비게이션과 겹치면 기능·데이터 코드 없이 tab height/offset/footprint만 재조정한다.
+- 관련 불변조건/AC: SPEC §2.1~2.14, §3.2, §5, §7, §8
+- 대체 관계: ADR-030의 기능 흐름은 유지하고 시각 계약만 구체화한다. ADR-025의 전체 폭 하단 탭 외형은 대체한다.
+
+### ADR-032 — reference-first Figma source와 단계형 시각 게이트
+
+- 날짜: 2026-09-13
+- 상태: 승인 / implementation allowed, release device comparison 대기
+- 맥락: ADR-031 구현은 기능·데이터 회귀를 통과했지만 큰 floating capsule, 반복 control, 약한 계정/항목 위계가 상용 공개판 수준에 미달했다. 기존 `P5 Approved` Figma도 잘린 frame과 4탭 충돌이 있어 코드의 신뢰 가능한 입력이 아니었다.
+- 결정: timespent를 surface·spacing·typography·row·control의 시각 master, Tiimo를 Today→실행→종료 연속성의 interaction master, Equinox+를 Records/dark 보조로 역할 고정한다. 내비게이션은 OOS 소유의 compact 2탭으로 별도 설계한다. 새 `P5 Visual v2` high-fidelity Figma를 사용자와 읽기 전용 Claude가 승인한 뒤에만 코드로 옮기고, 구현 뒤 같은 상태의 합성 데이터 기기 screenshot을 대조한다. `docs/design/p5-visual-v2.gate.json`과 dependency 없는 검사 script로 단계 상태를 명시한다.
+- 대안: 현재 코드 토큰을 다시 Figma로 복사, 세 레퍼런스를 추상적으로 평균, Figma 없이 화면 코드를 반복 수정, pixel 유사도 수치 하나로 승인.
+- 근거: 시각 기준과 상호작용 기준을 분리하면 브랜드 복제 없이 일관된 화면 문법을 유지할 수 있다. Figma-first 승인과 frame별 context/screenshot은 구현자의 자의적 번역을 줄이며, 단계 gate는 빌드 비용과 회귀 검증을 디자인 확정 뒤로 미룬다.
+- 결과 및 위험: 기존 기능, SQLite v6, Supabase/sync 계약은 변하지 않는다. 기존 `P5 Approved` 페이지는 이력으로 남지만 source of truth가 아니다. Claude의 조건부 승인 4건을 Figma에 최소 수정하고 사용자가 전체 승인을 확정해 implementation gate를 열었다. local Maestro는 합성 데이터 drift 탐지에만 쓰고 analytics를 끄며 개인 실기기에서 `clearState`를 금지한다. release는 개인 screenshot 외부 전송 없이 실기기 대조 뒤에만 승인한다.
+- 되돌림/재검토 조건: 실제 Figma 시안에서 timespent의 시각 문법이 OOS 계정→항목 밀도나 Android 접근성과 충돌하면 reference 역할을 사용자에게 다시 제시한다. 자동 screenshot은 폰트·OS 차이로 불안정하면 보조 증빙으로만 유지한다.
+- 관련 불변조건/AC: SPEC §2.13~2.14, §3.2, §5, §7, §8
+- 대체 관계: ADR-031의 시각 master와 floating capsule 결정을 대체한다. ADR-030의 P5 기능 흐름과 P5/P6 server 경계는 유지한다.
+
+### ADR-033 — P5 Visual v2의 토큰·폰트·Android navigation 구현
+
+- 날짜: 2026-09-13
+- 상태: 승인
+- 맥락: 승인 Figma는 360dp Android frame, warm stone/moss semantic token, Noto Sans KR와 app navigation 56dp·system safe bottom 분리를 source of truth로 정했다. 기존 구현의 floating capsule과 큰 색 면적은 이 계약과 달랐다.
+- 결정: Light/Dark semantic token을 Figma 값으로 맞추고 Noto Sans KR 400/500/700만 native bundle에 내장한다. Today는 56dp 요약·48dp 계정 header·68dp 항목 행을 기본으로 하며, 실행 상태만 accent surface를 사용한다. 하단은 아이콘과 떠 있는 capsule을 제거한 전체 폭 OOS 2탭으로 두고 48dp hit area와 실제 system inset을 별도로 합산한다. 큰 글씨에서는 숫자를 줄이지 않고 기록 원장 metric만 세로 배치한다.
+- 대안: system font에 의존, Noto 전체 9굵기 내장, 기존 floating capsule 유지, 숫자를 말줄임하거나 축약.
+- 근거: 세 굵기는 승인된 text style을 충족하면서 전체 font family 번들보다 작고, 고정된 행 문법과 semantic token은 Light/Dark·running/paused 위계를 같은 규칙으로 유지한다. safe inset 분리는 Galaxy 3-button navigation과 gesture navigation 양쪽에서 앱 탭과 시스템 영역의 소유권을 분명히 한다.
+- 결과 및 위험: `expo-font`와 Noto Sans KR package가 native artifact에 추가되므로 새 binary와 versionCode 13이 필요하다. 앱 시작은 font 준비 동안 splash를 유지한다. SQLite v6와 Supabase/sync 계약은 바뀌지 않는다.
+- 되돌림/재검토 조건: 실제 기기에서 font load 실패, 200% 글꼴 숫자 손실, system navigation overlap이 재현되면 데이터·기능 코드를 건드리지 않고 font fallback 또는 navigation/row layout만 되돌린다.
+- 관련 불변조건/AC: SPEC §2.1~2.14, §3.2, §5, §7, §8
+- 대체 관계: ADR-032의 구현 방식을 구체화하고 ADR-031의 floating capsule을 최종 대체한다.
+
+### ADR-034 — P5 Visual v3의 계층별 정보 소유권과 즉시 시작
+
+- 날짜: 2026-09-13
+- 상태: 승인 / 구현·실기기 검증 완료
+- 맥락: `0.6.0(13)`은 Galaxy system navigation 위에 앱 navigation을 분리하고 v0.6.0 기능 구조를 보존했지만, 전체·계정·항목에 같은 실제·초과 값이 반복되고 account/item 중첩 card와 불명확한 icon이 첫 화면의 선택 비용을 높였다. 사용자는 기능과 구조를 유지하면서 Rubit처럼 평면적이고 빠르게 읽히는 Today와 Toss의 `One thing per One page` 원칙을 승인했다.
+- 결정: Today의 유일한 질문을 `지금 무엇을 시작하거나 이어갈 것인가`로 고정한다. 전체는 오늘 실제와 항목 수, 계정은 오늘 선택 하위 항목의 계획 합계인 공용 상한과 실제, 항목은 이름·실제·상태, Records/상세는 계획·실제·signed 차이를 소유한다. 계정은 typography/spacing, 항목은 flat row로 표시하고 현재 session만 강조 surface로 둔다. 시간형 trailing play는 running session이 없을 때 즉시 시작하고, row 본문은 상세/직접 기록으로 분리한다. 다른 session이 running이면 기존 session을 pause하고 새 항목을 시작하는 결과 하나만 확인한다. 기존 `오늘 종료` snapshot/note는 `오늘 돌아보기` 진입으로 재배치한다.
+- 구현 확정: running session을 최우선, running이 없으면 가장 최근 paused session을 current-session으로 선택한다. current 항목 행의 trailing 조작은 숨겨 상단 카드와 중복 동작을 만들지 않고, 다른 paused 항목만 재개할 수 있게 한다. 계정 header는 표시 전용이므로 연결 화면 없는 chevron을 두지 않는다. Records는 계획·실제·차이 3개 동등 폭 카드와 계정별 단일 ledger surface를 사용한다.
+- 대안: v2 card와 상시 signed 차이를 색만 조정, 모든 시작을 action sheet 뒤에 유지, 기록·관리·분석을 동일 빈도의 3탭으로 전환, Rubit/Todoist/Tiimo 화면을 직접 복제.
+- 근거: 같은 파생값을 한 계층에서만 노출하면 원자료를 보존하면서도 반복을 제거할 수 있다. 자주 쓰는 play와 드문 상세를 분리하면 시작 tap을 줄이고, 실행 중 전환만 확인해 의도하지 않은 pause를 막는다. 하단은 빈도가 높은 Today/Records 2탭을 유지해 관리·분석이 핵심 기록 흐름과 경쟁하지 않게 한다.
+- 결과 및 위험: SQLite v6, repository, sync/server 계약은 바뀌지 않는다. 현재 item별 계획의 합계를 계정 공용 상한으로 해석하므로 별도의 직접 입력 일일 상한은 지원하지 않는다. play와 row가 다른 동작을 가져 접근성 label과 시각 affordance를 명확히 해야 하며, Figma prototype과 큰 글씨/TalkBack 검수 없이 구현하면 안 된다.
+- 되돌림/재검토 조건: 사용자 검수에서 즉시 play 오작동이 반복되거나 계정 공용 상한이 기존 계획 의미를 왜곡하면 데이터 계약을 바꾸지 않는 범위에서 press affordance와 표시 문구를 재검토한다. 별도 일일 상한이 필요하면 새 schema/sync 계약으로 분리한다.
+- 관련 불변조건/AC: SPEC §2, §3.2, §5, §7, §8
+- 대체 관계: ADR-030의 로컬 timer/P5-P6 경계는 유지한다. ADR-032의 v2 source of truth 승인과 ADR-033의 Today 고정 행·상시 정보 배치는 v3 Figma 승인 전 구현 이력으로 전환한다.
+
+### ADR-035 — 프로필은 로컬 작업공간으로 먼저 분리
+
+- 날짜: 2026-09-13
+- 상태: 승인 / 구현·실기기 검증 완료
+- 맥락: 실제 사용을 위해 기존 복잡한 계정·항목 묶음을 보존하면서 4개의 실사용 항목만 보이는 별도 프로필이 필요하다. 프로필을 기존 sync payload에 곧바로 추가하면 server-first 원칙과 배포된 `oos_sync_v1` 계약을 위반한다.
+- 결정: SQLite v7에 local-only `profiles`와 account/project/weekly_plan의 `profile_id`, account의 `weekly_target_minutes`를 추가한다. 기존 행은 `백업용 프로필`, 새 4계정·4항목은 `연습용 프로필`로 귀속하고 연습용을 활성화한다. snapshot repository에서 활성 profile의 관계 graph만 노출한다. 삭제는 profile tombstone만 남기며 하위 데이터는 보존한다.
+- 전환 규칙: 실행 중 timer는 profile 변경과 같은 local transaction에서 pause한다. 앱 설정·인증·sync cursor·날짜별 돌아보기는 전역으로 유지한다.
+- 동기화 경계: 새 local 열은 sync schema와 Supabase SQL/RPC/RLS에 넣지 않는다. 기존 account/item/entry는 그대로 백업되지만 profile 소속은 다른 기기에 복원되지 않는다. 다중 기기 profile sync가 필요해지는 시점에는 서버 migration과 owner RLS 배포를 사용자에게 먼저 요청한다.
+- 대안: 기존 데이터를 새 항목으로 덮어쓰기, profile별 별도 SQLite 파일, server schema 동시 변경, profile 삭제 시 cascade delete.
+- 근거: 단일 DB의 additive migration이 기존 기록·WAL update 설치·export 경로를 유지하면서도 화면 혼합을 막는다. local-only 경계는 현재 실사용을 바로 가능하게 하고 미준비 서버 변경을 피한다.
+- 결과 및 위험: 원격에서 처음 내려온 account/project/weekly_plan은 안전한 기본값인 백업용 프로필에 들어간다. 같은 기기의 기존 row는 pull update 뒤에도 local profile 소속을 유지한다. 돌아보기와 주간 코멘트는 아직 profile별이 아니다.
+- 되돌림/재검토 조건: 다중 기기에서 동일 profile 구성이 필요하거나 공통 돌아보기가 실제 사용을 방해하면 server-first profile 계약과 날짜 메모의 composite identity를 별도 승인한다.
+- 관련 불변조건/AC: SPEC §2, §3.8, §3.10, §3.11, §8
+- 대체 관계: ADR-030의 P5/P6 server-first 경계를 유지한다.
+
+### ADR-036 — OOS 개인판 동결과 `하루고침` 공개판 분리
+
+- 날짜: 2026-09-15
+- 상태: 승인
+- 맥락: 검증된 `com.oosops.app` 개인판의 설치 데이터와 서명을 보존하면서 Google Play 공개판을 준비해야 한다. 공개판에 개인 seed·단일 owner AI·미완료 profile sync를 그대로 싣으면 데이터 노출과 서버 계약 위반 위험이 있다.
+- 결정: OOS Ops는 현재 저장소와 `com.oosops.app`에서 personal `0.7.0(15)` 기준선으로 동결한다. 공개판 `하루고침`은 새 비공개 GitHub 저장소, 새 applicationId, 새 Play 앱, 별도 배포 환경으로 시작한다. 초기 범위는 로그인·동기화 없는 local-first로 한정한다.
+- 대안: 같은 applicationId로 Play 업데이트, 같은 Supabase 프로젝트 공유, 개인 저장소에서 공개판 계속 개발.
+- 근거: 서로 다른 package는 한 기기에 병존할 수 있고, 개인 DB·서명·seed·서버를 공개 사용자와 구조적으로 분리한다.
+- 결과 및 위험: 공개판은 OOS Git 이력을 그대로 push하지 않고 필요한 검증 코드만 비밀 제거 감사 후 이전한다. 공개판 applicationId는 첫 Play 등록 전에 영구 확정한다. 동기화를 추가하려면 별도 Supabase 프로젝트와 P6 server-first migration·RLS·RPC 승인이 필요하다.
+- 되돌림/재검토 조건: 새 앱이 공개 전이고 사용자가 패키지 통합을 명시적으로 재승인할 때만 재검토한다.
+- 관련 불변조건/AC: SPEC §2, §3.8, §3.11, §8
+- 대체 관계: 기존 OOS 기능 결정은 유지하고 배포·소유 경계만 추가한다.
 
 ## 기록 형식
 

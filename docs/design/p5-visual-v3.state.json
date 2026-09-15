@@ -1,0 +1,75 @@
+{
+  "runId": "p5-visual-v3-20260913",
+  "phase": "phase5",
+  "step": "release_qualified",
+  "entities": {
+    "collections": {
+      "primitives": "VariableCollectionId:38:2",
+      "semantic": "VariableCollectionId:38:3",
+      "dimensions": "VariableCollectionId:38:4"
+    },
+    "pages": {
+      "P5 Visual v3": "74:6"
+    },
+    "sections": {
+      "direction": "74:7",
+      "foundations": "74:11",
+      "components": "74:15",
+      "coreFlow": "74:19",
+      "edgeStates": "74:23"
+    },
+    "components": {
+      "icons": ["75:6", "75:12", "75:26", "75:33", "75:38", "75:43", "75:49", "75:59"],
+      "button": "75:618",
+      "todayRow": "76:601",
+      "todaySummary": "76:602",
+      "accountHeader": "76:605",
+      "currentSession": "77:582",
+      "bottomNavigation": "77:637"
+    },
+    "coreFrames": {
+      "todayIdle": "78:40",
+      "todayRunning": "78:69",
+      "todayPaused": "78:98",
+      "switchConfirmation": "78:127",
+      "itemDetailDirectRecord": "78:156",
+      "todayItemSelection": "78:185",
+      "todayReflection": "78:214",
+      "recordsReturn": "78:243"
+    },
+    "edgeFrames": {
+      "longNameOverCap": "84:600",
+      "emptyToday": "84:709",
+      "darkRunning": "84:740",
+      "darkPaused": "96:622",
+      "largeText200": "86:776",
+      "manyAccounts": "86:817",
+      "galaxyNavigation": "86:858",
+      "galaxyThreeButtonProofs": ["92:1003", "92:1074", "92:1135"],
+      "nonTimeRows": "92:1205",
+      "noPlanAccount": "92:1255",
+      "overCapDetail": "92:1287",
+      "longNameRows": ["93:1221", "93:1232"]
+    }
+  },
+  "pendingValidations": [],
+  "completedSteps": [
+    "phase0",
+    "phase1",
+    "phase2",
+    "phase3",
+    "phase4",
+    "review:codex-design-context",
+    "review:codex-screenshot",
+    "review:claude-read-only",
+    "review:claude-symmetry-corrections",
+    "review:user-figma-approval",
+    "review:design-context-final",
+    "review:screenshot-final",
+    "implementation:code-review",
+    "implementation:automated-verify",
+    "implementation:standalone-build",
+    "implementation:data-preserving-update",
+    "review:device-comparison"
+  ]
+}

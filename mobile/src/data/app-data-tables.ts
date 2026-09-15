@@ -1,4 +1,5 @@
 export const APP_DATA_TABLE_NAMES = [
+  'profiles',
   'accounts',
   'projects',
   'items',

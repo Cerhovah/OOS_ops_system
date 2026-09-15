@@ -10,6 +10,8 @@ import {
   hydratePlanDraft,
   markPlanDraftSaved,
   planDraftHours,
+  planDraftMinutes,
+  planDraftValues,
   type PlanDraft,
 } from '@/features/plan/plan-draft';
 
@@ -45,19 +47,18 @@ export default function PlanRoute() {
 
   const hours = draft?.weekStart === weekStart ? draft.hours : sourceHours;
 
-  const minutes = useMemo(
-    () => accounts.map((account) => Number(hours[account.id] ?? 0) * 60),
-    [accounts, hours],
-  );
-  const valid = minutes.every(Number.isFinite);
-  const status = planStatus(valid ? minutes : []);
+  const minutes = useMemo(() => planDraftMinutes(accounts, hours), [accounts, hours]);
+  const valid = minutes !== null;
+  const status = planStatus(minutes ?? []);
+  const usesWeeklyCaps = accounts.some((account) => account.weeklyTargetMinutes !== null);
 
   if (app.loading) return <LoadingView />;
 
   async function save(source: 'app' | 'copy_last_week' = 'app', note: string | null = null) {
     const submittedWeek = weekStart;
     const submittedHours = hours;
-    const values = Object.fromEntries(accounts.map((account) => [account.id, Number(submittedHours[account.id]) * 60]));
+    const values = planDraftValues(accounts, submittedHours);
+    if (!values) return;
     const version = await app.saveWeeklyPlan(submittedWeek, values, source, note);
     setDraft((currentDraft) => currentDraft
       ? markPlanDraftSaved(currentDraft, submittedHours, submittedWeek)
@@ -67,7 +68,7 @@ export default function PlanRoute() {
 
   function confirmSave() {
     if (!valid) return;
-    if (status.kind === 'balanced') {
+    if (usesWeeklyCaps || status.kind === 'balanced') {
       void save().catch(() => undefined);
       return;
     }
@@ -98,18 +99,20 @@ export default function PlanRoute() {
 
   return (
     <Screen>
-      <Heading subtitle={`${weekStart} ~ ${addDays(weekStart, 6)}`}>계획</Heading>
+      <Heading subtitle={`${weekStart} ~ ${addDays(weekStart, 6)}`}>주간 시간 분배</Heading>
       {app.error ? <StatusBanner message={app.error} onClose={app.clearError} /> : null}
       <View style={styles.nav}>
         <AppButton label="이전 주" variant="secondary" onPress={() => setWeekStart(addDays(weekStart, -7))} />
         <AppButton label="이번 주" variant="plain" onPress={() => setWeekStart(initial)} />
         <AppButton label="다음 주" variant="secondary" onPress={() => setWeekStart(addDays(weekStart, 7))} />
       </View>
-      <Card style={status.kind === 'balanced' ? undefined : styles.warning}>
-        <Text style={textStyles.muted}>실시간 합계</Text>
+      <Card style={!usesWeeklyCaps && status.kind !== 'balanced' ? styles.warning : undefined}>
+        <Text style={textStyles.muted}>{usesWeeklyCaps ? '주간 상한 합계' : '실시간 합계'}</Text>
         <Text style={styles.status}>
           {!valid
             ? '입력 형식을 확인하십시오.'
+            : usesWeeklyCaps
+              ? formatMinutes(status.totalMinutes)
             : status.kind === 'balanced'
               ? `현재 계획: ${formatMinutes(status.totalMinutes)}`
               : status.kind === 'over'
@@ -117,7 +120,7 @@ export default function PlanRoute() {
                 : `현재 계획: ${formatMinutes(status.totalMinutes)} · 미배분 ${formatMinutes(-status.deltaMinutes)}`}
         </Text>
       </Card>
-      <Section title="계정별 주간 시간">
+      <Section title={usesWeeklyCaps ? '계정별 주간 상한' : '계정별 주간 시간'}>
         {accounts.map((account) => (
           <Field
             key={account.id}
@@ -136,7 +139,7 @@ export default function PlanRoute() {
             keyboardType="decimal-pad"
           />
         ))}
-        <AppButton label="계획 저장" onPress={confirmSave} disabled={!valid || app.busy} />
+        <AppButton label="시간 분배 저장" onPress={confirmSave} disabled={!valid || app.busy} />
         <AppButton
           label="지난주 계획 복사"
           variant="secondary"

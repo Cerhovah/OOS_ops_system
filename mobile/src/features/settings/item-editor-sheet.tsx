@@ -64,7 +64,7 @@ export function ItemEditorSheet({
       <Field label="최소(선택)" value={draft.levelMin} onChangeText={(levelMin) => onChange({ levelMin })} keyboardType="decimal-pad" />
       <Field label="목표(선택)" value={draft.levelTarget} onChangeText={(levelTarget) => onChange({ levelTarget })} keyboardType="decimal-pad" />
       <Field label="상한(선택)" value={draft.levelMax} onChangeText={(levelMax) => onChange({ levelMax })} keyboardType="decimal-pad" />
-      <Field label="수동 입력 기본 분(선택)" value={draft.duration} onChangeText={(duration) => onChange({ duration })} keyboardType="number-pad" />
+      <Field label="수동 입력 기본 시간(분, 선택)" value={draft.duration} onChangeText={(duration) => onChange({ duration })} keyboardType="number-pad" />
       {draft.type === 'time' ? (
         <ChoiceRow
           label="완료 시 횟수 증가"
@@ -84,7 +84,7 @@ export function ItemEditorSheet({
           />
         ))}
       </View>
-      <Field label="요일 계획값(선택)" value={draft.plannedValue} onChangeText={(plannedValue) => onChange({ plannedValue })} keyboardType="decimal-pad" />
+      <Field label="요일 계획값(시간 항목은 분, 선택)" value={draft.plannedValue} onChangeText={(plannedValue) => onChange({ plannedValue })} keyboardType="decimal-pad" />
       <Field label="알림 시작 시각(선택, HH:MM)" value={draft.startTime} onChangeText={(startTime) => onChange({ startTime })} />
       <ChoiceRow
         label="이 항목 일정 알림"
@@ -101,7 +101,7 @@ export function ItemEditorSheet({
           disabled={busy}
           onPress={() => {
             const item = target;
-            Alert.alert('항목 삭제', '소프트 삭제하며 이 화면에서 복구할 수 있습니다.', [
+            Alert.alert('항목 삭제', '소프트 삭제하며 기록 관리에서 복구할 수 있습니다.', [
               { text: '취소', style: 'cancel' },
               {
                 text: '삭제',

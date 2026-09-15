@@ -19,24 +19,42 @@ import {
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { accessibleTabBarFootprint } from '@/components/layout';
 import { COLORS } from '@/theme/colors';
 import { tokens } from '@/theme/tokens';
+import { FONTS } from '@/theme/typography';
 
 import { adjustTime, setTimeHour, setTimeMinute, timeParts } from './time';
 
 export function Screen({
   children,
+  contentGap = 10,
+  horizontalPadding = tokens.space.md,
+  topPadding = 14,
   refreshControl,
+  usesTabBar = false,
 }: {
   children: ReactNode;
+  contentGap?: number;
+  horizontalPadding?: number;
+  topPadding?: number;
   refreshControl?: ReactElement<RefreshControlProps>;
+  usesTabBar?: boolean;
 }) {
+  const { fontScale } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const bottomPadding = usesTabBar
+    ? accessibleTabBarFootprint(fontScale, insets.bottom)
+    : insets.bottom + tokens.space.xl;
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <SafeAreaView style={styles.safe} edges={usesTabBar ? ['top'] : []}>
       <ScrollView
-        contentContainerStyle={styles.screen}
+        contentContainerStyle={[
+          styles.screen,
+          { gap: contentGap, paddingBottom: bottomPadding, paddingHorizontal: horizontalPadding, paddingTop: topPadding },
+        ]}
         keyboardShouldPersistTaps="handled"
         refreshControl={refreshControl}>
         {children}
@@ -50,6 +68,33 @@ export function Heading({ children, subtitle }: { children: ReactNode; subtitle?
     <View style={styles.headingWrap}>
       <Text accessibilityRole="header" style={styles.heading}>{children}</Text>
       {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+    </View>
+  );
+}
+
+export function AppBar({
+  title,
+  meta,
+  onMetaPress,
+}: {
+  title: string;
+  meta?: string;
+  onMetaPress?: () => void;
+}) {
+  const metaText = meta ? <Text style={styles.appBarMeta} numberOfLines={2}>{meta}</Text> : null;
+  return (
+    <View style={styles.appBar}>
+      <Text accessibilityRole="header" style={styles.appBarTitle} numberOfLines={2}>{title}</Text>
+      {onMetaPress && meta ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={meta}
+          hitSlop={4}
+          onPress={onMetaPress}
+          style={({ pressed }) => [styles.appBarAction, pressed && styles.pressed]}>
+          {metaText}
+        </Pressable>
+      ) : metaText}
     </View>
   );
 }
@@ -93,7 +138,7 @@ export function AppButton({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
-      accessibilityState={accessibilityState}
+      accessibilityState={{ ...accessibilityState, disabled }}
       disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => [
@@ -265,6 +310,7 @@ export function Sheet({
           accessibilityViewIsModal
           style={[styles.sheet, fontScale >= 1.8 && styles.sheetFull]}
           edges={['bottom']}>
+          <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.sheetHandle} />
           <View style={styles.sheetHeader}>
             <Text ref={titleRef} accessibilityRole="header" style={styles.sheetTitle}>{title}</Text>
             <AppButton label="닫기" onPress={onClose} variant="plain" />
@@ -319,29 +365,33 @@ export function LoadingView() {
 }
 
 export const textStyles = StyleSheet.create({
-  title: { color: COLORS.text, fontSize: tokens.type.body, fontWeight: '700' },
-  body: { color: COLORS.text, fontSize: tokens.type.body, lineHeight: 23 },
-  muted: { color: COLORS.muted, fontSize: tokens.type.caption, lineHeight: 19 },
-  number: { color: COLORS.text, fontSize: tokens.type.body, fontVariant: ['tabular-nums'] },
+  title: { color: COLORS.text, fontFamily: FONTS.medium, fontSize: tokens.type.body, lineHeight: 22 },
+  body: { color: COLORS.text, fontFamily: FONTS.regular, fontSize: tokens.type.body, lineHeight: 22 },
+  muted: { color: COLORS.muted, fontFamily: FONTS.regular, fontSize: tokens.type.caption, lineHeight: 18 },
+  number: { color: COLORS.text, fontFamily: FONTS.medium, fontSize: tokens.type.body, lineHeight: 22, fontVariant: ['tabular-nums'] },
 });
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: COLORS.background },
-  screen: { paddingHorizontal: tokens.space.md, paddingTop: tokens.space.lg, paddingBottom: 112, gap: tokens.space.lg },
+  screen: {},
   headingWrap: { gap: tokens.space.xxs },
-  heading: { color: COLORS.text, fontSize: tokens.type.heading, fontWeight: '800', letterSpacing: -0.5 },
-  subtitle: { color: COLORS.muted, fontSize: tokens.type.caption, lineHeight: 19 },
-  timeValue: { color: COLORS.text, fontSize: 30, fontWeight: '800', textAlign: 'center', fontVariant: ['tabular-nums'] },
+  heading: { color: COLORS.text, fontFamily: FONTS.bold, fontSize: tokens.type.heading, letterSpacing: -0.4, lineHeight: 32 },
+  subtitle: { color: COLORS.muted, fontFamily: FONTS.regular, fontSize: tokens.type.caption, lineHeight: 18 },
+  appBar: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: tokens.space.xs },
+  appBarTitle: { flex: 1, color: COLORS.text, fontFamily: FONTS.bold, fontSize: tokens.type.heading, letterSpacing: -0.4, lineHeight: 32 },
+  appBarMeta: { color: COLORS.muted, fontFamily: FONTS.regular, fontSize: tokens.type.caption, lineHeight: 18, textAlign: 'right' },
+  appBarAction: { minWidth: tokens.hitTarget, minHeight: tokens.hitTarget, alignItems: 'flex-end', justifyContent: 'center' },
+  timeValue: { color: COLORS.text, fontFamily: FONTS.medium, fontSize: 30, lineHeight: 38, textAlign: 'center', fontVariant: ['tabular-nums'] },
   section: { gap: tokens.space.xs },
-  sectionHeader: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  sectionTitle: { color: COLORS.text, fontSize: 18, fontWeight: '700' },
-  card: { backgroundColor: COLORS.surface, borderColor: COLORS.border, borderRadius: tokens.radius.card, borderWidth: 1, padding: tokens.space.md, gap: tokens.space.xs },
+  sectionHeader: { minHeight: 40, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  sectionTitle: { color: COLORS.text, fontFamily: FONTS.medium, fontSize: tokens.type.section, lineHeight: 24, letterSpacing: -0.2 },
+  card: { backgroundColor: COLORS.surfaceRaised, borderRadius: tokens.radius.card, padding: tokens.space.md, gap: tokens.space.xs },
   button: { minHeight: tokens.hitTarget, minWidth: tokens.hitTarget, borderRadius: tokens.radius.control, paddingHorizontal: tokens.space.md, alignItems: 'center', justifyContent: 'center' },
   button_primary: { backgroundColor: COLORS.accent },
-  button_secondary: { backgroundColor: COLORS.surface, borderColor: COLORS.border, borderWidth: 1 },
-  button_danger: { backgroundColor: COLORS.dangerSoft, borderColor: COLORS.danger, borderWidth: 1 },
+  button_secondary: { backgroundColor: COLORS.surfaceSubtle },
+  button_danger: { backgroundColor: COLORS.dangerSoft },
   button_plain: { backgroundColor: 'transparent' },
-  buttonText: { fontSize: 15, fontWeight: '700', textAlign: 'center' },
+  buttonText: { fontFamily: FONTS.medium, fontSize: tokens.type.body, lineHeight: 22, textAlign: 'center' },
   buttonText_primary: { color: COLORS.inverse },
   buttonText_secondary: { color: COLORS.text },
   buttonText_danger: { color: COLORS.danger },
@@ -349,22 +399,23 @@ const styles = StyleSheet.create({
   pressed: { opacity: 0.72 },
   disabled: { opacity: 0.45 },
   fieldWrap: { gap: 6 },
-  label: { color: COLORS.text, fontSize: 14, fontWeight: '600' },
-  input: { minHeight: tokens.hitTarget, borderRadius: tokens.radius.control, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.surface, color: COLORS.text, paddingHorizontal: tokens.space.sm, fontSize: tokens.type.body },
+  label: { color: COLORS.text, fontFamily: FONTS.medium, fontSize: tokens.type.caption, lineHeight: 18 },
+  input: { minHeight: tokens.hitTarget, borderRadius: tokens.radius.control, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.surfaceRaised, color: COLORS.text, paddingHorizontal: tokens.space.sm, fontFamily: FONTS.regular, fontSize: tokens.type.body },
   multiline: { minHeight: 96, paddingTop: 12, textAlignVertical: 'top' },
   choiceRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  choice: { minHeight: 44, borderRadius: 22, borderWidth: 1, borderColor: COLORS.border, paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center' },
-  choiceSelected: { backgroundColor: COLORS.accentSoft, borderColor: COLORS.accent },
-  choiceText: { color: COLORS.text, fontSize: 14 },
-  choiceTextSelected: { color: COLORS.accent, fontWeight: '700' },
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'flex-end' },
-  sheet: { maxHeight: '92%', backgroundColor: COLORS.background, borderTopLeftRadius: 24, borderTopRightRadius: 24 },
+  choice: { minHeight: tokens.hitTarget, borderRadius: tokens.radius.pill, backgroundColor: COLORS.surfaceSubtle, paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center' },
+  choiceSelected: { backgroundColor: COLORS.accentSoft },
+  choiceText: { color: COLORS.text, fontFamily: FONTS.regular, fontSize: tokens.type.caption },
+  choiceTextSelected: { color: COLORS.accent, fontFamily: FONTS.medium },
+  overlay: { flex: 1, backgroundColor: COLORS.overlay, justifyContent: 'flex-end' },
+  sheet: { maxHeight: '92%', backgroundColor: COLORS.surface, borderTopLeftRadius: tokens.radius.sheet, borderTopRightRadius: tokens.radius.sheet },
   sheetFull: { height: '100%', maxHeight: '100%', borderTopLeftRadius: 0, borderTopRightRadius: 0 },
-  sheetHeader: { minHeight: 64, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: tokens.space.xs, paddingHorizontal: tokens.space.md, borderBottomColor: COLORS.border, borderBottomWidth: 1 },
-  sheetTitle: { flex: 1, color: COLORS.text, fontSize: 20, fontWeight: '800' },
-  sheetContent: { padding: tokens.space.md, paddingBottom: tokens.space.xl, gap: tokens.space.sm },
-  sheetFooter: { flexDirection: 'row', flexWrap: 'wrap', gap: tokens.space.xs, padding: tokens.space.md, borderTopColor: COLORS.border, borderTopWidth: 1 },
+  sheetHandle: { alignSelf: 'center', width: 36, height: 4, marginTop: 8, borderRadius: 2, backgroundColor: COLORS.borderStrong },
+  sheetHeader: { minHeight: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: tokens.space.xs, paddingHorizontal: tokens.space.md },
+  sheetTitle: { flex: 1, color: COLORS.text, fontFamily: FONTS.medium, fontSize: tokens.type.section, lineHeight: 24 },
+  sheetContent: { paddingHorizontal: tokens.space.md, paddingBottom: tokens.space.xl, gap: tokens.space.sm },
+  sheetFooter: { flexDirection: 'row', flexWrap: 'wrap', gap: tokens.space.xs, padding: tokens.space.md, backgroundColor: COLORS.surface },
   banner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, backgroundColor: COLORS.warningSoft, borderRadius: 10, paddingLeft: 12 },
-  bannerText: { flex: 1, color: COLORS.warning, fontSize: 14, lineHeight: 20 },
+  bannerText: { flex: 1, color: COLORS.warning, fontFamily: FONTS.regular, fontSize: tokens.type.caption, lineHeight: 18 },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, backgroundColor: COLORS.background },
 });
