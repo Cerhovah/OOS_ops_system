@@ -28,6 +28,15 @@
 - 유지보수 경계: 모바일은 최신 publishable key를 사용하지만 `ai-analysis` Edge Function의 legacy `SUPABASE_ANON_KEY`는 Supabase 공식 폐지 예정에 맞춰 2026년 말 전 교체가 필요하다. Expo SDK 57은 보장된 종료일은 없지만 약 1년 지원 정책을 기준으로 2027년 6월 전후 상향 필요성을 재검토한다.
 - 변경 경계: 공개판 분리 승인과 정보 조회만 했으며 OOS 기능, SQLite schema, Supabase migration/RLS/RPC, AI function, EAS 자격증을 변경하지 않았다.
 
+## 현재 실사용 DB 동결·personal 복원 — 2026-09-15 통과
+
+- 대상: SM-S721N, Android 16/API 36, `com.oosops.app` `0.7.0(15)`, SQLite v7. 설치 APK SHA-256은 보존 personal APK와 같은 `E214F39E6532B4BFED36FBEE51CB35BD96A23CB0E09C43683008BFA5CC3AFC6A`였고 최초 설치일은 2026-08-23 14:42:29였다.
+- 추출 절차: 앱을 force-stop한 뒤 동일 package·versionCode·signer의 임시 debuggable release helper를 실행하지 않고 `adb install -r`했다. DB/WAL/SHM을 `run-as`와 binary stdout으로 직접 복사했으며 uninstall, clear state, downgrade는 사용하지 않았다.
+- raw snapshot: `C:\Users\skljh\Downloads\OOS-Ops-user-data-backup-0.7.0-build15-20260915-095331-raw`과 같은 이름의 ZIP에 보존했다. DB/WAL/SHM은 각각 626,688 / 4,218,912 / 32,768 bytes이고 SHA-256은 `63E6FCA49EB82B7F51401F36DB807C9B05EE46527AA8F4BDB2683110B5B31B7A` / `79B9DA2E57E8B17A4E3609C4F5252236B06F7B4670D58394A57592D7B12B7073` / `02FDA2E6849A5E0818651F7254097C6C7540B6341F6A52CACCA806FF152781A9`다. ZIP SHA-256은 `0D9979E442232433AA5D0A8D07974F35F8B9659FE0D8800370102D618587F748`이다.
+- 보존 검사: raw 3파일의 기기/로컬 크기와 해시가 일치했고 별도 검증 사본에서 `PRAGMA quick_check=ok`, user_version 7, profiles 2 / accounts 18 / items 13 / entries 40 / item_schedules 7 / projects 2 / weekly_plans 5, active profile `profile-practice`를 확인했다. v0.7 종료 게이트 기준보다 감소한 핵심 행은 없다.
+- 원복 검사: 정확한 personal APK를 `adb install -r`해 설치 APK SHA-256과 non-debuggable 상태를 복원했고 최초 설치일을 유지했다. Metro/ADB reverse 없는 cold start가 완료됐고 `MainActivity`가 실행됐으며 fatal, ReactNativeJS, SQLite/migration 오류는 0건이었다.
+- 정리: 동일 서명 debuggable helper APK, 검증용 DB 사본, 임시 build worktree와 그 안의 자격증명 사본을 삭제했다. raw snapshot과 ZIP은 암호화되지 않은 개인 데이터이므로 Git/EAS/공유 저장소에 업로드하지 않는다.
+
 ## v0.7 프로필 작업공간·standalone 종료 게이트 — 2026-09-13 통과
 
 - 소스/경계: 기능 source `7194ace`, 자격증명 ignore `2f9ef10`, `0.7.0(15)`, SQLite v7. local profile workspace와 반복 주간 상한만 추가했고 기존 Supabase schema/RPC/RLS와 `oos_sync_v1` payload는 변경하지 않았다.

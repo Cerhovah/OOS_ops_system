@@ -454,7 +454,7 @@
 - 날짜: 2026-09-15
 - 상태: 승인
 - 맥락: 검증된 `com.oosops.app` 개인판의 설치 데이터와 서명을 보존하면서 Google Play 공개판을 준비해야 한다. 공개판에 개인 seed·단일 owner AI·미완료 profile sync를 그대로 싣으면 데이터 노출과 서버 계약 위반 위험이 있다.
-- 결정: OOS Ops는 현재 저장소와 `com.oosops.app`에서 personal `0.7.0(15)` 기준선으로 동결한다. 공개판 `하루고침`은 새 비공개 GitHub 저장소, 새 applicationId, 새 Play 앱, 별도 배포 환경으로 시작한다. 초기 범위는 로그인·동기화 없는 local-first로 한정한다.
+- 결정: OOS Ops는 현재 저장소와 `com.oosops.app`에서 personal `0.7.0(15)` 기준선으로 동결한다. 공개판 `하루고침`은 새 비공개 GitHub 저장소에서 `com.cerhovah.harugochim` applicationId 후보, 새 Play 앱, 별도 배포 환경으로 시작한다. 후보의 전역 유일성은 Play Console 앱 생성 성공 시 확정하고 첫 AAB 전까지만 변경한다. 초기 범위는 로그인·동기화 없는 local-first로 한정한다.
 - 대안: 같은 applicationId로 Play 업데이트, 같은 Supabase 프로젝트 공유, 개인 저장소에서 공개판 계속 개발.
 - 근거: 서로 다른 package는 한 기기에 병존할 수 있고, 개인 DB·서명·seed·서버를 공개 사용자와 구조적으로 분리한다.
 - 결과 및 위험: 공개판은 OOS Git 이력을 그대로 push하지 않고 필요한 검증 코드만 비밀 제거 감사 후 이전한다. 공개판 applicationId는 첫 Play 등록 전에 영구 확정한다. 동기화를 추가하려면 별도 Supabase 프로젝트와 P6 server-first migration·RLS·RPC 승인이 필요하다.
