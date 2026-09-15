@@ -20,6 +20,14 @@
 - 실기기 재확인: sandbox 밖의 `adb devices -l`에도 연결 기기가 0대여서 현재 package dump와 post-v7 실사용 DB snapshot은 수행하지 못했다. 앱·기기 데이터에는 변경을 가하지 않았다.
 - 문서 정합성: README, SPEC 검증 source 표기, ENVIRONMENT의 역사/현재 표현, TESTPLAN의 과거 설치 표현, P5 Visual pipeline 상태만 현재 기준으로 정정했다. 문서 변경 뒤 내부 상대 링크 존재와 `git diff --check`를 확인했다.
 
+## personal 운영 수명·공개판 분리 읽기 감사 — 2026-09-15
+
+- 앱 수명: `0.7.0(15)`은 embedded JS bundle·SQLite를 포함하고 `expo-updates`를 사용하지 않는 standalone이다. 서버·구독과 무관한 Today·타이머·기록·프로필 로컬 기능에는 고정 만료일이 없다. APK signer 유효기간은 2026-08-20~2054-01-05이고 기록된 인증서 SHA-256과 일치했다.
+- Expo: EAS project `@ljh951206/oos-ops`는 조회됐고 `billing:manage --no-open --json --non-interactive`가 active paid plan 없음을 반환해 현재 Free로 확인했다. 최신 remote personal `0.6.0(14)` artifact의 API 표시 만료는 2026-09-27 21:29 KST이다. `0.7.0(15)`은 로컬 빌드로 Downloads의 APK·해시를 기준 보존본으로 사용한다.
+- Supabase: 연결된 조직은 Free, OOS 프로젝트는 `ACTIVE_HEALTHY`, 현재 프로젝트 1개로 조회됐다. 원격 변경은 하지 않았다. Free inactivity pause는 로그인·동기화·AI만 멈추고 로컬 저장을 취소하지 않는다.
+- 유지보수 경계: 모바일은 최신 publishable key를 사용하지만 `ai-analysis` Edge Function의 legacy `SUPABASE_ANON_KEY`는 Supabase 공식 폐지 예정에 맞춰 2026년 말 전 교체가 필요하다. Expo SDK 57은 보장된 종료일은 없지만 약 1년 지원 정책을 기준으로 2027년 6월 전후 상향 필요성을 재검토한다.
+- 변경 경계: 공개판 분리 승인과 정보 조회만 했으며 OOS 기능, SQLite schema, Supabase migration/RLS/RPC, AI function, EAS 자격증을 변경하지 않았다.
+
 ## v0.7 프로필 작업공간·standalone 종료 게이트 — 2026-09-13 통과
 
 - 소스/경계: 기능 source `7194ace`, 자격증명 ignore `2f9ef10`, `0.7.0(15)`, SQLite v7. local profile workspace와 반복 주간 상한만 추가했고 기존 Supabase schema/RPC/RLS와 `oos_sync_v1` payload는 변경하지 않았다.

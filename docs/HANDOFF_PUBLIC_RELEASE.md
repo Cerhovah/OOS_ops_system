@@ -1,9 +1,9 @@
 # OOS Ops 개인용 기준선 동결·공개판 전환 인수인계
 
-- 기준일: 2026-09-14 (Asia/Seoul)
+- 기준일: 2026-09-15 (Asia/Seoul)
 - 문서 성격: 배포 운영 계획과 인수인계. 제품 동작은 `SPEC.md`가 우선하며, 이 문서만으로 공개 기능·서버 계약을 승인하지 않는다.
 - 현재 브랜치: `codex/p5-today-first-redesign`
-- 현재 상태: 개인용 source/APK/설치 전 데이터는 검증됨. 현재 실사용 DB의 새 raw snapshot과 Google Play 공개판 계약은 미완료다.
+- 현재 상태: 개인용 source/APK/설치 전 데이터는 검증됨. 현재 실사용 DB의 새 raw snapshot은 미완료다. 공개판은 새 비공개 GitHub 저장소의 별도 애플리케이션으로 진행하는 것이 승인됐다.
 
 ## 1. 동결 기준선
 
@@ -67,7 +67,7 @@
 
 ### D1. 개인판과 공개판의 applicationId
 
-**권장: 개인판과 공개판을 분리한다.** 현재 `com.oosops.app`은 그대로 보존하고 공개판에는 새 package/applicationId를 사용한다.
+**2026-09-15 사용자 승인: 개인판과 공개판을 분리한다.** 현재 `com.oosops.app`은 그대로 보존하고 공개판은 새 비공개 GitHub 저장소 [Cerhovah/harugochim](https://github.com/Cerhovah/harugochim)의 별도 package/applicationId를 사용한다.
 
 - 장점: 현재 개인 데이터와 앱을 그대로 유지하면서 두 앱을 동시에 설치할 수 있다. 개인용 Supabase·seed·서명 실험이 공개 사용자에게 섞이지 않는다.
 - 비용: 공개판은 빈 데이터로 시작하며 별도 앱 링크·Supabase redirect·Play 등록·EAS 환경이 필요하다.
@@ -82,11 +82,21 @@
 2. `Public beta`: P6 server-first profile/sync 계약과 계정 삭제를 통과한 선택적 로그인·백업
 3. `AI beta`: 단일 소유자 제한을 제거하고 사용자별 quota·비용 상한·동의·개인정보 문구를 갖춘 AI 분석
 
+초기 공개판은 1단계 local-first 범위로 확정한다. 로그인·동기화는 현재 공개 범위가 아니며, P6 server-first 계약과 사용자 승인 전에 새 공개 앱에 연결하지 않는다.
+
 기존 기능 코드는 보존하되 공개 환경에서 준비되지 않은 sync/AI를 조용히 실패시키거나 개인 owner 설정으로 노출하지 않는다. 공개 v1에 sync를 약속하려면 `profiles`, `profile_id`, `weekly_target_minutes`, active profile을 포함하는 P6 서버 migration→RLS/RPC→구버전 client 호환→새 client 순서를 먼저 사용자에게 보고하고 승인받는다.
 
 ### D3. 공개 기본 데이터
 
 현재 새 DB에 들어가는 `연습용 프로필`의 편입·코디세이·사업·수익화 항목은 개인 설정이다. 공개 clean install에는 빈 온보딩 또는 명확히 합성된 예시만 제공해야 한다. 기존 사용자의 행을 수정·삭제하지 않고 clean-install seed 경계로 분리한다.
+
+### D4. 공개 앱 기본 배포 정보
+
+- 앱 이름: `하루고침`
+- 지원 이메일: `ljh951206@gmail.com`
+- 초기 배포 국가: 대한민국
+- 미국 등 추가 국가: 스토어 문구·법적 요건·지원 범위를 재검토한 뒤 별도 확장
+- 초기 인증·동기화: 미제공
 
 ### D4. 인증과 계정 삭제
 
@@ -121,6 +131,8 @@
 
 현재 Node `24.19.0`, npm `11.17.0`, Expo SDK 57, target SDK 36, EAS project와 local production signing material은 준비돼 있다. `mobile/eas.json`에는 아직 production AAB·submit profile이 없다.
 
+현재 personal APK는 embedded bundle과 SQLite로 로컬 기능을 수행하며 `expo-updates`를 사용하지 않아 설치본에 고정 만료일이 없다. Expo·Supabase·OpenAI 상태는 재빌드, 로그인·동기화, AI에만 영향을 준다. 실제 계정·artifact 조회 결과는 `TESTPLAN.md`에 남긴다.
+
 ## 6. 연결·MCP 상태
 
 2026-09-14 실제 읽기 호출 결과 Figma, Mobbin, Supabase 연결은 정상이다. 앱 runtime이나 Play 배포에는 셋 모두 필요하지 않다.
@@ -136,19 +148,21 @@
 
 MCP를 앱 dependency에 넣거나 개인 데이터·secret을 디자인 도구로 보내지 않는다.
 
-## 7. 비용·구독 판단 (2026-09-14 확인)
+## 7. 비용·구독 판단 (2026-09-15 확인)
 
 | 항목 | 최소 | 권장 시점 |
 |---|---|---|
 | Google Play Console | US$25 일회 등록비 | Android 공개에 필수 |
-| Expo EAS | Free: Android 월 15 builds, 낮은 우선순위 | 큐·빌드 한도가 실제 장애일 때만 Starter US$19/월 |
-| Supabase | Free로 제한된 beta 가능 | 실제 공개 사용자와 복구 책임을 지면 Pro US$25/월부터 권장 |
+| Expo EAS | 현재 Free: Android 월 15 builds, 낮은 우선순위 | 큐·빌드 한도가 실제 장애일 때만 Starter US$19/월 |
+| Supabase | 현재 Free, OOS project `ACTIVE_HEALTHY` | 실제 공개 동기화 사용자와 복구 책임을 지면 Pro US$25/월부터 권장 |
 | SMTP | 제공자별 무료/유료 | 공개 이메일 Auth 전에 발신 도메인과 함께 구성 |
 | 도메인/정적 웹 | 기존 도메인 또는 무료 hosting 가능 | privacy/delete/support/App Link를 한 도메인으로 운영하면 편함 |
 | OpenAI API | 사용량 과금, ChatGPT와 별도 | AI 공개 승인 뒤 billing·프로젝트 예산을 설정 |
 | Figma/Mobbin | 이미 연결된 개발 도구 | 공개 runtime 비용 아님; 디자인 작업 종료 뒤 선택 유지 |
 
 가격·quota·정책은 결제와 제출 직전에 공식 페이지에서 다시 확인한다.
+
+OOS personal의 운영 재검토 시점은 고정 종료일이 아니라 유지보수 경계다. 2026년 말 전 AI Edge Function의 legacy Supabase key를 교체하고, 2027년 6월 전후 Expo SDK 57 상향 필요성을 다시 판단한다. 설치된 로컬 앱의 사용은 이 시점들에 자동 종료되지 않는다.
 
 ## 8. Google Play 공개 절차
 
